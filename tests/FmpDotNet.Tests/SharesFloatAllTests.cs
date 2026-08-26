@@ -14,7 +14,7 @@ namespace FmpDotNet.Tests;
 /// <para>The two captures are <c>page=0&amp;limit=5</c> and <c>page=1&amp;limit=5</c>. They are disjoint and
 /// consecutive — <c>000001.SZ … 000006.SZ</c> then <c>000007.SZ … 000011.SZ</c> — which is the whole evidence for
 /// how this endpoint pages, and also the whole explanation of an incident described on
-/// <see cref="CompanyEndpoints.TryGetAllSharesFloatAsync"/>: the universe is symbol-ordered and global, so page
+/// <see cref="CompanyEndpoints.GetAllSharesFloatAsync"/>: the universe is symbol-ordered and global, so page
 /// zero is Shenzhen, not a sample.</para>
 ///
 /// <para><b>Nothing here asserts that the endpoint is available.</b> It was recorded as 402 on Premium by the
@@ -46,7 +46,7 @@ public class SharesFloatAllTests
     {
         var (endpoints, _) = Build(StubHandler.Json(Fixture("shares-float-all.p0.json")));
 
-        var rows = await endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 5);
+        var rows = await endpoints.GetAllSharesFloatAsync(page: 0, limit: 5);
 
         Assert.NotNull(rows);
         Assert.Equal(5, rows.Count);
@@ -66,7 +66,7 @@ public class SharesFloatAllTests
         // them apart, which is why it is documented on the method.
         var (endpoints, _) = Build(StubHandler.Json(Fixture("shares-float-all.p0.json")));
 
-        var rows = await endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 5);
+        var rows = await endpoints.GetAllSharesFloatAsync(page: 0, limit: 5);
 
         Assert.NotNull(rows);
         Assert.All(rows, row => Assert.Null(row.Source));
@@ -103,7 +103,7 @@ public class SharesFloatAllTests
               "floatShares":25595002.125,"outstandingShares":25595002.125}]
             """));
 
-        var rows = await endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 1);
+        var rows = await endpoints.GetAllSharesFloatAsync(page: 0, limit: 1);
 
         Assert.NotNull(rows);
         Assert.Equal(25595002.125m, rows[0].FloatShares);
@@ -122,8 +122,8 @@ public class SharesFloatAllTests
         var (page0, _) = Build(StubHandler.Json(Fixture("shares-float-all.p0.json")));
         var (page1, _) = Build(StubHandler.Json(Fixture("shares-float-all.p1.json")));
 
-        var first = await page0.TryGetAllSharesFloatAsync(page: 0, limit: 5);
-        var second = await page1.TryGetAllSharesFloatAsync(page: 1, limit: 5);
+        var first = await page0.GetAllSharesFloatAsync(page: 0, limit: 5);
+        var second = await page1.GetAllSharesFloatAsync(page: 1, limit: 5);
 
         Assert.NotNull(first);
         Assert.NotNull(second);
@@ -138,7 +138,7 @@ public class SharesFloatAllTests
     {
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
 
-        await endpoints.TryGetAllSharesFloatAsync(page: 3, limit: 1000);
+        await endpoints.GetAllSharesFloatAsync(page: 3, limit: 1000);
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/shares-float-all", uri.AbsolutePath);
@@ -152,7 +152,7 @@ public class SharesFloatAllTests
         // "not entitled". A walk terminates on the first, never on the second.
         var (endpoints, _) = Build(StubHandler.Json("[]"));
 
-        var rows = await endpoints.TryGetAllSharesFloatAsync(page: 999_999, limit: 100);
+        var rows = await endpoints.GetAllSharesFloatAsync(page: 999_999, limit: 100);
 
         Assert.NotNull(rows);
         Assert.Empty(rows);
@@ -164,9 +164,9 @@ public class SharesFloatAllTests
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => endpoints.TryGetAllSharesFloatAsync(-1, 100));
+            () => endpoints.GetAllSharesFloatAsync(-1, 100));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => endpoints.TryGetAllSharesFloatAsync(0, 0));
+            () => endpoints.GetAllSharesFloatAsync(0, 0));
         Assert.Empty(handler.Requests);
     }
 
@@ -175,32 +175,19 @@ public class SharesFloatAllTests
     [Theory]
     [InlineData(HttpStatusCode.PaymentRequired)]
     [InlineData(HttpStatusCode.Forbidden)]
-    public async Task Plan_gating_degrades_to_null_rather_than_throwing(HttpStatusCode status)
+    public async Task Plan_gating_throws_rather_than_coming_back_as_a_null(HttpStatusCode status)
     {
-        // The acceptance criterion of issue #3, and the fix for a defect the predecessor recorded against itself:
-        // "a paywalled endpoint must not read as an empty result... distinguish no data from not entitled from
-        // provider down." Null is the signal to fall back to the per-symbol loop.
-        //
-        // Gating here is unsettled in BOTH directions — recorded as 402 on Premium, answered 200 on 2026-08-26 —
-        // so this pins the handling of each answer and never asserts which one arrives.
+        // This method used to be TryGetAllSharesFloatAsync and answered null here, so an optional fast path could
+        // degrade in one branch. That put two error channels on one signature and overloaded a nullable return
+        // with a meaning the signature could not carry. A caller that wants to degrade catches instead — and gets
+        // to see WHICH refusal arrived, which the null never told it.
         var (endpoints, _) = Build(StubHandler.Status(status));
 
-        Assert.Null(await endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 100));
+        var ex = await Assert.ThrowsAsync<FmpPlanRestrictedException>(
+            () => endpoints.GetAllSharesFloatAsync(page: 0, limit: 100));
+
+        Assert.Equal(status, ex.StatusCode);
     }
-
-    [Fact]
-    public async Task Null_from_plan_gating_is_not_the_same_as_an_empty_page()
-    {
-        // Stated as one assertion so the difference cannot be optimised away by a future refactor that returns
-        // an empty list "for convenience".
-        var (gated, _) = Build(StubHandler.Status(HttpStatusCode.PaymentRequired));
-        var (entitled, _) = Build(StubHandler.Json("[]"));
-
-        Assert.Null(await gated.TryGetAllSharesFloatAsync(page: 0, limit: 100));
-        Assert.NotNull(await entitled.TryGetAllSharesFloatAsync(page: 0, limit: 100));
-    }
-
-    // ---- error handling ---------------------------------------------------------------------------------------
 
     [Fact]
     public async Task A_429_is_still_a_rate_limit_exception_on_this_path()
@@ -213,7 +200,7 @@ public class SharesFloatAllTests
         var (endpoints, _) = Build(response);
 
         var ex = await Assert.ThrowsAsync<FmpRateLimitedException>(
-            () => endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 100));
+            () => endpoints.GetAllSharesFloatAsync(page: 0, limit: 100));
 
         Assert.Equal(Duration.FromSeconds(30), ex.RetryAfter);
     }
@@ -233,7 +220,7 @@ public class SharesFloatAllTests
             http, Options.Create(new FmpOptions { ApiKey = "super-secret-key" })));
 
         var ex = await Assert.ThrowsAsync<FmpApiException>(
-            () => endpoints.TryGetAllSharesFloatAsync(page: 0, limit: 100));
+            () => endpoints.GetAllSharesFloatAsync(page: 0, limit: 100));
 
         Assert.Equal("Query Error: bad page", ex.ErrorMessage);
         Assert.Equal(HttpStatusCode.BadRequest, ex.StatusCode);

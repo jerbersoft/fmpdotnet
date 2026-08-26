@@ -85,32 +85,36 @@ public class FmpPlanRestrictionTests
         Assert.DoesNotContain("super-secret-key", ex.ToString());
     }
 
-    [Theory]
-    [InlineData(HttpStatusCode.PaymentRequired)]
-    [InlineData(HttpStatusCode.Forbidden)]
-    public async Task The_Try_form_still_answers_null_for_both_statuses(HttpStatusCode status)
+    [Fact]
+    public void No_endpoint_signals_a_refusal_by_returning()
     {
-        // The degrade-in-one-branch path is unchanged: a caller with a fallback does not want to catch anything.
-        // Null remains "not entitled" and never "no rows" — an entitled call with nothing to say returns [].
-        var (transport, _) = Build(StubHandler.Status(status));
+        // Asserted structurally, because the tempting answer to "I would rather not catch" is to put a Try twin
+        // back. C# forbids `out` on async methods (CS1988), so the BCL's shape cannot be expressed here at all;
+        // what this SDK had instead was a nullable return with an error meaning bolted on, which no signature can
+        // convey. If a Try method reappears on any of these types, this fails.
+        var trySurface = typeof(FmpTransport).GetMethods()
+            .Concat(typeof(CompanyEndpoints).GetMethods())
+            .Concat(typeof(BulkEndpoints).GetMethods())
+            .Concat(typeof(StatementEndpoints).GetMethods())
+            .Where(m => m.Name.StartsWith("Try", StringComparison.Ordinal))
+            .Select(m => m.Name)
+            .ToList();
 
-        var rows = await transport.TryGetListAsync(
-            new FmpRequest("stable/shares-float-all"), FmpJsonContext.Default.ListSharesFloat);
-
-        Assert.Null(rows);
+        Assert.Empty(trySurface);
     }
 
     [Fact]
-    public async Task An_entitled_call_with_nothing_to_say_returns_an_empty_list_not_null()
+    public async Task An_entitled_call_with_nothing_to_say_returns_an_empty_list()
     {
-        // The distinction the null is protecting. Trader's adapter collapsed 402 into an empty result and its own
-        // notes record that as a defect, because a paywalled endpoint then reads exactly like a real empty answer.
+        // The distinction the old null was protecting, and it survives without it: a paywalled endpoint must not
+        // read like a real empty answer. Trader's adapter collapsed 402 into an empty result and its own design
+        // notes record that as a defect — the failure was indistinguishable from real no-data and from the
+        // provider being down. Now an entitled call returns a list and a refused one does not return at all.
         var (transport, _) = Build(StubHandler.Json("[]"));
 
-        var rows = await transport.TryGetListAsync(
+        var rows = await transport.GetListAsync(
             new FmpRequest("stable/shares-float-all"), FmpJsonContext.Default.ListSharesFloat);
 
-        Assert.NotNull(rows);
         Assert.Empty(rows);
     }
 

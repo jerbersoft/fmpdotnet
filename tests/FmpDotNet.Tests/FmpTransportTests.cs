@@ -75,12 +75,11 @@ public class FmpTransportTests
     [Theory]
     [InlineData(HttpStatusCode.PaymentRequired)]
     [InlineData(HttpStatusCode.Forbidden)]
-    public async Task Plan_gating_is_null_from_TryGet_and_an_exception_from_Get(HttpStatusCode status)
+    public async Task Plan_gating_is_an_exception_and_never_a_return_value(HttpStatusCode status)
     {
-        var (tryTransport, _) = Build(StubHandler.Status(status));
-        Assert.Null(await tryTransport.TryGetListAsync(new FmpRequest("stable/profile-bulk"),
-            FmpJsonContext.Default.ListCompanyProfile));
-
+        // There is no TryGetListAsync half any more: C# forbids `out` on async methods, so the BCL's Try shape
+        // cannot be expressed here, and the nullable-return imitation meant one signature carried two error
+        // channels.
         var (getTransport, _) = Build(StubHandler.Status(status));
         await Assert.ThrowsAsync<FmpPlanRestrictedException>(() =>
             getTransport.GetListAsync(new FmpRequest("stable/profile-bulk"),

@@ -65,16 +65,12 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// ETF measured answered null), so the two nulls are genuinely indistinguishable on the value alone — only the
     /// endpoint you called tells them apart.</para>
     ///
-    /// <para><b>Why null rather than an exception, and when to want the other one.</b> This goes through
-    /// <see cref="FmpTransport.TryGetListAsync{T}(FmpRequest, System.Text.Json.Serialization.Metadata.JsonTypeInfo{System.Collections.Generic.List{T}}, CancellationToken)"/>,
-    /// so a 402 or 403 returns null instead of throwing and an optional fast path can degrade to the per-symbol loop
-    /// in one branch. <b>Null is "not entitled" and never "no rows"</b> — an entitled call with nothing to say
-    /// answers an empty list. Keeping those apart is the whole point: the predecessor's adapter collapsed 402 into
-    /// an empty result, and its own design notes record that as a defect, since a paywalled endpoint reading as
-    /// no-data is indistinguishable from a real empty answer and from the provider being down. Where a caller would
-    /// rather fail loudly than degrade — a scheduled load that must not quietly do nothing — reach for
-    /// <see cref="FmpTransport.GetListAsync{T}"/> on the same request instead and catch
-    /// <see cref="FmpPlanRestrictedException"/>.</para>
+    /// <para><b>A refusal throws; it does not come back as null.</b> There is no <c>Try</c>-prefixed twin, and
+    /// there cannot usefully be one: C# forbids <c>out</c> parameters on async methods, so the BCL's
+    /// <c>bool TryX(out T)</c> shape is unavailable here, and the nullable-return imitation this method used to
+    /// have put two error channels on one signature — a caller had to read this paragraph to learn that null
+    /// meant "refused" rather than "nothing there". Catch <see cref="FmpPlanRestrictedException"/> to degrade to
+    /// the per-symbol loop; it says which of 402 or 403 arrived, which the null never could.</para>
     ///
     /// <para>Gating here is not settled and must not be assumed either way: this endpoint was recorded as 402 on
     /// Premium by the predecessor and answered 200 when re-probed on 2026-08-26. It is JSON rather than CSV and is
@@ -84,17 +80,20 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// <param name="limit">Page size. Required rather than optional on purpose — see the first paragraph. Sending
     /// neither parameter is what produced the incident above.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>The page's rows, an empty list when the page is past the end of the universe, or
-    /// <see langword="null"/> when FMP answered 402 or 403.</returns>
+    /// <returns>The page's rows, or an empty list when the page is past the end of the universe. Never
+    /// <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative or
     /// <paramref name="limit"/> is not positive.</exception>
     /// <exception cref="FmpRateLimitedException">FMP answered 429. Likely if the pages are walked flat out.</exception>
-    public Task<IReadOnlyList<SharesFloat>?> TryGetAllSharesFloatAsync(
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<SharesFloat>> GetAllSharesFloatAsync(
         int page, int limit, CancellationToken ct = default)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(page);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
-        return transport.TryGetListAsync(
+        return transport.GetListAsync(
             new FmpRequest("stable/shares-float-all").With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListSharesFloat, ct);
     }

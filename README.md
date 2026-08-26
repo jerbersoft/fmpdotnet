@@ -264,17 +264,31 @@ catch (FmpPlanRestrictedException ex)
 outcome of hammering the bulk endpoints — and reporting that as "upgrade your plan" sends someone to the wrong
 page entirely.
 
-**Most endpoints throw. A few return null instead**, via a `Try`-prefixed twin — currently
-`Company.TryGetAllSharesFloatAsync`, so an optional whole-universe fast path can degrade to the per-symbol loop in
-one branch rather than a catch. The rule is:
+**Every failure is an exception. Nothing signals one by returning.**
 
-> A `Try` twin exists only where a real alternative exists.
+There is no `Try`-prefixed method anywhere in the SDK, and that is a decision rather than an omission. C# forbids
+`out` parameters on async methods (CS1988), so the BCL's `bool TryX(out T)` shape cannot be written for an async
+API at all — which is why the framework has no `TryReadAsync` either, and why `ChannelReader<T>` pairs a
+*synchronous* `TryRead` with an *asynchronous* `ReadAsync` that throws. An earlier version of this SDK imitated
+the pattern with a nullable return, which was worse than either option: it put two error channels on one surface
+and gave `null` a meaning the signature could not carry, so you had to read the docs to learn that it meant
+"refused" rather than "nothing there".
 
-There is no cheaper path to fall back to when a 69 MB whole-universe download is refused, so the bulk endpoints
-throw. And on the `Try` form, **null is "not entitled" and never "no rows"** — an entitled call with nothing to
-say returns an empty list. Keeping those apart is deliberate: collapsing 402 into an empty result makes a
-paywalled endpoint indistinguishable from a real empty answer *and* from the provider being down, which is a
-defect the SDK's predecessor shipped.
+To degrade instead of failing — an optional whole-universe fast path falling back to a per-symbol loop, say —
+catch the exception. It is self-describing at the catch site and tells you *which* refusal arrived.
+
+**Null still means something, just never an error.** Endpoints returning `T?` use null for an answer FMP
+genuinely gave:
+
+| Returns null when | Meaning |
+|---|---|
+| `Company.GetProfileAsync` | FMP has no such symbol |
+| `Company.GetSharesFloatAsync` | likewise |
+| `Statements.GetScoresAsync` | an ETF, which genuinely has no scores |
+
+An entitled call with nothing to say returns an **empty list**, not null and not an exception. Collapsing a 402
+into an empty result is what makes a paywalled endpoint indistinguishable from a real empty answer *and* from the
+provider being down — a defect the SDK's predecessor shipped.
 
 **The SDK carries no tier map**, and will not. `profile-bulk` and `shares-float-all` were both recorded as 402 on
 Premium and both answered 200 when re-probed on 2026-08-26. Entitlement moves and varies per key, so anything

@@ -79,12 +79,20 @@ public sealed class FmpApiException : FmpException
 /// 2026-08-26. Code that decides once that an endpoint is unavailable goes stale silently, and the SDK
 /// deliberately carries no tier map for the same reason — entitlement moves, and it varies per key.</para>
 ///
-/// <para><b>When you get this rather than a null.</b> Most endpoints throw. A few expose a <c>Try</c>-prefixed
-/// twin that returns <see langword="null"/> on 402/403 instead, so an optional fast path can degrade in one
-/// branch — <see cref="Endpoints.CompanyEndpoints.TryGetAllSharesFloatAsync"/> is the current example, degrading
-/// to a per-symbol loop. The rule is that a <c>Try</c> twin exists only where a real alternative exists: there is
-/// no cheaper path to fall back to when a whole-universe download is refused, so those throw. Where a caller
-/// would rather fail loudly than degrade, call the throwing form and catch this.</para></summary>
+/// <para><b>Every endpoint throws this; none of them signal a refusal by returning.</b> There is no
+/// <c>Try</c>-prefixed twin anywhere in the SDK, and there deliberately is not going to be one. C# forbids
+/// <c>out</c> parameters on async methods (CS1988), so the BCL's <c>bool TryX(out T)</c> shape cannot be
+/// expressed on an async surface at all — which is why the framework has no <c>TryReadAsync</c> either, and why
+/// <see cref="System.Threading.Channels.ChannelReader{T}"/> pairs a synchronous <c>TryRead</c> with an
+/// asynchronous <c>ReadAsync</c> that throws. The nullable-return imitation this SDK briefly had was worse than
+/// either: it put two error channels on one signature and overloaded a nullable return with a meaning the
+/// signature could not carry, so a caller had to go and read a paragraph to learn that null meant "refused"
+/// rather than "nothing there".</para>
+///
+/// <para><b>Null still means something, just never this.</b> Endpoints returning <c>T?</c> —
+/// <see cref="Endpoints.CompanyEndpoints.GetProfileAsync"/> for an unknown symbol,
+/// <see cref="Endpoints.StatementEndpoints.GetScoresAsync"/> for an ETF — use null for an answer FMP genuinely
+/// gave, not for a failure. Errors are exceptions; null is data.</para></summary>
 public sealed class FmpPlanRestrictedException : FmpException
 {
     /// <summary>Creates the exception for a path the account's plan does not cover.</summary>
