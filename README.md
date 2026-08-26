@@ -9,46 +9,15 @@ being spoken to, not the publisher.
 
 Built to be adopted by the `trader` repository, so build order follows what trader calls rather than what FMP
 documents first: FMP publishes 263 endpoints across 28 categories (230 unique paths — the asset-class sections
-re-document `/stable/quote` and friends), and the first release targets 39 of them.
+re-document `/stable/quote` and friends). See [endpoint coverage](#endpoint-coverage) for exactly which of them
+are modelled, and how to reach the rest.
 
 ## Status
 
-Foundation, both pipelines, the period-shaped fundamentals, the directory endpoints, every endpoint trader calls,
-and the whole bulk surface. `dotnet test` — 305 passing.
-
-| Area | State |
-|---|---|
-| Options, validation, DI (`AddFmp`) | done |
-| NodaTime throughout — no BCL date/time in the public surface | done |
-| Throttling — separate reservoirs for standard and bulk | done |
-| Timeouts — per-attempt, outside throttle wait | done |
-| JSON pipeline → `IReadOnlyList<T>` | done |
-| CSV bulk pipeline → `IAsyncEnumerable<T>` | done |
-| `Company.GetProfileAsync` | done |
-| `Company.GetSharesFloatAsync` | done |
-| `Company.TryGetAllSharesFloatAsync` — paged whole-universe float | done |
-| `Statements.*` — the seven period-shaped endpoints | done |
-| `Statements.GetScoresAsync` — Altman Z and Piotroski | done |
-| `Directory.*` — available sectors and industries | done |
-| `Calendar.GetEarningsAsync` — per-symbol earnings history | done |
-| `Calendar.GetEarningsCalendarAsync` — whole-market, with a truncation signal | done |
-| `Analyst.GetEstimatesAsync` — forward consensus | done |
-| `Economics.GetEconomicCalendarAsync` — macro releases | done |
-| `Bulk.StreamEndOfDayAsync` | done |
-| `Bulk.StreamProfilesAsync` / `StreamAllProfilesAsync` | done |
-| `Bulk.StreamPriceTargetSummariesAsync` | done |
-| `Bulk.StreamAnalystConsensusAsync` | done |
-| `Bulk.StreamEarningsSurprisesAsync` | done |
-| `Bulk.StreamIncomeStatementsAsync` / `…BalanceSheetsAsync` / `…CashFlowsAsync` | done |
-| `Bulk.Stream*GrowthAsync` — the three growth variants | done |
-| `Bulk.StreamKeyMetricsTtmAsync` / `StreamRatiosTtmAsync` | done |
-| `Bulk.StreamRatingsAsync` / `StreamDiscountedCashFlowsAsync` / `StreamScoresAsync` / `StreamPeersAsync` | done |
-| `Bulk.StreamEtfHoldingsAsync` / `StreamAllEtfHoldingsAsync` | done |
-| Developer disk cache for bulk responses | done |
-| Remaining 4 endpoints — the universe and directory lists | not started |
-
-Every endpoint `Trader.Adapters.MarketData.Fmp` calls is now modelled, which is what the adapter's removal was
-waiting on.
+Every endpoint `Trader.Adapters.MarketData.Fmp` calls is modelled, which is what that adapter's removal was
+waiting on — along with the whole `*-bulk` surface and the universe and directory lists. The supporting
+machinery is in place too: options and validation, `AddFmp`, the two throttle reservoirs, per-attempt timeouts,
+the JSON and CSV pipelines, and a developer disk cache for bulk responses.
 
 ## Usage
 
@@ -76,6 +45,26 @@ var shares = await fmp.Company.GetSharesFloatAsync("AAPL");
 // The reference vocabularies the profile's `sector` and `industry` are drawn from.
 IReadOnlyList<string> sectors    = await fmp.Directory.GetSectorsAsync();
 IReadOnlyList<string> industries = await fmp.Directory.GetIndustriesAsync();
+
+// The symbol universe. `actively-trading` is a strict subset of `stock-list` — measured, every
+// symbol, no exceptions — so the difference is a defined set, not an inference.
+var listed = await fmp.Directory.GetStockListAsync();          // 91,844 symbols
+var live   = await fmp.Directory.GetActivelyTradingAsync();    // 68,869 symbols
+
+// The delisting archive, newest first. 100 rows per page is a hard cap, not a default:
+// asking for more returns the same 100 with HTTP 200. GetDelistedAsync rejects it instead.
+var gone = await fmp.Company.GetDelistedAsync(page: 0, limit: 100);
+
+// Screening. Unset properties are never sent, so an empty ScreenerCriteria is a request for
+// the whole universe rather than a request for nothing.
+var large = await fmp.Search.ScreenAsync(new ScreenerCriteria
+{
+    MarketCapMoreThan = 10_000_000_000m,
+    Sector = "Technology",     // spelling must come from GetSectorsAsync — see below
+    Country = "US",
+    IsEtf = false,
+    Limit = 500,
+});
 
 // Altman Z and Piotroski, plus the seven figures the Z score is computed from.
 var scores = await fmp.Statements.GetScoresAsync("AAPL");
@@ -106,6 +95,153 @@ await foreach (var bar in fmp.Bulk.StreamEndOfDayAsync(new LocalDate(2025, 10, 2
 // The whole-universe profile feed, streamed a part at a time.
 await foreach (var p in fmp.Bulk.StreamAllProfilesAsync(ct))
     Console.WriteLine($"{p.Symbol} {p.Sector} {p.Industry}");
+```
+
+## Endpoint coverage
+
+**The table below is generated from the code**, not maintained by hand. Every public method is driven against a
+stub and the path it actually requests is recorded, so renaming a method, deleting one, or adding an endpoint
+without a table entry fails the build rather than leaving a page that reads as current.
+
+<!-- BEGIN GENERATED: endpoint coverage -->
+<!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
+     `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
+
+**39 of FMP's 230 endpoint paths are modelled.**
+
+`fmp.Analyst`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/analyst-estimates` | `GetEstimatesAsync` |
+
+`fmp.Bulk`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/balance-sheet-statement-bulk` | `StreamBalanceSheetsAsync` |
+| `stable/balance-sheet-statement-growth-bulk` | `StreamBalanceSheetGrowthAsync` |
+| `stable/cash-flow-statement-bulk` | `StreamCashFlowsAsync` |
+| `stable/cash-flow-statement-growth-bulk` | `StreamCashFlowGrowthAsync` |
+| `stable/dcf-bulk` | `StreamDiscountedCashFlowsAsync` |
+| `stable/earnings-surprises-bulk` | `StreamEarningsSurprisesAsync` |
+| `stable/eod-bulk` | `StreamEndOfDayAsync` |
+| `stable/etf-holder-bulk` | `StreamAllEtfHoldingsAsync`, `StreamEtfHoldingsAsync` |
+| `stable/income-statement-bulk` | `StreamIncomeStatementsAsync` |
+| `stable/income-statement-growth-bulk` | `StreamIncomeStatementGrowthAsync` |
+| `stable/key-metrics-ttm-bulk` | `StreamKeyMetricsTtmAsync` |
+| `stable/peers-bulk` | `StreamPeersAsync` |
+| `stable/price-target-summary-bulk` | `StreamPriceTargetSummariesAsync` |
+| `stable/profile-bulk` | `StreamAllProfilesAsync`, `StreamProfilesAsync` |
+| `stable/rating-bulk` | `StreamRatingsAsync` |
+| `stable/ratios-ttm-bulk` | `StreamRatiosTtmAsync` |
+| `stable/scores-bulk` | `StreamScoresAsync` |
+| `stable/upgrades-downgrades-consensus-bulk` | `StreamAnalystConsensusAsync` |
+
+`fmp.Calendar`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/earnings` | `GetEarningsAsync` |
+| `stable/earnings-calendar` | `GetEarningsCalendarAsync` |
+
+`fmp.Company`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/delisted-companies` | `GetDelistedAsync` |
+| `stable/profile` | `GetProfileAsync` |
+| `stable/shares-float` | `GetSharesFloatAsync` |
+| `stable/shares-float-all` | `GetAllSharesFloatAsync` |
+
+`fmp.Directory`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/actively-trading-list` | `GetActivelyTradingAsync` |
+| `stable/available-industries` | `GetIndustriesAsync` |
+| `stable/available-sectors` | `GetSectorsAsync` |
+| `stable/stock-list` | `GetStockListAsync` |
+
+`fmp.Economics`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/economic-calendar` | `GetEconomicCalendarAsync` |
+
+`fmp.Search`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/company-screener` | `ScreenAsync` |
+
+`fmp.Statements`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/balance-sheet-statement` | `GetBalanceSheetAsync` |
+| `stable/cash-flow-statement` | `GetCashFlowAsync` |
+| `stable/enterprise-values` | `GetEnterpriseValuesAsync` |
+| `stable/financial-growth` | `GetFinancialGrowthAsync` |
+| `stable/financial-scores` | `GetScoresAsync` |
+| `stable/income-statement` | `GetIncomeStatementAsync` |
+| `stable/key-metrics` | `GetKeyMetricsAsync` |
+| `stable/ratios` | `GetRatiosAsync` |
+
+<!-- END GENERATED: endpoint coverage -->
+
+### Reaching an endpoint that is not modelled
+
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. Closest to
+the surface are FMP's Quote (16 endpoints) and Chart (10), deprioritised for a specific reason rather than by
+oversight — trader sources bars and quotes from Alpaca. Behind those sit roughly 160 more across News, SEC
+Filings, Form 13F, Insider Trades, ETF & Mutual Funds, Earnings Transcripts, Senate/House, ESG, COT, Fundraisers,
+Commodity, Forex, Crypto, Technical Indicators, Market Performance, Indexes, Market Hours and DCF.
+
+**`FmpTransport` is public precisely so none of that blocks you.** Reach an unmodelled endpoint through it rather
+than building a second `HttpClient`: the transport carries the throttle, the timeout, the 429 handling and the
+error classification described below, and a call made any other way has none of them — including the shared
+reservoir, so it would not even count against the budget the rest of your calls are pacing themselves within.
+
+The SDK is AOT-compatible and never reflects over your model, so `GetListAsync` takes a `JsonTypeInfo` where a
+reflection-based client would take a `T`. Declare a context for your own types:
+
+```csharp
+public sealed record RatingSnapshot
+{
+    [JsonPropertyName("symbol")] public required string Symbol { get; init; }
+    [JsonPropertyName("rating")] public string? Rating { get; init; }
+}
+
+[JsonSerializable(typeof(List<RatingSnapshot>))]
+public sealed partial class MyFmpJson : JsonSerializerContext;
+```
+
+Then go through the transport — the same instance the typed endpoints use, resolved from DI:
+
+```csharp
+var transport = provider.GetRequiredService<FmpTransport>();
+
+IReadOnlyList<RatingSnapshot> rows = await transport.GetListAsync(
+    new FmpRequest("stable/ratings-snapshot").With("symbol", "AAPL"),
+    MyFmpJson.Default.ListRatingSnapshot,
+    ct);
+```
+
+An unmodelled `*-bulk` endpoint goes through `FmpBulkTransport` instead, which is the same transport bound to the
+bulk client — the tighter throttle and the ten-minute timeout come with it, and CSV is mapped a row at a time so
+nothing buffers:
+
+```csharp
+var transport = provider.GetRequiredService<FmpBulkTransport>();
+
+await foreach (var row in transport.StreamCsvAsync(
+    new FmpRequest("stable/some-bulk"),
+    csv => new MyRow { Symbol = csv.GetString("symbol")!, Price = csv.GetDecimal("price") },
+    ct))
+{
+    // ...
+}
 ```
 
 ## Dates and times are NodaTime
@@ -240,9 +376,35 @@ Measured against the live API on 2026-08-26 unless noted.
   expiry raises `TimeoutException` rather than the `TaskCanceledException` callers mistake for a shutdown.
   `HttpClient.Timeout` is deliberately infinite.
 - **Plan gating changes.** `profile-bulk` and `shares-float-all` were previously recorded as 402-on-Premium; both
-  answered 200 when re-probed. `TryGetListAsync` returns null rather than throwing so a fast path can degrade.
-- **`/stable/company-symbol-list` does not exist** (404). The working directory endpoints are `stock-list` and
-  `actively-trading-list`.
+  answered 200 when re-probed. Catch `FmpPlanRestrictedException` to degrade a fast path — and read its
+  `StatusCode` before reporting it, since 403 points at the key at least as often as at the plan.
+- **`/stable/company-symbol-list` does not exist, and says so in the success shape.** It answers **404 with the
+  body `[]`** — a JSON array, which is what this API returns when a request *works*. A client that reads the body
+  for an explanation finds a valid empty result on a failed request; this SDK's own error path did exactly that
+  and reported `FmpApiException: []`, naming neither the status nor the path. It now ignores an array body and
+  reports the status. The working directory endpoints are `stock-list` and `actively-trading-list`.
+- **`delisted-companies` caps `limit` at 100 and does not say so.** `limit=1000` and `limit=100` returned
+  byte-identical bodies. A caller who trusted the larger value and stepped `page` by their own limit would read a
+  tenth of the archive with HTTP 200 throughout, so `GetDelistedAsync` rejects a limit above
+  `CompanyEndpoints.MaxDelistedPageSize` at the call site rather than letting the clamp happen silently. The
+  archive is 9,782 rows over 98 pages, ordered newest-first — which is why **page 0 carries delistings scheduled
+  for the future**; the top row was dated four months ahead of the call.
+- **The two symbol lists send the same value under different names.** `stock-list` sends `companyName` and
+  `actively-trading-list` sends `name`, and the values agree character for character across all 68,869 shared
+  symbols. Both map to `CompanySymbol`. `actively-trading-list` is a strict subset of `stock-list` — 0 symbols
+  outside it — so "listed but not actively trading" is a defined set of 22,975, not an inference.
+- **The screener reports bad input as data, in both directions.** An unrecognised parameter *name* is ignored:
+  `bogusParam=1&limit=3` returns the same three rows as `limit=3` alone, so a typo in a filter silently widens
+  the query and looks like a query that worked. An unrecognised parameter *value* returns `[]` with HTTP 200,
+  indistinguishable from a real filter that matched nothing. `ScreenerCriteria` closes the first — a misspelled
+  filter will not compile. The second cannot be closed without freezing a vocabulary FMP grows, so an empty
+  screen is a reason to check the values against `GetSectorsAsync` and `GetIndustriesAsync` before concluding the
+  universe is empty.
+- **The screener's `…MoreThan` and `…LowerThan` bounds are both inclusive**, despite the names — `priceLowerThan=1`
+  returns securities priced at exactly 1. Two adjacent ranges written as `LowerThan = x` and `MoreThan = x`
+  overlap on the boundary rather than partitioning. Its `exchange` filter also takes only the short code, so a
+  result's own `Exchange` (`NASDAQ Global Select`) fed back into a query matches nothing; `ExchangeShortName` is
+  the field that round-trips.
 
 ## Plan gating — 402 and 403
 
@@ -348,12 +510,3 @@ It is off by default, it applies only to the bulk client — never to the per-sy
 warning the first time it serves anything, so it cannot be on without saying so. Responses that look like an error
 payload are delivered but never kept, so a failure cannot be replayed forever as if it were data.
 
-## Endpoints not yet modelled
-
-`FmpTransport` is public. Reach an unmodelled endpoint through it rather than building a second `HttpClient`
-without the throttle:
-
-```csharp
-var rows = await transport.TryGetListAsync<MyModel>(
-    new FmpRequest("stable/ratings-snapshot").With("symbol", "AAPL"), ct);
-```
