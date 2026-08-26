@@ -4,6 +4,16 @@ using NodaTime;
 
 namespace FmpDotNet.Models;
 
+// CS1591 (missing XML comment on a public member) is disabled HERE, for this file only, rather than for the
+// whole assembly. The 31 properties below are a flat transcription of FMP's wire fields: the property name
+// carries the same information a generated one-line summary would, and 31 of those would bury the type-level
+// documentation above — which is where this response's actual quirks are recorded.
+//
+// Scoping it to the file is the point. Suppressing CS1591 project-wide, as this used to, also meant a NEW
+// undocumented public member anywhere in the SDK compiled silently. The seven transcription models are the only
+// exemptions, and the zero-warning bar holds everywhere else.
+#pragma warning disable CS1591
+
 /// <summary>One period of an income statement. From <c>stable/income-statement</c>.
 ///
 /// <para>Every figure is <see langword="decimal"/>, not double. Values measured on the live API reach

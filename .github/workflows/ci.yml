@@ -134,12 +134,32 @@ jobs:
       # `dotnet pack` builds Release from scratch here rather than reusing the test job's output: jobs run on
       # separate runners, and shipping an artifact between them to save one compile of a five-file library would
       # cost more in moving parts than it saves.
+      #
+      # This produces a .snupkg beside the .nupkg, and the build is deterministic here and only here: the project
+      # sets ContinuousIntegrationBuild when GITHUB_ACTIONS is true, which normalises source paths so the same
+      # commit packs to the same bytes on any runner.
       - name: Pack
         run: dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
 
+      # --no-symbols is not a preference, it is what this feed supports. Checked against the registry's own
+      # service index, which advertises PackagePublish/2.0.0 and no SymbolPackagePublish resource of any version:
+      # GitHub Packages runs no symbol server. Left implicit, `dotnet nuget push` looks for that resource, fails
+      # to find it, and warns on every publish about something that cannot be fixed here.
+      #
+      # The symbols are not lost — the .snupkg is uploaded below. Source Link stamps the commit into those PDBs,
+      # so loading them from the artifact gives a debugger the exact source for the binary it is stepping through.
+      # If this package ever goes to nuget.org, which does run a symbol server, drop this flag.
       - name: Push
         run: >
           dotnet nuget push "./artifacts/*.nupkg"
           --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
           --api-key ${{ secrets.GITHUB_TOKEN }}
           --skip-duplicate
+          --no-symbols
+
+      - name: Upload symbol package
+        uses: actions/upload-artifact@v7
+        with:
+          name: symbols-${{ github.run_number }}
+          path: ./artifacts/*.snupkg
+          retention-days: 90

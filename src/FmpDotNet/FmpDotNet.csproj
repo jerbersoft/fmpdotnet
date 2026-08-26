@@ -9,36 +9,33 @@
       XML documentation ships with the package, so a consumer gets the measured upstream quirks in IntelliSense
       rather than having to open this repo to find them. That is most of the value the docs carry.
 
-      CS1591 ("missing XML comment for publicly visible type or member") is suppressed rather than satisfied.
-      Turning the doc file on reported 262 of them, ALL in the seven period-shaped fundamentals models from #4
-      — FinancialRatios 56, BalanceSheetStatement 53, KeyMetrics 39, FinancialGrowth 39, CashFlowStatement 39,
-      IncomeStatement 31, EnterpriseValues 5. Those are flat transcriptions of FMP's wire fields, where the
-      property name IS the documentation and a generated one-liner would be noise. Every endpoint, converter,
-      option and hand-modelled record is documented, and those docs all ship.
+      CS1591 ("missing XML comment for publicly visible type or member") is NOT suppressed here, and that is the
+      #21 change worth noting. It used to be, project-wide, because turning the doc file on reported 262 of them
+      — all in the seven period-shaped fundamentals models from #4, whose properties are flat transcriptions of
+      FMP's wire fields. Documenting those individually would bury each type's real documentation, which is the
+      type-level note recording what the endpoint actually does.
 
-      Closing the 262 belongs to #21, whose checklist currently claims the surface is already fully documented
-      — it is not, and the count above is the measurement. Note what suppressing this costs: a NEW undocumented
-      public member no longer fails the build. That trade is deliberate and reversible, and reversing it is
-      exactly what #21 does.
+      The cost of the project-wide suppression was that a NEW undocumented public member, anywhere in the SDK,
+      compiled silently. Each of the seven models now carries a file-scoped `#pragma warning disable CS1591`
+      instead, with the count and the reasoning at the top of the file. The exemption is visible where it applies
+      and the zero-warning bar holds everywhere else — so an undocumented endpoint, option or converter added
+      later fails the build.
 
       Turning this on for the first time also caught a real defect it is worth recording: KeyMetrics carried
-      `R&D` unescaped in a doc comment, which is malformed XML (CS1570). That one is fixed here, not deferred.
+      `R&D` unescaped in a doc comment, which is malformed XML (CS1570). That one is fixed, not deferred.
     -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
 
   <!--
-    Package identity. Deliberately a SUBSET of #21: enough for a consumer to restore, read the docs and find
-    the source. Still outstanding there — licence expression, icon, symbol package, Source Link, deterministic
-    builds — because those matter to a stranger on nuget.org, and the only consumer today is `trader` pulling
-    from a private GitHub Packages feed.
+    Package identity.
 
     VersionPrefix, not Version. CI packs with `-p:VersionSuffix=ci.<run number>` so every push to master
     publishes a distinct prerelease (0.1.0-ci.7, 0.1.0-ci.8, ...). That matters because GitHub Packages
     REFUSES to overwrite an existing NuGet version: a fixed version would make the second push of any given
     version fail the build. A local `dotnet pack` with no suffix yields a plain 0.1.0, which outranks every
-    prerelease, so a hand-cut release is always newer than the CI builds it supersedes.
+    prerelease, so a hand-cut release is always newer than the CI builds it supersedes. The scheme is written
+    down for consumers under "Installing and versioning" in the README, not only in this comment.
   -->
   <PropertyGroup>
     <PackageId>FmpDotNet</PackageId>
@@ -50,12 +47,44 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/jerbersoft/fmpdotnet</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- An SPDX expression rather than PackageLicenseFile: NuGet renders it as a link to the canonical licence
+         text and clients can read the terms without unpacking anything. The LICENSE file is packed as well, so
+         the package is self-contained either way. No PackageIcon — nothing is branded yet, and an invented mark
+         would only have to be replaced. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <!--
+    Debuggability of a shipped build.
+
+    A .snupkg carries the PDBs separately, so the main package stays small and a consumer who never debugs into
+    the SDK downloads nothing extra. Source Link is what makes those PDBs useful: it stamps the commit into the
+    PDB so a debugger can fetch the exact source for the binary being stepped through. It needs no PackageReference
+    — the .NET SDK has carried Microsoft.SourceLink.GitHub in-box since .NET 8 and resolves the provider from the
+    git remote.
+
+    EmbedUntrackedSources covers the generated files. Every model in this assembly is deserialised through code
+    the JSON source generator emits from FmpJsonContext, and none of that is in git — so without this, stepping
+    into deserialisation reaches a file Source Link cannot resolve.
+
+    ContinuousIntegrationBuild is set only under GitHub Actions. It normalises source paths so the same commit
+    packs to the same bytes anywhere — which is the property that makes a build reproducible, and also the one
+    that would replace a local developer's real paths with placeholders and break stepping into a local `dotnet
+    pack`. CI wants it, a laptop does not.
+  -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- The repository README is the package README. It is already the endpoint table plus the measured
          upstream-behaviour notes, which is exactly what a consumer needs on the package page. -->
     <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="\" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>

@@ -456,6 +456,29 @@ provider being down — a defect the SDK's predecessor shipped.
 Premium and both answered 200 when re-probed on 2026-08-26. Entitlement moves and varies per key, so anything
 claiming "this needs Ultimate" would be confidently wrong sooner or later. Probe, catch, and re-probe.
 
+## Installing and versioning
+
+The package is published to this repository's **GitHub Packages** NuGet feed, not to nuget.org. Add the source,
+then `dotnet add package FmpDotNet`.
+
+**Every push to `master` publishes a prerelease** — `0.1.0-ci.7`, `0.1.0-ci.8`, and so on, where the suffix is
+the CI run number. That shape is forced by the feed: GitHub Packages refuses to overwrite an existing version, so
+a fixed version would publish once and fail every push after it. Run numbers never reset, so the versions are
+monotonic; a re-run keeps its number and is pushed with `--skip-duplicate`, which makes re-running a green build a
+no-op rather than a failure.
+
+**Pin an exact prerelease.** A floating reference to a feed that gains a version on every push is a build that
+changes under you. Pinning also makes "which SDK did this commit build against" answerable from your own git
+history — which is how `trader` consumes it.
+
+A release is cut by packing without a suffix, giving a plain `0.1.0`. NuGet orders a release above every
+prerelease of the same version, so a hand-cut build always supersedes the CI ones it follows. Until 1.0, treat a
+minor bump as potentially breaking: the surface is still being shaped by what the live API turns out to do, and
+two releases so far have removed public members after measurement showed they were the wrong shape.
+
+Each package ships the XML documentation, and a matching `.snupkg` carries the PDBs. With Source Link, a debugger
+steps from your code into this SDK's source at the exact commit the binary was built from.
+
 ## Configuration
 
 ```json
