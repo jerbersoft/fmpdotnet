@@ -9,7 +9,7 @@ namespace FmpDotNet;
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
-    BulkEndpoints bulk)
+    SearchEndpoints search, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -35,6 +35,12 @@ public sealed class FmpClient(
     /// <summary>Macroeconomic releases. Global and unfiltered by design — see
     /// <see cref="EconomicsEndpoints"/>.</summary>
     public EconomicsEndpoints Economics { get; } = economics;
+
+    /// <summary>Finding securities by what they are rather than by symbol — the screener.
+    ///
+    /// <para>The complement to <see cref="Directory"/>: that answers "everything FMP knows" as a multi-megabyte
+    /// download, this answers a question about the universe and returns only the matches.</para></summary>
+    public SearchEndpoints Search { get; } = search;
 
     /// <summary>Whole-universe CSV downloads. Streamed, and throttled separately — see
     /// <see cref="BulkEndpoints"/>.</summary>

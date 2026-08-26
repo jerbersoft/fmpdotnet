@@ -24,6 +24,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<StockListRow>))]
 [JsonSerializable(typeof(List<ActivelyTradingRow>))]
 [JsonSerializable(typeof(List<DelistedCompany>))]
+[JsonSerializable(typeof(List<ScreenerResult>))]
 [JsonSerializable(typeof(List<EconomicRelease>))]
 [JsonSerializable(typeof(List<FinancialScores>))]
 [JsonSerializable(typeof(List<AnalystEstimate>))]
