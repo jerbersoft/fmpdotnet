@@ -13,8 +13,8 @@ re-document `/stable/quote` and friends), and the first release targets 39 of th
 
 ## Status
 
-Foundation, both pipelines, the period-shaped fundamentals, and the first of the directory endpoints.
-`dotnet test` — 122 passing.
+Foundation, both pipelines, the period-shaped fundamentals, the directory endpoints, and every endpoint trader
+calls. `dotnet test` — 242 passing.
 
 | Area | State |
 |---|---|
@@ -26,16 +26,28 @@ Foundation, both pipelines, the period-shaped fundamentals, and the first of the
 | CSV bulk pipeline → `IAsyncEnumerable<T>` | done |
 | `Company.GetProfileAsync` | done |
 | `Company.GetSharesFloatAsync` | done |
+| `Company.TryGetAllSharesFloatAsync` — paged whole-universe float | done |
 | `Statements.*` — the seven period-shaped endpoints | done |
+| `Statements.GetScoresAsync` — Altman Z and Piotroski | done |
 | `Directory.*` — available sectors and industries | done |
+| `Calendar.GetEarningsAsync` — per-symbol earnings history | done |
+| `Calendar.GetEarningsCalendarAsync` — whole-market, with a truncation signal | done |
+| `Analyst.GetEstimatesAsync` — forward consensus | done |
+| `Economics.GetEconomicCalendarAsync` — macro releases | done |
 | `Bulk.StreamEndOfDayAsync` | done |
-| Remaining 27 endpoints | not started |
+| `Bulk.StreamProfilesAsync` / `StreamAllProfilesAsync` | done |
+| Remaining 20 endpoints | not started |
+
+Every endpoint `Trader.Adapters.MarketData.Fmp` calls is now modelled, which is what the adapter's removal was
+waiting on.
 
 ## Usage
 
 ```csharp
 using FmpDotNet;
 using FmpDotNet.DependencyInjection;
+using FmpDotNet.Models;
+using NodaTime;
 
 services.AddFmp(configuration);              // binds the "Fmp" section
 // or
@@ -56,8 +68,35 @@ var shares = await fmp.Company.GetSharesFloatAsync("AAPL");
 IReadOnlyList<string> sectors    = await fmp.Directory.GetSectorsAsync();
 IReadOnlyList<string> industries = await fmp.Directory.GetIndustriesAsync();
 
+// Altman Z and Piotroski, plus the seven figures the Z score is computed from.
+var scores = await fmp.Statements.GetScoresAsync("AAPL");
+
+// Earnings history, newest first — note the head row is usually the NEXT report, unreported.
+var earnings = await fmp.Calendar.GetEarningsAsync("AAPL", limit: 8);
+
+// Forward consensus. `Period` is stamped from the request, so annual and quarterly rows
+// stay distinguishable when concatenated — their fiscal period ends collide otherwise.
+var annual  = await fmp.Analyst.GetEstimatesAsync("AAPL", FiscalPeriod.Annual, limit: 5);
+var quarter = await fmp.Analyst.GetEstimatesAsync("AAPL", FiscalPeriod.Quarter, limit: 5);
+
+// The whole-market earnings calendar. It truncates silently at 4000 rows, so ask.
+var day = new LocalDate(2026, 5, 13);
+var cal = await fmp.Calendar.GetEarningsCalendarAsync(day, day, includeReportTimes: true);
+if (EarningsCalendarResult.IsLikelyTruncated(cal))
+    { /* narrow the range and retry — see the note below */ }
+
+// Macro releases. Global and unfiltered: filtering by country or impact is yours to do.
+var macro = await fmp.Economics.GetEconomicCalendarAsync(day, day.PlusDays(7));
+var et = DateTimeZoneProviders.Tzdb["America/New_York"];
+foreach (var r in macro.Where(r => r.Country == "US" && r.Impact == "High"))
+    Console.WriteLine($"{r.Timestamp?.InZone(et).LocalDateTime} {r.Event}");
+
 await foreach (var bar in fmp.Bulk.StreamEndOfDayAsync(new LocalDate(2025, 10, 22), ct))
     Console.WriteLine($"{bar.Symbol} {bar.Close}");
+
+// The whole-universe profile feed, streamed a part at a time.
+await foreach (var p in fmp.Bulk.StreamAllProfilesAsync(ct))
+    Console.WriteLine($"{p.Symbol} {p.Sector} {p.Industry}");
 ```
 
 ## Dates and times are NodaTime
@@ -122,12 +161,68 @@ Measured against the live API on 2026-08-26 unless noted.
 - **ETFs report `freeFloat: 0` and `floatShares: 0`** against a real `outstandingShares`, with a null `source` —
   SPY, QQQ, VOO and IWM all do. The zero means "not computed for this security", not "no shares freely tradable",
   so it must not be fed into a float-based calculation as though it were measured.
+- **`earnings-calendar` truncates silently at exactly 4000 rows, dropping the *earliest* dates.** One day
+  (`2026-05-13`) answers 2039 rows; `from=05-13&to=05-14` answers exactly 4000, of which only 1969 fall on 05-13
+  — 70 rows of a day that was complete on its own just vanish, mid-day. A one-week request came back with an
+  entire requested day absent. `limit=6000` is accepted and ignored. There is no cursor, so the SDK cannot page
+  around it and instead reports it: the returned list is an `EarningsCalendarResult` carrying `RowsReturned`,
+  `AtRowCap`, `MissesStartOfRange` and `LikelyTruncated`. **Day-at-a-time is the only chunk width measured to be
+  safe** — a 7-day peak-season window measured 3676 rows, 92% of the cap without crossing it.
+- **That truncation signal is computed before clamping, and the order is load-bearing.** Filtering the rows first
+  and then testing `Count >= 4000` is how a truncated response gets judged complete: measured live, a two-day
+  request returned 4000 raw rows that clamping reduced to 3935. `Count` is what you were handed; `RowsReturned` is
+  what FMP sent, and only the second can answer the question.
+- **`includeReportTimes=true` re-dates rows; it does not add them.** A `from=to=2026-05-13` request returns the
+  identical 2039-symbol set either way — but with the flag on, 51 of those rows report `2026-05-14`. None of those
+  51 appear in the `2026-05-14` request, checked symbol by symbol, so selection happens on the un-shifted date and
+  only the reported date moves. **Clamping to `[from, to]` therefore removes no duplicates — there are none — and
+  permanently drops rows no other chunk will ever return.** The SDK returns rows unclamped and offers
+  `clampToRange: true` for callers writing into a store that cannot reject a duplicate and would rather lose a row
+  than double one. The flag also changes `lastUpdated`, not just `date`.
+- **`economic-calendar` truncates wide windows too, but differently** — no row cap to test against, and the
+  reduction is not proportional: one month → 1855 rows, three months → 4051, but six months → **535**, fewer than
+  the three-month window it contains, and a 15-month window → 0. A row-count guard is the wrong instinct here,
+  because macro density legitimately varies enormously: January 2027 really does hold only 2 rows. The honest
+  completeness test is whether the returned rows reach both ends of the range you asked for.
+- **`analyst-estimates` is ordered furthest-future first, so `limit=N` gives the N most distant estimates**, not
+  the next N. Nothing on the wire says which cadence a row came from, and an annual row and a Q4 row share the
+  same fiscal period end — so the SDK stamps `Period` from the request. Without it, concatenating an annual and a
+  quarterly call silently collapses colliding rows. There is also no revision or as-of stamp anywhere on the
+  response: if you need to know when a consensus was struck, stamp it on arrival.
+- **`earnings` puts an unreported row at the head.** The list is newest-first and the newest row is the *next*
+  report — `epsActual` and `revenueActual` null, estimates populated. "The last N earnings" therefore includes one
+  that has not happened. With no `limit` the endpoint returns full history: 165 rows for Apple, back to 1985.
+- **`financial-scores` carries no date, and its inputs are not the latest annual statement.** Eleven fields, no
+  `date`, no `period`, no `fiscalYear` — nothing says when it was computed, yet it moves: the figures are
+  trailing/quote-time, and Apple's `retainedEarnings` and `workingCapital` both come back with the *opposite sign*
+  to the FY2025 balance sheet captured the same day. They cannot be reconciled against `balance-sheet-statement`.
+  The seven accompanying figures do reproduce the reported Altman Z exactly, which is what they are there for.
+- **`profile-bulk` terminates paging with an error, not an empty response.** An out-of-range `part` answers HTTP
+  **400** carrying the plain text `Query Error: Invalid or missing query parameter - part` — under a
+  `content-type` of `application/json` that is a lie, since the body is not JSON. The transport surfaces that text
+  as an `FmpApiException` rather than discarding it behind a bare `HttpRequestException`. `StreamAllProfilesAsync`
+  reads a 400 as "past the last part", which is a documented heuristic, not a contract.
+- **Neither whole-universe feed's first page is a sample of the universe**, for opposite reasons.
+  `shares-float-all` pages *are* symbol-ordered, so page 0 is entirely Shenzhen listings — which is exactly how a
+  consumer once read "a partial, mostly foreign page" as a plan restriction when it was simply page zero of a
+  global list requested without `page` or `limit`. `profile-bulk` part 0 is *not* symbol-ordered at all. The bulk
+  float rows also carry five fields where the per-symbol endpoint carries six: there is no `source`, so a null
+  there means "this shape omits it", not "FMP names no source".
 - **`available-industries` is not alphabetical.** Its 159 rows are grouped by sector, and since no row carries a
   sector field that ordering is the only signal of which sector an industry belongs to. The SDK preserves wire
   order, trims labels and drops blanks, but deliberately does *not* de-duplicate — that would change the
   cardinality of a directory response without saying so.
 - **Some numerics arrive as strings** — `"fiscalYear":"2026"`, `"fullTimeEmployees":"166000"`. Without
-  `AllowReadingFromString` the first quoted number aborts the whole response, not just that field.
+  `AllowReadingFromString` the first quoted number aborts the whole response, not just that field. It rescues a
+  quoted `"9"` and does nothing for an unquoted `9.0`, which is why integral-looking counts are still read as
+  `decimal`: a `piotroskiScore` of `9.0` would throw on `int` and cost the caller all eleven fields.
+- **On the economic calendar, `changePercentage` cannot distinguish zero from absent.** Across a 713-row week it
+  was null on 153 rows — but of the 15 rows with `previous`, `estimate`, `actual` and `change` all null, 12
+  carried `0` and 3 carried `null`. Both shapes occur on rows that mean the same thing, so neither the zero nor
+  the null is a usable "unreported" marker. The only sound gate is `Actual is not null`.
+- **A bulk profile's `currency` is not always USD and its `country` tracks the issuer, not the venue.** A TSX
+  listing reports `CAD` and `US` on the same row. Summing `marketCap` across the universe therefore mixes
+  currencies silently, and filtering a US universe on `country` is not the same as filtering on `exchange`.
 - **Identifiers stay strings.** `cik` is zero-padded (`"0000320193"`); parsing it to a number loses the padding
   SEC filings use.
 - **429 is answered, not just reported.** The shared reservoir is drained and held for `Retry-After`, clamped by
