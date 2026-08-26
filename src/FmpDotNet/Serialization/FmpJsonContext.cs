@@ -23,4 +23,5 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<IndustryName>))]
 [JsonSerializable(typeof(List<EconomicRelease>))]
 [JsonSerializable(typeof(List<FinancialScores>))]
+[JsonSerializable(typeof(List<AnalystEstimate>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
