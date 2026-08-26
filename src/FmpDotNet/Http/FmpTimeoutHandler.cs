@@ -36,9 +36,36 @@ public abstract class FmpTimeoutHandlerBase(Duration timeout) : DelegatingHandle
         catch (OperationCanceledException ex) when (!ct.IsCancellationRequested)
         {
             throw new TimeoutException(
-                $"FMP request timed out after {timeout.TotalSeconds:0.###}s: {request.Method} {request.RequestUri}.",
+                $"FMP request timed out after {timeout.TotalSeconds:0.###}s: {Describe(request)}.",
                 ex);
         }
+    }
+
+    /// <summary>Renders a request for an exception message with the API key removed.
+    ///
+    /// <para><b>This is not defensive tidiness; without it this handler leaks the key.</b> The transport puts the
+    /// key in the query string, because that is how FMP authenticates, so <c>RequestUri</c> carries it — and an
+    /// exception message is the one place a URI reliably escapes into a log, a crash report or an error surfaced
+    /// to a user. <see cref="FmpRequest.ToString"/> is key-free for exactly this reason, but by the time a
+    /// DelegatingHandler sees the request that structure is gone and only the built URI remains, so the redaction
+    /// has to happen again here.</para>
+    ///
+    /// <para>The rest of the query is kept deliberately: which symbol, which period, which date range is what
+    /// makes a timeout diagnosable, and dropping the whole query to be safe would trade the entire diagnostic for
+    /// a secret that can be removed on its own.</para></summary>
+    private static string Describe(HttpRequestMessage request)
+    {
+        if (request.RequestUri is not { } uri) return request.Method.ToString();
+
+        var text = uri.ToString();
+        const string marker = "apikey=";
+        var start = text.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (start < 0) return $"{request.Method} {text}";
+
+        var valueStart = start + marker.Length;
+        var end = text.IndexOf('&', valueStart);
+        var tail = end < 0 ? string.Empty : text[end..];
+        return $"{request.Method} {text[..valueStart]}[redacted]{tail}";
     }
 }
 
