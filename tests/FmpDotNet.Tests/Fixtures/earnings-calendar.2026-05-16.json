@@ -1,0 +1,434 @@
+[
+  {
+    "symbol": "GFH.AE",
+    "date": "2026-05-17",
+    "epsActual": 0.03708,
+    "epsEstimated": 0.08026,
+    "revenueActual": 350977000,
+    "revenueEstimated": 638486100,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "FWRY.CA",
+    "date": "2026-05-17",
+    "epsActual": 0.00405,
+    "epsEstimated": null,
+    "revenueActual": 44340480,
+    "revenueEstimated": 6418971,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "DSCT.TA",
+    "date": "2026-05-17",
+    "epsActual": 0.65,
+    "epsEstimated": 0.606,
+    "revenueActual": 2898780000,
+    "revenueEstimated": 5889000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "0AAW.L",
+    "date": "2026-05-17",
+    "epsActual": -0.17,
+    "epsEstimated": null,
+    "revenueActual": 5616000,
+    "revenueEstimated": 66300000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "IOC.BO",
+    "date": "2026-05-17",
+    "epsActual": 10.5,
+    "epsEstimated": 5.76,
+    "revenueActual": 2344852000000,
+    "revenueEstimated": 2333656000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "FORTH.BK",
+    "date": "2026-05-17",
+    "epsActual": 0.18,
+    "epsEstimated": null,
+    "revenueActual": 2523000000,
+    "revenueEstimated": 1996000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "RAMP",
+    "date": "2026-05-17",
+    "epsActual": 0.52,
+    "epsEstimated": 0.494,
+    "revenueActual": 206092000,
+    "revenueEstimated": 205484800,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "CRTD",
+    "date": "2026-05-17",
+    "epsActual": -14.4,
+    "epsEstimated": -255,
+    "revenueActual": 1348738,
+    "revenueEstimated": 350000,
+    "lastUpdated": "2026-08-18"
+  },
+  {
+    "symbol": "BKHT.DE",
+    "date": "2026-05-17",
+    "epsActual": -0.17,
+    "epsEstimated": null,
+    "revenueActual": 5616000,
+    "revenueEstimated": 66300000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "GTK.NZ",
+    "date": "2026-05-17",
+    "epsActual": 0.0462,
+    "epsEstimated": 0.02833,
+    "revenueActual": 110146000,
+    "revenueEstimated": 110284000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "ISDAF",
+    "date": "2026-05-17",
+    "epsActual": 0.2224,
+    "epsEstimated": 0.2075,
+    "revenueActual": 992426900,
+    "revenueEstimated": 1871409000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "GTK.AX",
+    "date": "2026-05-17",
+    "epsActual": 0.04163,
+    "epsEstimated": 0.02359,
+    "revenueActual": 91707700,
+    "revenueEstimated": 91822600,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "RAM.BK",
+    "date": "2026-05-17",
+    "epsActual": 0.2,
+    "epsEstimated": null,
+    "revenueActual": 5325000000,
+    "revenueEstimated": 5255000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "OZFRY",
+    "date": "2026-05-17",
+    "epsActual": -0.04028,
+    "epsEstimated": null,
+    "revenueActual": 67151320,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "ELD.AX",
+    "date": "2026-05-17",
+    "epsActual": 0.166,
+    "epsEstimated": 0.241,
+    "revenueActual": 1767677000,
+    "revenueEstimated": 1795000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "IOC.NS",
+    "date": "2026-05-17",
+    "epsActual": 10.5,
+    "epsEstimated": 5.92,
+    "revenueActual": 2344852000000,
+    "revenueEstimated": 2333656000000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "GENUSPOWER.NS",
+    "date": "2026-05-16",
+    "epsActual": 5.9,
+    "epsEstimated": null,
+    "revenueActual": 15237000000,
+    "revenueEstimated": 12962000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ROJNA-R.BK",
+    "date": "2026-05-16",
+    "epsActual": 1.15,
+    "epsEstimated": null,
+    "revenueActual": 3468195000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "ROJNA.BK",
+    "date": "2026-05-16",
+    "epsActual": 1.15,
+    "epsEstimated": null,
+    "revenueActual": 3477411000,
+    "revenueEstimated": 3477411000,
+    "lastUpdated": "2026-08-17"
+  },
+  {
+    "symbol": "LATENTVIEW.NS",
+    "date": "2026-05-16",
+    "epsActual": 2.6,
+    "epsEstimated": 2.7,
+    "revenueActual": 2886000000,
+    "revenueEstimated": 2939250000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ATULAUTO.BO",
+    "date": "2026-05-16",
+    "epsActual": 5.33,
+    "epsEstimated": null,
+    "revenueActual": 2405800000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "LATENTVIEW.BO",
+    "date": "2026-05-16",
+    "epsActual": 2.6,
+    "epsEstimated": 2.7,
+    "revenueActual": 2886000000,
+    "revenueEstimated": 2939250000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "KEC.NS",
+    "date": "2026-05-16",
+    "epsActual": 7.2,
+    "epsEstimated": 9.3,
+    "revenueActual": 63898000000,
+    "revenueEstimated": 71640710000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "UNOMINDA.BO",
+    "date": "2026-05-16",
+    "epsActual": 5.67,
+    "epsEstimated": 5.36,
+    "revenueActual": 53364000000,
+    "revenueEstimated": 53582590000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "MANGLMCEM.BO",
+    "date": "2026-05-16",
+    "epsActual": 32.2,
+    "epsEstimated": 9.6,
+    "revenueActual": 4904000000,
+    "revenueEstimated": 4869000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "TATVA.BO",
+    "date": "2026-05-16",
+    "epsActual": 4.55,
+    "epsEstimated": 6.4,
+    "revenueActual": 1341000000,
+    "revenueEstimated": 1300000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "GENUSPOWER.BO",
+    "date": "2026-05-16",
+    "epsActual": 5.9,
+    "epsEstimated": null,
+    "revenueActual": 15237000000,
+    "revenueEstimated": 12962000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "STYRENIX.BO",
+    "date": "2026-05-16",
+    "epsActual": 41.79,
+    "epsEstimated": null,
+    "revenueActual": 8261000000,
+    "revenueEstimated": 9890000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "UNOMINDA.NS",
+    "date": "2026-05-16",
+    "epsActual": 5.67,
+    "epsEstimated": 5.51,
+    "revenueActual": 53364100000,
+    "revenueEstimated": 53582590000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "DODLA.NS",
+    "date": "2026-05-16",
+    "epsActual": 11.6,
+    "epsEstimated": 7.7,
+    "revenueActual": 10745000000,
+    "revenueEstimated": 10218000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ROLEXRINGS.NS",
+    "date": "2026-05-16",
+    "epsActual": 1.8,
+    "epsEstimated": 1.6,
+    "revenueActual": 3057000000,
+    "revenueEstimated": 2805000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ASMTEC.BO",
+    "date": "2026-05-16",
+    "epsActual": 11.48,
+    "epsEstimated": null,
+    "revenueActual": 1351180000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "DELHIVERY.NS",
+    "date": "2026-05-16",
+    "epsActual": 0.976,
+    "epsEstimated": 0.747,
+    "revenueActual": 28500000000,
+    "revenueEstimated": 27488000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "RJIFF",
+    "date": "2026-05-16",
+    "epsActual": 1.15,
+    "epsEstimated": 0.1,
+    "revenueActual": 3477411000,
+    "revenueEstimated": 5235000000,
+    "lastUpdated": "2026-08-07"
+  },
+  {
+    "symbol": "BHARATWIRE.NS",
+    "date": "2026-05-16",
+    "epsActual": 2.4,
+    "epsEstimated": null,
+    "revenueActual": 1414845000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "AMAR3.SA",
+    "date": "2026-05-16",
+    "epsActual": -0.19,
+    "epsEstimated": null,
+    "revenueActual": 286454000,
+    "revenueEstimated": 368500000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "MANGLMCEM.NS",
+    "date": "2026-05-16",
+    "epsActual": 32.2,
+    "epsEstimated": 9.6,
+    "revenueActual": 4904000000,
+    "revenueEstimated": 4869000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "DELHIVERY.BO",
+    "date": "2026-05-16",
+    "epsActual": 1,
+    "epsEstimated": 0.727,
+    "revenueActual": 28500000000,
+    "revenueEstimated": 27488000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "STYRENIX.NS",
+    "date": "2026-05-16",
+    "epsActual": 41.79,
+    "epsEstimated": null,
+    "revenueActual": 8261000000,
+    "revenueEstimated": 9890000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "DODLA.BO",
+    "date": "2026-05-16",
+    "epsActual": 11.6,
+    "epsEstimated": 7.7,
+    "revenueActual": 10745000000,
+    "revenueEstimated": 10218000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "TATVA.NS",
+    "date": "2026-05-16",
+    "epsActual": 4.55,
+    "epsEstimated": 6.4,
+    "revenueActual": 1341000000,
+    "revenueEstimated": 1300000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "MED.DE",
+    "date": "2026-05-16",
+    "epsActual": 0.07,
+    "epsEstimated": null,
+    "revenueActual": 186885900,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "SHEMAROO.BO",
+    "date": "2026-05-16",
+    "epsActual": -26.38,
+    "epsEstimated": null,
+    "revenueActual": 1394836000,
+    "revenueEstimated": 625000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ATULAUTO.NS",
+    "date": "2026-05-16",
+    "epsActual": 5.33,
+    "epsEstimated": null,
+    "revenueActual": 2405800000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "ROLEXRINGS.BO",
+    "date": "2026-05-16",
+    "epsActual": 1.8,
+    "epsEstimated": 1.6,
+    "revenueActual": 3057000000,
+    "revenueEstimated": 2805000000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "KEC.BO",
+    "date": "2026-05-16",
+    "epsActual": 7.2,
+    "epsEstimated": 9.3,
+    "revenueActual": 63898000000,
+    "revenueEstimated": 71640710000,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "BHARATWIRE.BO",
+    "date": "2026-05-16",
+    "epsActual": 2.4,
+    "epsEstimated": null,
+    "revenueActual": 1414845000,
+    "revenueEstimated": null,
+    "lastUpdated": "2026-08-16"
+  },
+  {
+    "symbol": "SHEMAROO.NS",
+    "date": "2026-05-16",
+    "epsActual": -16.77,
+    "epsEstimated": 6.95,
+    "revenueActual": 1395164000,
+    "revenueEstimated": 625000000,
+    "lastUpdated": "2026-08-16"
+  }
+]
