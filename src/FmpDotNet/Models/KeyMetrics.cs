@@ -88,7 +88,7 @@ public sealed record KeyMetrics
 
     [JsonPropertyName("salesGeneralAndAdministrativeToRevenue")] public decimal? SalesGeneralAndAdministrativeToRevenue { get; init; }
 
-    /// <summary>R&D over revenue, as a fraction. FMP spells the wire name "Developement"; the SDK does not.</summary>
+    /// <summary>R&amp;D over revenue, as a fraction. FMP spells the wire name "Developement"; the SDK does not.</summary>
     [JsonPropertyName("researchAndDevelopementToRevenue")] public decimal? ResearchAndDevelopmentToRevenue { get; init; }
 
     [JsonPropertyName("stockBasedCompensationToRevenue")] public decimal? StockBasedCompensationToRevenue { get; init; }

@@ -4,7 +4,59 @@
     <RootNamespace>FmpDotNet</RootNamespace>
     <AssemblyName>FmpDotNet</AssemblyName>
     <IsAotCompatible>true</IsAotCompatible>
+
+    <!--
+      XML documentation ships with the package, so a consumer gets the measured upstream quirks in IntelliSense
+      rather than having to open this repo to find them. That is most of the value the docs carry.
+
+      CS1591 ("missing XML comment for publicly visible type or member") is suppressed rather than satisfied.
+      Turning the doc file on reported 262 of them, ALL in the seven period-shaped fundamentals models from #4
+      — FinancialRatios 56, BalanceSheetStatement 53, KeyMetrics 39, FinancialGrowth 39, CashFlowStatement 39,
+      IncomeStatement 31, EnterpriseValues 5. Those are flat transcriptions of FMP's wire fields, where the
+      property name IS the documentation and a generated one-liner would be noise. Every endpoint, converter,
+      option and hand-modelled record is documented, and those docs all ship.
+
+      Closing the 262 belongs to #21, whose checklist currently claims the surface is already fully documented
+      — it is not, and the count above is the measurement. Note what suppressing this costs: a NEW undocumented
+      public member no longer fails the build. That trade is deliberate and reversible, and reversing it is
+      exactly what #21 does.
+
+      Turning this on for the first time also caught a real defect it is worth recording: KeyMetrics carried
+      `R&D` unescaped in a doc comment, which is malformed XML (CS1570). That one is fixed here, not deferred.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
   </PropertyGroup>
+
+  <!--
+    Package identity. Deliberately a SUBSET of #21: enough for a consumer to restore, read the docs and find
+    the source. Still outstanding there — licence expression, icon, symbol package, Source Link, deterministic
+    builds — because those matter to a stranger on nuget.org, and the only consumer today is `trader` pulling
+    from a private GitHub Packages feed.
+
+    VersionPrefix, not Version. CI packs with `-p:VersionSuffix=ci.<run number>` so every push to master
+    publishes a distinct prerelease (0.1.0-ci.7, 0.1.0-ci.8, ...). That matters because GitHub Packages
+    REFUSES to overwrite an existing NuGet version: a fixed version would make the second push of any given
+    version fail the build. A local `dotnet pack` with no suffix yields a plain 0.1.0, which outranks every
+    prerelease, so a hand-cut release is always newer than the CI builds it supersedes.
+  -->
+  <PropertyGroup>
+    <PackageId>FmpDotNet</PackageId>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Herbert Sabanal</Authors>
+    <Description>A .NET client for the Financial Modeling Prep API. NodaTime throughout, AOT-compatible, with the upstream's measured quirks documented on the members they affect.</Description>
+    <PackageTags>fmp;financialmodelingprep;market-data;fundamentals;finance</PackageTags>
+    <RepositoryUrl>https://github.com/jerbersoft/fmpdotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jerbersoft/fmpdotnet</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The repository README is the package README. It is already the endpoint table plus the measured
+         upstream-behaviour notes, which is exactly what a consumer needs on the package page. -->
+    <None Include="../../README.md" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <InternalsVisibleTo Include="FmpDotNet.Tests" />

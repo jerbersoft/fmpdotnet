@@ -93,3 +93,53 @@ jobs:
           name: dotnet-test-results
           path: '**/TestResults/*.trx'
           retention-days: 14
+
+  # Publishes the SDK to this repository's GitHub Packages NuGet feed, which is how `trader` consumes it (#10).
+  #
+  # Only on master, and only after the build+test job is green — a package that exists is a package someone can
+  # restore, so publishing an unverified one is worse than publishing nothing.
+  #
+  # VERSIONING. Every push publishes 0.1.0-ci.<run number>. Two facts force this shape:
+  #   * GitHub Packages REFUSES to overwrite an existing NuGet version. A fixed 0.1.0 would publish once and
+  #     then fail this job on every subsequent push — a red CI that means nothing.
+  #   * A consumer pinning an exact prerelease gets a build that cannot drift. `trader` pins one, so "which SDK
+  #     did this trader commit build against" is answerable from trader's own git history.
+  # `github.run_number` increments per workflow run and never resets, so versions are monotonic. A RE-RUN keeps
+  # the same number, which is why --skip-duplicate is here: re-running a green build should be a no-op, not a
+  # failure. A hand-cut release later packs without the suffix, and plain 0.1.0 outranks every 0.1.0-ci.N.
+  #
+  # No PAT. GITHUB_TOKEN can write to its OWN repository's package registry given `packages: write`. Trader's
+  # CI reads this feed with ITS own GITHUB_TOKEN, which works because this package grants the trader repository
+  # read access under the package's "Manage Actions access" setting — a one-off grant in the package settings,
+  # not a secret in either repo. That is the only manual step in the whole chain.
+  publish:
+    name: Publish to GitHub Packages
+    needs: dotnet
+    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      contents: read
+      packages: write       # the one privilege above the workflow-level default, and only for this job
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # `dotnet pack` builds Release from scratch here rather than reusing the test job's output: jobs run on
+      # separate runners, and shipping an artifact between them to save one compile of a five-file library would
+      # cost more in moving parts than it saves.
+      - name: Pack
+        run: dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
+
+      - name: Push
+        run: >
+          dotnet nuget push "./artifacts/*.nupkg"
+          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
+          --api-key ${{ secrets.GITHUB_TOKEN }}
+          --skip-duplicate
