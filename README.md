@@ -13,7 +13,8 @@ re-document `/stable/quote` and friends), and the first release targets 39 of th
 
 ## Status
 
-Foundation, both pipelines, and the period-shaped fundamentals. `dotnet test` — 103 passing.
+Foundation, both pipelines, the period-shaped fundamentals, and the first of the directory endpoints.
+`dotnet test` — 122 passing.
 
 | Area | State |
 |---|---|
@@ -24,9 +25,11 @@ Foundation, both pipelines, and the period-shaped fundamentals. `dotnet test` �
 | JSON pipeline → `IReadOnlyList<T>` | done |
 | CSV bulk pipeline → `IAsyncEnumerable<T>` | done |
 | `Company.GetProfileAsync` | done |
+| `Company.GetSharesFloatAsync` | done |
 | `Statements.*` — the seven period-shaped endpoints | done |
+| `Directory.*` — available sectors and industries | done |
 | `Bulk.StreamEndOfDayAsync` | done |
-| Remaining 30 endpoints | not started |
+| Remaining 27 endpoints | not started |
 
 ## Usage
 
@@ -45,6 +48,13 @@ var profile = await fmp.Company.GetProfileAsync("AAPL");
 // The seven period-shaped endpoints share one signature: symbol, cadence, limit.
 var income  = await fmp.Statements.GetIncomeStatementAsync("AAPL", FiscalPeriod.Annual, limit: 5);
 var ratios  = await fmp.Statements.GetRatiosAsync("AAPL", FiscalPeriod.Quarter, limit: 8);
+
+// Share float. One row or none — the endpoint holds no history.
+var shares = await fmp.Company.GetSharesFloatAsync("AAPL");
+
+// The reference vocabularies the profile's `sector` and `industry` are drawn from.
+IReadOnlyList<string> sectors    = await fmp.Directory.GetSectorsAsync();
+IReadOnlyList<string> industries = await fmp.Directory.GetIndustriesAsync();
 
 await foreach (var bar in fmp.Bulk.StreamEndOfDayAsync(new LocalDate(2025, 10, 22), ct))
     Console.WriteLine($"{bar.Symbol} {bar.Close}");
@@ -97,6 +107,25 @@ Measured against the live API on 2026-08-26 unless noted.
   SDK keeps sending it. Consequence for storage: `(symbol, date)` is **not** a unique key across both cadences,
   because a Q4 end and a fiscal year end are the same day — `2025-09-27` appears in Apple's annual series and its
   quarterly one.
+- **`shares-float`'s `date` is UTC — the opposite of `acceptedDate`.** Same `"yyyy-MM-dd HH:mm:ss"` shape as the
+  Eastern one above, so the string cannot tell you which is which and the wrong converter is a silent 4-5 hour
+  shift. Established by probing 40 symbols: the stamps spread evenly from `00:09:20` to `14:13:45`, the latest
+  sitting 26 minutes *before* UTC-now and never ahead of it. Read as Eastern that stamp would be 3.5 hours in the
+  future, which a value recording when a row was last refreshed cannot be.
+- **Share counts are JSON floating-point.** `floatShares` has been seen as `25595002.125` — a computation artifact
+  of outstanding x free-float %. Reading them into `long` throws and aborts the *whole* response, not just the
+  field, so the SDK reads `decimal` and lets the caller round. A clean sample proves nothing here; the fractions
+  appear intermittently rather than for particular symbols.
+- **Class-share tickers need FMP's hyphenated spelling.** `BRK.B` and `BF.B` answer `[]`; `BRK-B` and `BF-B` answer
+  a row. It affects `shares-float` and `profile` alike, and it surfaces as an empty result rather than an error, so
+  a dotted ticker looks exactly like a symbol FMP has no data for.
+- **ETFs report `freeFloat: 0` and `floatShares: 0`** against a real `outstandingShares`, with a null `source` —
+  SPY, QQQ, VOO and IWM all do. The zero means "not computed for this security", not "no shares freely tradable",
+  so it must not be fed into a float-based calculation as though it were measured.
+- **`available-industries` is not alphabetical.** Its 159 rows are grouped by sector, and since no row carries a
+  sector field that ordering is the only signal of which sector an industry belongs to. The SDK preserves wire
+  order, trims labels and drops blanks, but deliberately does *not* de-duplicate — that would change the
+  cardinality of a directory response without saying so.
 - **Some numerics arrive as strings** — `"fiscalYear":"2026"`, `"fullTimeEmployees":"166000"`. Without
   `AllowReadingFromString` the first quoted number aborts the whole response, not just that field.
 - **Identifiers stay strings.** `cik` is zero-padded (`"0000320193"`); parsing it to a number loses the padding

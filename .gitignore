@@ -20,3 +20,6 @@ TestResults/
 # Secrets — the API key belongs in user-secrets or the environment, never in the tree
 .env
 *.local.json
+
+# Agent scratch worktrees — checkouts of this same repo, never content to commit
+.claude/worktrees/
