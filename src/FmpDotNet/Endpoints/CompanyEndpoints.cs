@@ -34,4 +34,62 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListSharesFloat, ct).ConfigureAwait(false);
         return rows.Count > 0 ? rows[0] : null;
     }
+
+    /// <summary>One page of <c>stable/shares-float-all</c> — the same float and share-count rows as
+    /// <see cref="GetSharesFloatAsync"/>, for the whole universe, paged. Returns <see langword="null"/> when the
+    /// endpoint is outside this API key's plan.
+    ///
+    /// <para><b>Page 0 is not a sample of the universe, and reading it as one has already cost real data.</b> The
+    /// universe is ordered by symbol and it is global, so measured 2026-08-26 <c>page=0&amp;limit=5</c> answers
+    /// <c>000001.SZ, 000002.SZ, 000004.SZ, 000005.SZ, 000006.SZ</c> and <c>page=1&amp;limit=5</c> continues
+    /// <c>000007.SZ … 000011.SZ</c> — Shenzhen listings, disjoint and consecutive. The application this SDK replaces
+    /// called this endpoint with no <c>page</c> and no <c>limit</c> at all, recorded the result as "HTTP 200 with
+    /// only a partial (mostly foreign) page", concluded the endpoint was half-broken on its plan, and wrote zero
+    /// shares for its entire US universe. It was not a plan quirk and the endpoint was not broken: it was reading
+    /// page zero of a symbol-ordered global list without knowing pages existed. There is no call that returns
+    /// everything. A caller that wants the universe walks the pages until one comes back short of
+    /// <paramref name="limit"/>.</para>
+    ///
+    /// <para><b><see cref="SharesFloat.Source"/> is always null here</b>, and that null means "this endpoint does
+    /// not carry the field", not "FMP names no filing". Measured on both captured pages, a bulk row has five
+    /// fields — <c>symbol, date, freeFloat, floatShares, outstandingShares</c> — where the per-symbol endpoint has
+    /// six. The model is shared deliberately, because everything the two do carry is identical in meaning and shape,
+    /// but a caller that needs the EDGAR URL must re-fetch the symbol through
+    /// <see cref="GetSharesFloatAsync"/>. Null <see cref="SharesFloat.Source"/> is also normal on that path (every
+    /// ETF measured answered null), so the two nulls are genuinely indistinguishable on the value alone — only the
+    /// endpoint you called tells them apart.</para>
+    ///
+    /// <para><b>Why null rather than an exception, and when to want the other one.</b> This goes through
+    /// <see cref="FmpTransport.TryGetListAsync{T}(FmpRequest, System.Text.Json.Serialization.Metadata.JsonTypeInfo{System.Collections.Generic.List{T}}, CancellationToken)"/>,
+    /// so a 402 or 403 returns null instead of throwing and an optional fast path can degrade to the per-symbol loop
+    /// in one branch. <b>Null is "not entitled" and never "no rows"</b> — an entitled call with nothing to say
+    /// answers an empty list. Keeping those apart is the whole point: the predecessor's adapter collapsed 402 into
+    /// an empty result, and its own design notes record that as a defect, since a paywalled endpoint reading as
+    /// no-data is indistinguishable from a real empty answer and from the provider being down. Where a caller would
+    /// rather fail loudly than degrade — a scheduled load that must not quietly do nothing — reach for
+    /// <see cref="FmpTransport.GetListAsync{T}"/> on the same request instead and catch
+    /// <see cref="FmpPlanRestrictedException"/>.</para>
+    ///
+    /// <para>Gating here is not settled and must not be assumed either way: this endpoint was recorded as 402 on
+    /// Premium by the predecessor and answered 200 when re-probed on 2026-08-26. It is JSON rather than CSV and is
+    /// not in FMP's Bulk category, so it runs on the ordinary per-minute throttle and not the far tighter bulk one —
+    /// paging it is a normal cost, not a bulk download.</para></summary>
+    /// <param name="page">Zero-based page index.</param>
+    /// <param name="limit">Page size. Required rather than optional on purpose — see the first paragraph. Sending
+    /// neither parameter is what produced the incident above.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's rows, an empty list when the page is past the end of the universe, or
+    /// <see langword="null"/> when FMP answered 402 or 403.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative or
+    /// <paramref name="limit"/> is not positive.</exception>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429. Likely if the pages are walked flat out.</exception>
+    public Task<IReadOnlyList<SharesFloat>?> TryGetAllSharesFloatAsync(
+        int page, int limit, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        return transport.TryGetListAsync(
+            new FmpRequest("stable/shares-float-all").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListSharesFloat, ct);
+    }
 }

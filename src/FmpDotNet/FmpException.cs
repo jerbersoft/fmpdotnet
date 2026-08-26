@@ -1,3 +1,4 @@
+using System.Net;
 using NodaTime;
 
 namespace FmpDotNet;
@@ -25,21 +26,43 @@ public sealed class FmpRateLimitedException : FmpException
     public Duration? RetryAfter { get; }
 }
 
-/// <summary>FMP reported an error in the response BODY rather than in the status line.
+/// <summary>FMP put the reason in the response BODY, not in a status line the SDK could act on alone.
 ///
 /// <para>Measured 2026-08-26: a throttled bulk call returns <b>HTTP 200</b> with
 /// <c>{"Error Message": "Limit Reach. …"}</c> — a JSON object, on an endpoint whose success shape is CSV. Status
 /// code alone therefore cannot distinguish success from failure on the bulk surface, so the transport inspects the
-/// payload and raises this.</para></summary>
+/// payload and raises this.</para>
+///
+/// <para>The converse also happens, and is why <see cref="StatusCode"/> exists. Measured the same day,
+/// <c>stable/profile-bulk?part=99</c> answers <b>HTTP 400</b> with the plain-text body
+/// <c>Query Error: Invalid or missing query parameter - part</c> under a <c>content-type: application/json</c> that
+/// is a lie — the body is not JSON and no envelope key can be unwrapped from it. That text is the only thing that
+/// says what went wrong, so a non-success response surfaces its body here rather than as a bare
+/// <see cref="HttpRequestException"/>.</para></summary>
 public sealed class FmpApiException : FmpException
 {
-    /// <summary>Creates the exception from the message FMP put in the body.</summary>
-    public FmpApiException(string message, string? requestUri = null)
+    /// <summary>Creates the exception from the message FMP put in the body, optionally recording the status the
+    /// response carried.</summary>
+    public FmpApiException(string message, string? requestUri = null, HttpStatusCode? statusCode = null)
         : base(requestUri is null ? message : $"{message} (request: {requestUri})")
-        => ErrorMessage = message;
+    {
+        ErrorMessage = message;
+        StatusCode = statusCode;
+    }
 
-    /// <summary>The upstream's own error text, unwrapped from the JSON envelope.</summary>
+    /// <summary>The upstream's own error text: unwrapped from the JSON envelope when the body was one, and the
+    /// body's own text — trimmed and length-capped — when it was not. Never carries the API key: the request is
+    /// rendered through <see cref="FmpRequest.ToString"/>, which omits it.</summary>
     public string ErrorMessage { get; }
+
+    /// <summary>The HTTP status the failing response carried, or <see langword="null"/> when the error arrived on a
+    /// <b>200</b> — which is how the bulk surface reports throttling.
+    ///
+    /// <para>This is what lets a caller tell those apart without matching on message text. A
+    /// <see cref="HttpStatusCode.BadRequest"/> from a <c>part</c>-paged bulk download means the parameter was
+    /// rejected; a null status on the same endpoint means the download was throttled and should be retried
+    /// later.</para></summary>
+    public HttpStatusCode? StatusCode { get; }
 }
 
 /// <summary>The endpoint is not available on the account's plan — FMP answers 402 or 403.
