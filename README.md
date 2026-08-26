@@ -244,6 +244,42 @@ Measured against the live API on 2026-08-26 unless noted.
 - **`/stable/company-symbol-list` does not exist** (404). The working directory endpoints are `stock-list` and
   `actively-trading-list`.
 
+## Plan gating — 402 and 403
+
+FMP refuses an endpoint your key is not entitled to with **402**, and refuses a key it does not like with **403**.
+The SDK treats both as `FmpPlanRestrictedException`, but **does not conflate them**:
+
+```csharp
+catch (FmpPlanRestrictedException ex)
+{
+    if (ex.IsRejectedCredential)   // 403 — check the key before the invoice
+        logger.LogError("FMP rejected the key: {Message}", ex.Message);
+    else                           // 402 — genuinely an entitlement answer
+        logger.LogWarning("Not on this plan: {Message}", ex.Message);
+}
+```
+
+`ex.StatusCode` carries the actual status. This matters more than it looks: FMP's own error text warns that
+"frequent abuse on this API Endpoint may result in restrictions placed on this API Key", so a 403 is a plausible
+outcome of hammering the bulk endpoints — and reporting that as "upgrade your plan" sends someone to the wrong
+page entirely.
+
+**Most endpoints throw. A few return null instead**, via a `Try`-prefixed twin — currently
+`Company.TryGetAllSharesFloatAsync`, so an optional whole-universe fast path can degrade to the per-symbol loop in
+one branch rather than a catch. The rule is:
+
+> A `Try` twin exists only where a real alternative exists.
+
+There is no cheaper path to fall back to when a 69 MB whole-universe download is refused, so the bulk endpoints
+throw. And on the `Try` form, **null is "not entitled" and never "no rows"** — an entitled call with nothing to
+say returns an empty list. Keeping those apart is deliberate: collapsing 402 into an empty result makes a
+paywalled endpoint indistinguishable from a real empty answer *and* from the provider being down, which is a
+defect the SDK's predecessor shipped.
+
+**The SDK carries no tier map**, and will not. `profile-bulk` and `shares-float-all` were both recorded as 402 on
+Premium and both answered 200 when re-probed on 2026-08-26. Entitlement moves and varies per key, so anything
+claiming "this needs Ultimate" would be confidently wrong sooner or later. Probe, catch, and re-probe.
+
 ## Configuration
 
 ```json

@@ -60,6 +60,9 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     /// <paramref name="from"/>. Checked before the request is sent: FMP answers a backwards range with an empty
     /// array and HTTP 200, so an argument the caller has plainly got wrong would otherwise read as "no releases
     /// that week" and cost a call from the key's quota to say nothing.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<EconomicRelease>> GetEconomicCalendarAsync(
         LocalDate from, LocalDate to, CancellationToken ct = default)
     {

@@ -18,6 +18,9 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// single-property object under the key <c>sector</c>, and they happen to arrive alphabetically. The SDK does
     /// not sort them anyway — see <see cref="GetIndustriesAsync(CancellationToken)"/>, whose sibling endpoint
     /// proves the wire order is meaningful.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<string>> GetSectorsAsync(CancellationToken ct = default)
     {
         var rows = await transport.GetListAsync(
@@ -34,6 +37,9 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// <c>…Diversified Utilities, General Utilities</c>. That grouping is the only signal in the response that says
     /// which sector an industry belongs to, since no row carries a sector field, so the order is data and the SDK
     /// preserves it.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<string>> GetIndustriesAsync(CancellationToken ct = default)
     {
         var rows = await transport.GetListAsync(

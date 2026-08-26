@@ -15,36 +15,54 @@ namespace FmpDotNet.Endpoints;
 public sealed class StatementEndpoints(FmpTransport transport)
 {
     /// <summary>Income statements for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<IncomeStatement>> GetIncomeStatementAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/income-statement", symbol, period, limit),
             FmpJsonContext.Default.ListIncomeStatement, ct);
 
     /// <summary>Balance sheets for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<BalanceSheetStatement>> GetBalanceSheetAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/balance-sheet-statement", symbol, period, limit),
             FmpJsonContext.Default.ListBalanceSheetStatement, ct);
 
     /// <summary>Cash flow statements for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<CashFlowStatement>> GetCashFlowAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/cash-flow-statement", symbol, period, limit),
             FmpJsonContext.Default.ListCashFlowStatement, ct);
 
     /// <summary>Financial ratios for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<FinancialRatios>> GetRatiosAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/ratios", symbol, period, limit),
             FmpJsonContext.Default.ListFinancialRatios, ct);
 
     /// <summary>Key metrics for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<KeyMetrics>> GetKeyMetricsAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/key-metrics", symbol, period, limit),
             FmpJsonContext.Default.ListKeyMetrics, ct);
 
     /// <summary>Period-on-period growth rates for one symbol, newest first.</summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<FinancialGrowth>> GetFinancialGrowthAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/financial-growth", symbol, period, limit),
@@ -57,6 +75,9 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// both measured against AAPL on 2026-08-26: the caller must remember which series it asked for, and
     /// <c>(symbol, date)</c> is <b>not</b> a unique key across both, because a Q4 end and a fiscal year end are the
     /// same day — <c>2025-09-27</c> appears in the annual series and the quarterly one.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public Task<IReadOnlyList<EnterpriseValues>> GetEnterpriseValuesAsync(
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/enterprise-values", symbol, period, limit),
@@ -76,6 +97,9 @@ public sealed class StatementEndpoints(FmpTransport transport)
     ///
     /// <para>The row carries no date, no period and no fiscal year; see <see cref="FinancialScores"/> for what
     /// that costs a caller who wants to store it.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<FinancialScores?> GetScoresAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);

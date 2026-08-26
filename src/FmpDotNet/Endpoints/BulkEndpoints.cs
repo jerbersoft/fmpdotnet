@@ -29,12 +29,18 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     ///
     /// <para>The letter scale runs above <c>A+</c>: see <see cref="BulkCompanyRating.Rating"/>.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkCompanyRating> StreamRatingsAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/rating-bulk"), BulkCompanyRating.FromCsv, ct);
 
     /// <summary>Streams FMP's discounted-cash-flow valuation beside the market price, for every company it
     /// covers. From <c>stable/dcf-bulk</c> — 33,583 rows and 1.6 MB measured 2026-08-26.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkDiscountedCashFlow> StreamDiscountedCashFlowsAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/dcf-bulk"), BulkDiscountedCashFlow.FromCsv, ct);
 
@@ -44,12 +50,18 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <para>Rows map to <see cref="FinancialScores"/>, the same type <c>Statements.GetScoresAsync</c> returns:
     /// the CSV carries exactly the same 11 names, verified against the header.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<FinancialScores> StreamScoresAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/scores-bulk"), FinancialScores.FromCsv, ct);
 
     /// <summary>Streams every company's peer group. From <c>stable/peers-bulk</c> — 82,930 rows and 6.5 MB
     /// measured 2026-08-26, the widest symbol coverage of any endpoint the SDK models.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkPeers> StreamPeersAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/peers-bulk"), BulkPeers.FromCsv, ct);
 
@@ -63,6 +75,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <param name="part">Zero-based part index. An out-of-range part answers HTTP 400.</param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the part is out of range.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkEtfHolding> StreamEtfHoldingsAsync(int part, CancellationToken ct = default) =>
         transport.StreamCsvAsync(
             new FmpRequest("stable/etf-holder-bulk").With("part", part.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -77,6 +92,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <para>See <see cref="WalkPartsAsync"/> for how the walk decides it has finished, which is a heuristic
     /// rather than a contract.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or part 0 was rejected.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkEtfHolding> StreamAllEtfHoldingsAsync(CancellationToken ct = default) =>
         WalkPartsAsync(StreamEtfHoldingsAsync, ct);
 
@@ -84,6 +102,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <c>stable/key-metrics-ttm-bulk</c> — 71,500 rows and 44.0 MB measured 2026-08-26.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<KeyMetricsTtm> StreamKeyMetricsTtmAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/key-metrics-ttm-bulk"), KeyMetricsTtm.FromCsv, ct);
 
@@ -91,6 +112,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <c>stable/ratios-ttm-bulk</c> — 71,504 rows and 69.5 MB measured 2026-08-26.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<RatiosTtm> StreamRatiosTtmAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(new FmpRequest("stable/ratios-ttm-bulk"), RatiosTtm.FromCsv, ct);
 
@@ -102,6 +126,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// carry exactly the same 39 names.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised —
     /// an unknown <c>period</c> answers HTTP 400.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<IncomeStatement> StreamIncomeStatementsAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/income-statement-bulk", year, period), IncomeStatement.FromCsv, ct);
@@ -109,6 +136,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <summary>Streams one fiscal period of income-statement growth for every company FMP covers. From
     /// <c>stable/income-statement-growth-bulk</c> — 43,135 rows and 21.3 MB measured 2026-08-26 for 2025 Q1.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<IncomeStatementGrowth> StreamIncomeStatementGrowthAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/income-statement-growth-bulk", year, period), IncomeStatementGrowth.FromCsv, ct);
@@ -119,6 +149,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <para>Rows map to <see cref="BalanceSheetStatement"/>; the CSV carries exactly the same 61 names as the
     /// per-symbol model, verified against the header.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BalanceSheetStatement> StreamBalanceSheetsAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/balance-sheet-statement-bulk", year, period), BalanceSheetStatement.FromCsv, ct);
@@ -126,6 +159,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <summary>Streams one fiscal period of balance-sheet growth for every company FMP covers. From
     /// <c>stable/balance-sheet-statement-growth-bulk</c> — 42,361 rows and 29.1 MB measured 2026-08-26 for 2025 Q1.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BalanceSheetGrowth> StreamBalanceSheetGrowthAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/balance-sheet-statement-growth-bulk", year, period), BalanceSheetGrowth.FromCsv, ct);
@@ -136,6 +172,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <para>Rows map to <see cref="CashFlowStatement"/>; the CSV carries exactly the same 47 names as the
     /// per-symbol model, verified against the header.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<CashFlowStatement> StreamCashFlowsAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/cash-flow-statement-bulk", year, period), CashFlowStatement.FromCsv, ct);
@@ -143,6 +182,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <summary>Streams one fiscal period of cash-flow growth for every company FMP covers. From
     /// <c>stable/cash-flow-statement-growth-bulk</c> — 41,706 rows and 17.0 MB measured 2026-08-26 for 2025 Q1.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<CashFlowGrowth> StreamCashFlowGrowthAsync(
         int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
         transport.StreamCsvAsync(Periodic("stable/cash-flow-statement-growth-bulk", year, period), CashFlowGrowth.FromCsv, ct);
@@ -161,6 +203,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// window with no coverage arrives as a zero count and a zero average rather than as null.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkPriceTargetSummary> StreamPriceTargetSummariesAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(
             new FmpRequest("stable/price-target-summary-bulk"),
@@ -175,6 +220,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <see cref="StreamPriceTargetSummariesAsync"/>.</para></summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkAnalystConsensus> StreamAnalystConsensusAsync(CancellationToken ct = default) =>
         transport.StreamCsvAsync(
             new FmpRequest("stable/upgrades-downgrades-consensus-bulk"),
@@ -190,6 +238,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkEarningsSurprise> StreamEarningsSurprisesAsync(int year, CancellationToken ct = default) =>
         transport.StreamCsvAsync(
             new FmpRequest("stable/earnings-surprises-bulk").With("year", year.ToString(System.Globalization.CultureInfo.InvariantCulture)),
@@ -198,6 +249,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// <summary>Streams end-of-day bars for every symbol FMP covers on <paramref name="date"/>.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkEndOfDayPrice> StreamEndOfDayAsync(LocalDate date, CancellationToken ct = default) =>
         transport.StreamCsvAsync(
             new FmpRequest("stable/eod-bulk").With("date", date),
@@ -276,6 +330,9 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// caller pacing this walk itself — rather than letting it run flat out — is the difference between finishing
     /// and being refused on part 1.</para></summary>
     /// <param name="ct">Cancels the walk between parts as well as mid-part.</param>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Bulk is the most plan-gated part
+    /// of the API, so expect this — and read <see cref="FmpPlanRestrictedException.StatusCode"/> before
+    /// reporting it as a plan limit, because 403 points at the key at least as often.</exception>
     public IAsyncEnumerable<BulkCompanyProfile> StreamAllProfilesAsync(CancellationToken ct = default) =>
         WalkPartsAsync(StreamProfilesAsync, ct);
 

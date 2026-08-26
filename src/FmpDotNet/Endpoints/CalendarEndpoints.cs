@@ -55,6 +55,9 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<EarningsReport>> GetEarningsAsync(
         string symbol, int? limit = null, CancellationToken ct = default)
     {
@@ -124,6 +127,9 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// carrying the row count FMP actually returned so the caller can tell a complete answer from a truncated
     /// one.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<EarningsCalendarEntry>> GetEarningsCalendarAsync(
         LocalDate from, LocalDate to, bool includeReportTimes = false, bool clampToRange = false,
         CancellationToken ct = default)

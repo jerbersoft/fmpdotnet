@@ -10,6 +10,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     ///
     /// <para><c>stable/profile</c> answers a single-element array rather than an object, and an unknown symbol
     /// answers an empty array rather than a 404 — so "not found" is a shape, not a status code.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<CompanyProfile?> GetProfileAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
@@ -26,6 +29,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// <see cref="GetProfileAsync"/>, an unknown symbol answers an empty array with HTTP 200 rather than a 404 — and
     /// so does a class-share ticker spelled with a dot, which FMP wants hyphenated (<c>BRK-B</c>, not
     /// <c>BRK.B</c>).</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
     public async Task<SharesFloat?> GetSharesFloatAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);

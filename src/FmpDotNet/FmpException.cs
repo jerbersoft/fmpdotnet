@@ -65,13 +65,55 @@ public sealed class FmpApiException : FmpException
     public HttpStatusCode? StatusCode { get; }
 }
 
-/// <summary>The endpoint is not available on the account's plan — FMP answers 402 or 403.
+/// <summary>FMP refused the request with 402 or 403 — the endpoint is outside the account's plan, or the key
+/// itself was rejected.
 ///
-/// <para>Worth catching separately: plan gating changes. Trader's adapter recorded <c>profile-bulk</c> and
-/// <c>shares-float-all</c> as 402 on Premium; both answered 200 when re-probed on 2026-08-26. Code that treats
-/// gating as permanent goes stale silently.</para></summary>
+/// <para><b>Read <see cref="StatusCode"/> before telling anyone to upgrade.</b> The two statuses are handled the
+/// same way but do not mean the same thing: <b>402 Payment Required</b> is an entitlement answer about the
+/// endpoint, while <b>403 Forbidden</b> is just as likely to mean the key is revoked, mistyped, or restricted —
+/// which is exactly what FMP warns it will do to a key that abuses the bulk endpoints. Reporting both as "your
+/// plan does not cover this" sends someone to the billing page over a broken credential.</para>
+///
+/// <para><b>Gating is not permanent and must not be cached as if it were.</b> Trader's adapter recorded
+/// <c>profile-bulk</c> and <c>shares-float-all</c> as 402 on Premium; both answered 200 when re-probed on
+/// 2026-08-26. Code that decides once that an endpoint is unavailable goes stale silently, and the SDK
+/// deliberately carries no tier map for the same reason — entitlement moves, and it varies per key.</para>
+///
+/// <para><b>When you get this rather than a null.</b> Most endpoints throw. A few expose a <c>Try</c>-prefixed
+/// twin that returns <see langword="null"/> on 402/403 instead, so an optional fast path can degrade in one
+/// branch — <see cref="Endpoints.CompanyEndpoints.TryGetAllSharesFloatAsync"/> is the current example, degrading
+/// to a per-symbol loop. The rule is that a <c>Try</c> twin exists only where a real alternative exists: there is
+/// no cheaper path to fall back to when a whole-universe download is refused, so those throw. Where a caller
+/// would rather fail loudly than degrade, call the throwing form and catch this.</para></summary>
 public sealed class FmpPlanRestrictedException : FmpException
 {
     /// <summary>Creates the exception for a path the account's plan does not cover.</summary>
     public FmpPlanRestrictedException(string message) : base(message) { }
+
+    /// <summary>Creates the exception recording which of 402 or 403 FMP actually answered.</summary>
+    public FmpPlanRestrictedException(string message, HttpStatusCode statusCode) : base(message)
+        => StatusCode = statusCode;
+
+    /// <summary>The status FMP answered — <see cref="HttpStatusCode.PaymentRequired"/> or
+    /// <see cref="HttpStatusCode.Forbidden"/>, or null if the exception was constructed without one. See the type
+    /// remarks: these mean different things and only one of them is about billing.</summary>
+    public HttpStatusCode? StatusCode { get; }
+
+    /// <summary>True when FMP answered <b>402</b>, which is specifically an entitlement answer about the endpoint
+    /// rather than about the credential.</summary>
+    public bool IsPlanLimitation => StatusCode == HttpStatusCode.PaymentRequired;
+
+    /// <summary>True when FMP answered <b>403</b>, which points at the key — revoked, mistyped or restricted —
+    /// at least as often as at the plan.</summary>
+    public bool IsRejectedCredential => StatusCode == HttpStatusCode.Forbidden;
+
+    /// <summary>Builds the exception for a refused request, wording the message for the status actually
+    /// received so the two causes stop reading identically in a log.</summary>
+    internal static FmpPlanRestrictedException For(HttpStatusCode status, FmpRequest request) => new(
+        status == HttpStatusCode.PaymentRequired
+            ? $"FMP answered 402 for '{request}': the endpoint is outside this API key's plan."
+            : $"FMP answered 403 for '{request}': the key was rejected. That can mean the plan does not cover "
+              + "this endpoint, but it can equally mean the key is revoked, mistyped, or restricted — check the "
+              + "credential before assuming it is a billing question.",
+        status);
 }

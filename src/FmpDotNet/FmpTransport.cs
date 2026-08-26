@@ -37,9 +37,14 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     /// <see cref="FmpApiException.StatusCode"/>.</exception>
     public async Task<IReadOnlyList<T>> GetListAsync<T>(
         FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
-        => await TryGetListAsync(request, typeInfo, ct).ConfigureAwait(false)
-           ?? throw new FmpPlanRestrictedException(
-               $"FMP refused '{request}' as outside this API key's plan (402/403).");
+    {
+        // The refusal status is threaded out of the read rather than recovered from a null, because 402 and 403
+        // are not the same answer: one is about the endpoint, the other is very often about the key. Collapsing
+        // them here is what made a rejected credential read as a billing problem.
+        var (rows, refused) = await ReadListAsync(
+            request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct).ConfigureAwait(false);
+        return rows ?? throw FmpPlanRestrictedException.For(refused!.Value, request);
+    }
 
     /// <summary>As <see cref="GetListAsync{T}(FmpRequest, JsonTypeInfo{List{T}}, CancellationToken)"/>, but returns
     /// null instead of throwing when the endpoint is outside the key's plan, so an optional fast path can degrade
@@ -47,17 +52,19 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     ///
     /// <para>Worth using even where gating looks settled: <c>profile-bulk</c> and <c>shares-float-all</c> were
     /// recorded as 402-on-Premium and both answered 200 when re-probed on 2026-08-26.</para></summary>
-    public Task<IReadOnlyList<T>?> TryGetListAsync<T>(
+    public async Task<IReadOnlyList<T>?> TryGetListAsync<T>(
         FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
-        => ReadListAsync(request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct);
+        => (await ReadListAsync(request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct)
+            .ConfigureAwait(false)).Rows;
 
     /// <summary>Reflection-based convenience for endpoints the SDK does not yet model. Not trim- or AOT-safe; the
     /// typed endpoint clients all use the <see cref="JsonTypeInfo{T}"/> overload instead.</summary>
     [RequiresUnreferencedCode("Deserialises T by reflection. Use the JsonTypeInfo overload for trimmed apps.")]
     [RequiresDynamicCode("Deserialises T by reflection. Use the JsonTypeInfo overload for AOT apps.")]
-    public Task<IReadOnlyList<T>?> TryGetListAsync<T>(FmpRequest request, CancellationToken ct = default)
-        => ReadListAsync(request,
-            (body, token) => JsonSerializer.DeserializeAsync<List<T>>(body, FmpJson.Options, token), ct);
+    public async Task<IReadOnlyList<T>?> TryGetListAsync<T>(FmpRequest request, CancellationToken ct = default)
+        => (await ReadListAsync(request,
+            (body, token) => JsonSerializer.DeserializeAsync<List<T>>(body, FmpJson.Options, token), ct)
+            .ConfigureAwait(false)).Rows;
 
     /// <summary>Sends the request, classifies the body, and deserialises it — all while the response is still
     /// alive.
@@ -65,14 +72,17 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     /// <para>The response must not be disposed before the body has been read: disposing it closes the content
     /// stream, and the read then fails with an <see cref="ObjectDisposedException"/> that points at the stream
     /// rather than at the lifetime that ended it.</para></summary>
-    private async Task<IReadOnlyList<T>?> ReadListAsync<T>(
+    /// <returns><c>Rows</c> is null exactly when <c>Refused</c> is set; the two are never both null and never
+    /// both populated.</returns>
+    private async Task<(IReadOnlyList<T>? Rows, HttpStatusCode? Refused)> ReadListAsync<T>(
         FmpRequest request,
         Func<Stream, CancellationToken, ValueTask<List<T>?>> deserialise,
         CancellationToken ct)
     {
         using var response = await SendAsync(request, HttpCompletionOption.ResponseContentRead, ct)
             .ConfigureAwait(false);
-        if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden) return null;
+        if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden)
+            return (null, response.StatusCode);
         if (!response.IsSuccessStatusCode)
             throw await ReadFailureAsync(response, request, ct).ConfigureAwait(false);
 
@@ -85,7 +95,7 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         if (FirstMeaningfulByte(prefix, prefixLength) == (byte)'{')
             throw await ReadErrorAsync(body, request, ct).ConfigureAwait(false);
 
-        return await deserialise(body, ct).ConfigureAwait(false) ?? [];
+        return (await deserialise(body, ct).ConfigureAwait(false) ?? [], null);
     }
 
     /// <summary>GETs a CSV payload and streams it, mapping each record as it arrives. The response is never
@@ -102,8 +112,7 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         using var response = await SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct)
             .ConfigureAwait(false);
         if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden)
-            throw new FmpPlanRestrictedException(
-                $"FMP refused '{request}' as outside this API key's plan (402/403).");
+            throw FmpPlanRestrictedException.For(response.StatusCode, request);
         if (!response.IsSuccessStatusCode)
             throw await ReadFailureAsync(response, request, ct).ConfigureAwait(false);
 
