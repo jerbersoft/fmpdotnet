@@ -1,6 +1,11 @@
-# fmpdotnet
+# FmpDotNet
 
 A .NET 10 SDK for the [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs) `stable` API.
+
+The root namespace and assembly are `FmpDotNet`. That is deliberately not the vendor's own name: a package
+called `FinancialModelingPrep` reads as something FMP publishes and supports, and this is an independent
+client. Types keep the `Fmp` prefix (`FmpClient`, `FmpOptions`, `FmpTransport`) because they name the API
+being spoken to, not the publisher.
 
 Built to be adopted by the `trader` repository, so build order follows what trader calls rather than what FMP
 documents first: FMP publishes 263 endpoints across 28 categories (230 unique paths — the asset-class sections
@@ -26,6 +31,9 @@ Foundation, both pipelines, and the period-shaped fundamentals. `dotnet test` �
 ## Usage
 
 ```csharp
+using FmpDotNet;
+using FmpDotNet.DependencyInjection;
+
 services.AddFmp(configuration);              // binds the "Fmp" section
 // or
 services.AddFmp(o => o.ApiKey = "…");

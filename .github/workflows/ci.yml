@@ -69,10 +69,10 @@ jobs:
           restore-keys: ${{ runner.os }}-nuget-
 
       - name: Restore
-        run: dotnet restore fmpdotnet.slnx
+        run: dotnet restore FmpDotNet.slnx
 
       - name: Build
-        run: dotnet build fmpdotnet.slnx --no-restore
+        run: dotnet build FmpDotNet.slnx --no-restore
 
       # `-- RunConfiguration.TreatNoTestsAsError=true` is the part that makes this step a gate rather than a
       # formality. VSTest treats "discovery selected zero tests" as a WARNING and still exits 0, so without it a
@@ -82,7 +82,7 @@ jobs:
       # Plain `--logger trx`, with no --results-directory: with a solution every project would otherwise write
       # its trx to the same path under the same name and only the last to finish would survive.
       - name: Test
-        run: dotnet test fmpdotnet.slnx --no-build --logger trx -- RunConfiguration.TreatNoTestsAsError=true
+        run: dotnet test FmpDotNet.slnx --no-build --logger trx -- RunConfiguration.TreatNoTestsAsError=true
 
       # Failure only. These are read when something broke; uploading them on every green run bills artifact
       # storage on a private repo for files nobody opens.
