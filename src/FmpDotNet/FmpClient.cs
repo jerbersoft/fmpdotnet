@@ -6,10 +6,15 @@ namespace FmpDotNet;
 ///
 /// <para>Resolve this from dependency injection after calling
 /// <see cref="DependencyInjection.FmpServiceCollectionExtensions.AddFmp(Microsoft.Extensions.DependencyInjection.IServiceCollection, Action{FmpOptions})"/>.</para></summary>
-public sealed class FmpClient(CompanyEndpoints company, StatementEndpoints statements, BulkEndpoints bulk)
+public sealed class FmpClient(
+    CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
+    BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
+
+    /// <summary>The reference vocabularies — the sector and industry labels everything else classifies against.</summary>
+    public DirectoryEndpoints Directory { get; } = directory;
 
     /// <summary>The period-shaped fundamentals: statements, ratios, metrics, growth and enterprise values.</summary>
     public StatementEndpoints Statements { get; } = statements;
