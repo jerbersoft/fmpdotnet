@@ -112,6 +112,7 @@ public static class FmpServiceCollectionExtensions
             .AddHttpMessageHandler<FmpBulkTimeoutHandler>();
 
         services.TryAddTransient<CompanyEndpoints>();
+        services.TryAddTransient<StatementEndpoints>();
         services.TryAddTransient<BulkEndpoints>();
         services.TryAddTransient<FmpClient>();
 

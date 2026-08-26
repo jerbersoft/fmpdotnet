@@ -11,4 +11,11 @@ namespace FinancialModelingPrep.Serialization;
     PropertyNameCaseInsensitive = true,
     NumberHandling = JsonNumberHandling.AllowReadingFromString)]
 [JsonSerializable(typeof(List<CompanyProfile>))]
+[JsonSerializable(typeof(List<IncomeStatement>))]
+[JsonSerializable(typeof(List<BalanceSheetStatement>))]
+[JsonSerializable(typeof(List<CashFlowStatement>))]
+[JsonSerializable(typeof(List<FinancialRatios>))]
+[JsonSerializable(typeof(List<KeyMetrics>))]
+[JsonSerializable(typeof(List<FinancialGrowth>))]
+[JsonSerializable(typeof(List<EnterpriseValues>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;

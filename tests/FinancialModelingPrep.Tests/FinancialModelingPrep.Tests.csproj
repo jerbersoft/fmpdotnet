@@ -16,6 +16,12 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <!-- Real FMP responses, captured live on 2026-08-26 and trimmed to one row each. They are the
+       evidence behind the model shapes, so the tests read them rather than hand-written JSON. -->
+  <ItemGroup>
+    <None Include="Fixtures\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\..\src\FinancialModelingPrep\FinancialModelingPrep.csproj" />
   </ItemGroup>

@@ -8,7 +8,7 @@ re-document `/stable/quote` and friends), and the first release targets 39 of th
 
 ## Status
 
-Foundation and one vertical slice per pipeline. `dotnet test` — 64 passing.
+Foundation, both pipelines, and the period-shaped fundamentals. `dotnet test` — 103 passing.
 
 | Area | State |
 |---|---|
@@ -19,8 +19,9 @@ Foundation and one vertical slice per pipeline. `dotnet test` — 64 passing.
 | JSON pipeline → `IReadOnlyList<T>` | done |
 | CSV bulk pipeline → `IAsyncEnumerable<T>` | done |
 | `Company.GetProfileAsync` | done |
+| `Statements.*` — the seven period-shaped endpoints | done |
 | `Bulk.StreamEndOfDayAsync` | done |
-| Remaining 37 endpoints | not started |
+| Remaining 30 endpoints | not started |
 
 ## Usage
 
@@ -32,6 +33,10 @@ services.AddFmp(o => o.ApiKey = "…");
 var fmp = provider.GetRequiredService<FmpClient>();
 
 var profile = await fmp.Company.GetProfileAsync("AAPL");
+
+// The seven period-shaped endpoints share one signature: symbol, cadence, limit.
+var income  = await fmp.Statements.GetIncomeStatementAsync("AAPL", FiscalPeriod.Annual, limit: 5);
+var ratios  = await fmp.Statements.GetRatiosAsync("AAPL", FiscalPeriod.Quarter, limit: 8);
 
 await foreach (var bar in fmp.Bulk.StreamEndOfDayAsync(new LocalDate(2025, 10, 22), ct))
     Console.WriteLine($"{bar.Symbol} {bar.Close}");
@@ -73,6 +78,17 @@ Measured against the live API on 2026-08-26 unless noted.
   — cache a successful download rather than repeating it.
 - **Three bulk endpoints send no `Content-Length`** (`profile-bulk`, `etf-holder-bulk`, `eod-bulk`), so nothing
   can pre-size a buffer or show a progress percentage.
+- **`acceptedDate` is Eastern, and the economic calendar is UTC.** Both use the same
+  `"yyyy-MM-dd HH:mm:ss"` shape with no offset, so the shape tells you nothing. Cross-checked against SEC EDGAR's
+  own UTC acceptance times: Apple's 10-K reads `2025-10-31 06:01:26` where EDGAR says `10:01:26Z` (4 hours, EDT),
+  and JPM's reads `2026-02-13 16:20:00` where EDGAR says `21:20:00Z` (5 hours, EST). Two different offsets six
+  months apart means a fixed `-5` is wrong for half the year, so the SDK converts through the tz database.
+  Reading these as UTC — as a naive port would — puts every filing timestamp 4-5 hours early.
+- **`enterprise-values` is not shaped like its six siblings.** It sends no `fiscalYear` and no `period`, so a row
+  cannot say which series it came from. `period=` *is* still honoured and does change the dates returned, so the
+  SDK keeps sending it. Consequence for storage: `(symbol, date)` is **not** a unique key across both cadences,
+  because a Q4 end and a fiscal year end are the same day — `2025-09-27` appears in Apple's annual series and its
+  quarterly one.
 - **Some numerics arrive as strings** — `"fiscalYear":"2026"`, `"fullTimeEmployees":"166000"`. Without
   `AllowReadingFromString` the first quoted number aborts the whole response, not just that field.
 - **Identifiers stay strings.** `cik` is zero-padded (`"0000320193"`); parsing it to a number loses the padding
