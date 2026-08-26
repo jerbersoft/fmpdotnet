@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -52,17 +51,6 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     public Task<IReadOnlyList<T>> GetListAsync<T>(
         FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
         => ReadListAsync(request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct);
-
-    /// <summary>Reflection-based convenience for endpoints the SDK does not yet model. Not trim- or AOT-safe; the
-    /// typed endpoint clients all use the <see cref="JsonTypeInfo{T}"/> overload instead.</summary>
-    /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
-    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
-    /// <exception cref="FmpApiException">FMP reported an error.</exception>
-    [RequiresUnreferencedCode("Deserialises T by reflection. Use the JsonTypeInfo overload for trimmed apps.")]
-    [RequiresDynamicCode("Deserialises T by reflection. Use the JsonTypeInfo overload for AOT apps.")]
-    public Task<IReadOnlyList<T>> GetListAsync<T>(FmpRequest request, CancellationToken ct = default)
-        => ReadListAsync(request,
-            (body, token) => JsonSerializer.DeserializeAsync<List<T>>(body, FmpJson.Options, token), ct);
 
     /// <summary>Sends the request, classifies the body, and deserialises it — all while the response is still
     /// alive.

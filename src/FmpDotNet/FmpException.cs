@@ -95,17 +95,18 @@ public sealed class FmpApiException : FmpException
 /// gave, not for a failure. Errors are exceptions; null is data.</para></summary>
 public sealed class FmpPlanRestrictedException : FmpException
 {
-    /// <summary>Creates the exception for a path the account's plan does not cover.</summary>
-    public FmpPlanRestrictedException(string message) : base(message) { }
-
-    /// <summary>Creates the exception recording which of 402 or 403 FMP actually answered.</summary>
+    /// <summary>Creates the exception, recording which of 402 or 403 FMP answered.
+    ///
+    /// <para>There is deliberately no message-only overload. A refusal always arrives with a status, so a
+    /// nullable <see cref="StatusCode"/> would model a state that cannot occur — and every caller reading it
+    /// would have to handle a null that never comes.</para></summary>
     public FmpPlanRestrictedException(string message, HttpStatusCode statusCode) : base(message)
         => StatusCode = statusCode;
 
     /// <summary>The status FMP answered — <see cref="HttpStatusCode.PaymentRequired"/> or
-    /// <see cref="HttpStatusCode.Forbidden"/>, or null if the exception was constructed without one. See the type
-    /// remarks: these mean different things and only one of them is about billing.</summary>
-    public HttpStatusCode? StatusCode { get; }
+    /// <see cref="HttpStatusCode.Forbidden"/>. See the type remarks: these mean different things and only one of
+    /// them is about billing.</summary>
+    public HttpStatusCode StatusCode { get; }
 
     /// <summary>True when FMP answered <b>402</b>, which is specifically an entitlement answer about the endpoint
     /// rather than about the credential.</summary>

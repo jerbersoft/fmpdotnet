@@ -136,15 +136,4 @@ public class FmpPlanRestrictionTests
         Assert.Equal(isPlan, ex.IsPlanLimitation);
         Assert.Contains("ratios-ttm-bulk", ex.Message);
     }
-
-    [Fact]
-    public void An_exception_built_without_a_status_reports_neither_cause()
-    {
-        // The message-only constructor is still public, so the flags must not claim a cause that was never given.
-        var ex = new FmpPlanRestrictedException("refused");
-
-        Assert.Null(ex.StatusCode);
-        Assert.False(ex.IsPlanLimitation);
-        Assert.False(ex.IsRejectedCredential);
-    }
 }
