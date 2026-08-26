@@ -111,4 +111,72 @@ public sealed record IncomeStatement
     [JsonPropertyName("weightedAverageShsOut")] public decimal? WeightedAverageSharesOutstanding { get; init; }
 
     [JsonPropertyName("weightedAverageShsOutDil")] public decimal? WeightedAverageSharesOutstandingDiluted { get; init; }
+
+    /// <summary>Maps one row of the matching <c>*-bulk</c> CSV.
+    ///
+    /// <para><b>This type is shared with the per-symbol JSON endpoint deliberately, and that was verified rather
+    /// than assumed.</b> The bulk CSV header was compared field by field against this model's
+    /// <c>[JsonPropertyName]</c> values on 2026-08-26: 39 columns, 39 properties, no name on either side absent
+    /// from the other. Duplicating 39 properties into a parallel bulk type would be 39 chances for the two to
+    /// drift, for no gain — unlike <see cref="BulkCompanyProfile"/>, which is kept separate because
+    /// <c>profile-bulk</c> genuinely differs from <c>stable/profile</c> in the TYPE of a shared column.</para>
+    ///
+    /// <para><b><c>acceptedDate</c> is read as Eastern here, not UTC.</b> It is EDGAR's wall clock, matching
+    /// <see cref="NullableEasternInstantJsonConverter"/> on the JSON path. The CSV reader's ordinary
+    /// <c>GetInstant</c> reads the identical wire shape as UTC, because <c>shares-float</c>'s <c>date</c> really
+    /// is UTC — so using it here would make this property mean two different instants depending on which endpoint
+    /// the row arrived from, and be wrong by that date's offset. The reading is confirmed by the distribution
+    /// rather than asserted: of the 20,068 rows carrying a real time, 99.8% fall inside 06:00-21:59, which is
+    /// EDGAR's acceptance window.</para>
+    ///
+    /// <para><b>More than half the rows have no acceptance time at all, and it does not look that way.</b>
+    /// Measured over <c>income-statement-bulk</c> for 2025 Q1: 23,056 of 43,124 rows carry <c>acceptedDate</c>
+    /// ending <c>00:00:00</c> — a date padded to midnight, not a filing accepted at midnight. They skew heavily
+    /// non-US (80% carry an exchange suffix; the top currencies are CNY, CAD, TWD and EUR, against USD, INR and
+    /// JPY among the timed rows). The value is preserved as sent rather than nulled, because midnight is a legal
+    /// instant and silently discarding it would hide the pattern — but anything computing a time of day from this
+    /// field should check for it. The per-symbol endpoint is not affected the same way; this is a bulk
+    /// characteristic.</para></summary>
+    internal static IncomeStatement FromCsv(CsvRow row) => new()
+    {
+        Date = row.GetDate("date"),
+        Symbol = row.GetString("symbol"),
+        ReportedCurrency = row.GetString("reportedCurrency"),
+        Cik = row.GetString("cik"),
+        FilingDate = row.GetDate("filingDate"),
+        AcceptedDate = row.GetEasternInstant("acceptedDate"),
+        FiscalYear = row.GetInt32("fiscalYear"),
+        Period = row.GetString("period"),
+        Revenue = row.GetDecimal("revenue"),
+        CostOfRevenue = row.GetDecimal("costOfRevenue"),
+        GrossProfit = row.GetDecimal("grossProfit"),
+        ResearchAndDevelopmentExpenses = row.GetDecimal("researchAndDevelopmentExpenses"),
+        GeneralAndAdministrativeExpenses = row.GetDecimal("generalAndAdministrativeExpenses"),
+        SellingAndMarketingExpenses = row.GetDecimal("sellingAndMarketingExpenses"),
+        SellingGeneralAndAdministrativeExpenses = row.GetDecimal("sellingGeneralAndAdministrativeExpenses"),
+        OtherExpenses = row.GetDecimal("otherExpenses"),
+        OperatingExpenses = row.GetDecimal("operatingExpenses"),
+        CostAndExpenses = row.GetDecimal("costAndExpenses"),
+        NetInterestIncome = row.GetDecimal("netInterestIncome"),
+        InterestIncome = row.GetDecimal("interestIncome"),
+        InterestExpense = row.GetDecimal("interestExpense"),
+        DepreciationAndAmortization = row.GetDecimal("depreciationAndAmortization"),
+        Ebitda = row.GetDecimal("ebitda"),
+        Ebit = row.GetDecimal("ebit"),
+        NonOperatingIncomeExcludingInterest = row.GetDecimal("nonOperatingIncomeExcludingInterest"),
+        OperatingIncome = row.GetDecimal("operatingIncome"),
+        TotalOtherIncomeExpensesNet = row.GetDecimal("totalOtherIncomeExpensesNet"),
+        IncomeBeforeTax = row.GetDecimal("incomeBeforeTax"),
+        IncomeTaxExpense = row.GetDecimal("incomeTaxExpense"),
+        NetIncomeFromContinuingOperations = row.GetDecimal("netIncomeFromContinuingOperations"),
+        NetIncomeFromDiscontinuedOperations = row.GetDecimal("netIncomeFromDiscontinuedOperations"),
+        OtherAdjustmentsToNetIncome = row.GetDecimal("otherAdjustmentsToNetIncome"),
+        NetIncome = row.GetDecimal("netIncome"),
+        NetIncomeDeductions = row.GetDecimal("netIncomeDeductions"),
+        BottomLineNetIncome = row.GetDecimal("bottomLineNetIncome"),
+        Eps = row.GetDecimal("eps"),
+        EpsDiluted = row.GetDecimal("epsDiluted"),
+        WeightedAverageSharesOutstanding = row.GetDecimal("weightedAverageShsOut"),
+        WeightedAverageSharesOutstandingDiluted = row.GetDecimal("weightedAverageShsOutDil"),
+    };
 }

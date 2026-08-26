@@ -80,6 +80,30 @@ public readonly struct CsvRow
         return parsed.Success ? parsed.Value.InUtc().ToInstant() : null;
     }
 
+    /// <summary>The field as an <see cref="Instant"/>, reading FMP's space-separated
+    /// <c>"yyyy-MM-dd HH:mm:ss"</c> timestamp as <b>Eastern</b> rather than UTC.
+    ///
+    /// <para><b>Both readings are needed, and picking the wrong one is silent.</b> FMP sends two different
+    /// timezones in the identical wire shape: <c>date</c> on <c>shares-float</c> is UTC, while
+    /// <c>acceptedDate</c> on the statement endpoints is EDGAR's Eastern wall clock. The shape tells you nothing,
+    /// so one shared parser is wrong for one of them — and wrong by the four or five hours of that date's offset,
+    /// which is small enough to look like data rather than a bug. The JSON pipeline already has this as a pair of
+    /// converters; the CSV pipeline had only the UTC half, which meant a bulk statement mapper would have
+    /// disagreed with the per-symbol model about the very same field.</para>
+    ///
+    /// <para>Resolution is lenient, matching <see cref="NullableEasternInstantJsonConverter"/>: EDGAR accepts
+    /// filings between 06:00 and 22:00 Eastern, so neither the spring gap nor the autumn overlap should be
+    /// reachable, but a malformed hour must not cost the caller the rest of the record.</para></summary>
+    public Instant? GetEasternInstant(string column)
+    {
+        var raw = GetString(column);
+        if (raw is null) return null;
+        var parsed = FmpTimestampPattern.Parse(raw);
+        return parsed.Success ? parsed.Value.InZoneLeniently(Eastern).ToInstant() : null;
+    }
+
+    private static readonly DateTimeZone Eastern = DateTimeZoneProviders.Tzdb["America/New_York"];
+
     private static readonly LocalDateTimePattern FmpTimestampPattern =
         LocalDateTimePattern.CreateWithInvariantCulture("uuuu-MM-dd HH:mm:ss");
 

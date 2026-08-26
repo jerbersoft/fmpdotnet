@@ -127,4 +127,80 @@ public sealed record CashFlowStatement
     [JsonPropertyName("incomeTaxesPaid")] public decimal? IncomeTaxesPaid { get; init; }
 
     [JsonPropertyName("interestPaid")] public decimal? InterestPaid { get; init; }
+
+    /// <summary>Maps one row of the matching <c>*-bulk</c> CSV.
+    ///
+    /// <para><b>This type is shared with the per-symbol JSON endpoint deliberately, and that was verified rather
+    /// than assumed.</b> The bulk CSV header was compared field by field against this model's
+    /// <c>[JsonPropertyName]</c> values on 2026-08-26: 47 columns, 47 properties, no name on either side absent
+    /// from the other. Duplicating 47 properties into a parallel bulk type would be 47 chances for the two to
+    /// drift, for no gain — unlike <see cref="BulkCompanyProfile"/>, which is kept separate because
+    /// <c>profile-bulk</c> genuinely differs from <c>stable/profile</c> in the TYPE of a shared column.</para>
+    ///
+    /// <para><b><c>acceptedDate</c> is read as Eastern here, not UTC.</b> It is EDGAR's wall clock, matching
+    /// <see cref="NullableEasternInstantJsonConverter"/> on the JSON path. The CSV reader's ordinary
+    /// <c>GetInstant</c> reads the identical wire shape as UTC, because <c>shares-float</c>'s <c>date</c> really
+    /// is UTC — so using it here would make this property mean two different instants depending on which endpoint
+    /// the row arrived from, and be wrong by that date's offset. The reading is confirmed by the distribution
+    /// rather than asserted: of the 20,068 rows carrying a real time, 99.8% fall inside 06:00-21:59, which is
+    /// EDGAR's acceptance window.</para>
+    ///
+    /// <para><b>More than half the rows have no acceptance time at all, and it does not look that way.</b>
+    /// Measured over <c>income-statement-bulk</c> for 2025 Q1: 23,056 of 43,124 rows carry <c>acceptedDate</c>
+    /// ending <c>00:00:00</c> — a date padded to midnight, not a filing accepted at midnight. They skew heavily
+    /// non-US (80% carry an exchange suffix; the top currencies are CNY, CAD, TWD and EUR, against USD, INR and
+    /// JPY among the timed rows). The value is preserved as sent rather than nulled, because midnight is a legal
+    /// instant and silently discarding it would hide the pattern — but anything computing a time of day from this
+    /// field should check for it. The per-symbol endpoint is not affected the same way; this is a bulk
+    /// characteristic.</para></summary>
+    internal static CashFlowStatement FromCsv(CsvRow row) => new()
+    {
+        Date = row.GetDate("date"),
+        Symbol = row.GetString("symbol"),
+        ReportedCurrency = row.GetString("reportedCurrency"),
+        Cik = row.GetString("cik"),
+        FilingDate = row.GetDate("filingDate"),
+        AcceptedDate = row.GetEasternInstant("acceptedDate"),
+        FiscalYear = row.GetInt32("fiscalYear"),
+        Period = row.GetString("period"),
+        NetIncome = row.GetDecimal("netIncome"),
+        DepreciationAndAmortization = row.GetDecimal("depreciationAndAmortization"),
+        DeferredIncomeTax = row.GetDecimal("deferredIncomeTax"),
+        StockBasedCompensation = row.GetDecimal("stockBasedCompensation"),
+        ChangeInWorkingCapital = row.GetDecimal("changeInWorkingCapital"),
+        AccountsReceivables = row.GetDecimal("accountsReceivables"),
+        Inventory = row.GetDecimal("inventory"),
+        AccountsPayables = row.GetDecimal("accountsPayables"),
+        OtherWorkingCapital = row.GetDecimal("otherWorkingCapital"),
+        OtherNonCashItems = row.GetDecimal("otherNonCashItems"),
+        NetCashProvidedByOperatingActivities = row.GetDecimal("netCashProvidedByOperatingActivities"),
+        InvestmentsInPropertyPlantAndEquipment = row.GetDecimal("investmentsInPropertyPlantAndEquipment"),
+        AcquisitionsNet = row.GetDecimal("acquisitionsNet"),
+        PurchasesOfInvestments = row.GetDecimal("purchasesOfInvestments"),
+        SalesMaturitiesOfInvestments = row.GetDecimal("salesMaturitiesOfInvestments"),
+        OtherInvestingActivities = row.GetDecimal("otherInvestingActivities"),
+        NetCashProvidedByInvestingActivities = row.GetDecimal("netCashProvidedByInvestingActivities"),
+        NetDebtIssuance = row.GetDecimal("netDebtIssuance"),
+        LongTermNetDebtIssuance = row.GetDecimal("longTermNetDebtIssuance"),
+        ShortTermNetDebtIssuance = row.GetDecimal("shortTermNetDebtIssuance"),
+        NetStockIssuance = row.GetDecimal("netStockIssuance"),
+        NetCommonStockIssuance = row.GetDecimal("netCommonStockIssuance"),
+        CommonStockIssuance = row.GetDecimal("commonStockIssuance"),
+        CommonStockRepurchased = row.GetDecimal("commonStockRepurchased"),
+        NetPreferredStockIssuance = row.GetDecimal("netPreferredStockIssuance"),
+        NetDividendsPaid = row.GetDecimal("netDividendsPaid"),
+        CommonDividendsPaid = row.GetDecimal("commonDividendsPaid"),
+        PreferredDividendsPaid = row.GetDecimal("preferredDividendsPaid"),
+        OtherFinancingActivities = row.GetDecimal("otherFinancingActivities"),
+        NetCashProvidedByFinancingActivities = row.GetDecimal("netCashProvidedByFinancingActivities"),
+        EffectOfForexChangesOnCash = row.GetDecimal("effectOfForexChangesOnCash"),
+        NetChangeInCash = row.GetDecimal("netChangeInCash"),
+        CashAtEndOfPeriod = row.GetDecimal("cashAtEndOfPeriod"),
+        CashAtBeginningOfPeriod = row.GetDecimal("cashAtBeginningOfPeriod"),
+        OperatingCashFlow = row.GetDecimal("operatingCashFlow"),
+        CapitalExpenditure = row.GetDecimal("capitalExpenditure"),
+        FreeCashFlow = row.GetDecimal("freeCashFlow"),
+        IncomeTaxesPaid = row.GetDecimal("incomeTaxesPaid"),
+        InterestPaid = row.GetDecimal("interestPaid"),
+    };
 }

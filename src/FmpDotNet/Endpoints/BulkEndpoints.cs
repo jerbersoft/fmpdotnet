@@ -24,6 +24,79 @@ namespace FmpDotNet.Endpoints;
 /// fall back to the per-symbol path; do not infer entitlement from a row count.</para></summary>
 public sealed class BulkEndpoints(FmpBulkTransport transport)
 {
+    /// <summary>Streams trailing-twelve-month key metrics for every company FMP covers. From
+    /// <c>stable/key-metrics-ttm-bulk</c> — 71,500 rows and 44.0 MB measured 2026-08-26.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
+    /// JSON error body, not as a 429.</exception>
+    public IAsyncEnumerable<KeyMetricsTtm> StreamKeyMetricsTtmAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/key-metrics-ttm-bulk"), KeyMetricsTtm.FromCsv, ct);
+
+    /// <summary>Streams trailing-twelve-month ratios for every company FMP covers. From
+    /// <c>stable/ratios-ttm-bulk</c> — 71,504 rows and 69.5 MB measured 2026-08-26.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
+    /// JSON error body, not as a 429.</exception>
+    public IAsyncEnumerable<RatiosTtm> StreamRatiosTtmAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/ratios-ttm-bulk"), RatiosTtm.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of income statements for every company FMP covers. From
+    /// <c>stable/income-statement-bulk</c> — 43,124 rows and 14.0 MB measured 2026-08-26 for 2025 Q1.
+    ///
+    /// <para>Rows map to <see cref="IncomeStatement"/>, the same type the per-symbol endpoint returns. That is
+    /// not a shortcut: the CSV header was compared field by field against the model on 2026-08-26 and the two
+    /// carry exactly the same 39 names.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised —
+    /// an unknown <c>period</c> answers HTTP 400.</exception>
+    public IAsyncEnumerable<IncomeStatement> StreamIncomeStatementsAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/income-statement-bulk", year, period), IncomeStatement.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of income-statement growth for every company FMP covers. From
+    /// <c>stable/income-statement-growth-bulk</c> — 43,135 rows and 21.3 MB measured 2026-08-26 for 2025 Q1.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    public IAsyncEnumerable<IncomeStatementGrowth> StreamIncomeStatementGrowthAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/income-statement-growth-bulk", year, period), IncomeStatementGrowth.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of balance sheets for every company FMP covers. From
+    /// <c>stable/balance-sheet-statement-bulk</c> — 42,353 rows and 19.7 MB measured 2026-08-26 for 2025 Q1.
+    ///
+    /// <para>Rows map to <see cref="BalanceSheetStatement"/>; the CSV carries exactly the same 61 names as the
+    /// per-symbol model, verified against the header.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    public IAsyncEnumerable<BalanceSheetStatement> StreamBalanceSheetsAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/balance-sheet-statement-bulk", year, period), BalanceSheetStatement.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of balance-sheet growth for every company FMP covers. From
+    /// <c>stable/balance-sheet-statement-growth-bulk</c> — 42,361 rows and 29.1 MB measured 2026-08-26 for 2025 Q1.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    public IAsyncEnumerable<BalanceSheetGrowth> StreamBalanceSheetGrowthAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/balance-sheet-statement-growth-bulk", year, period), BalanceSheetGrowth.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of cash flow statements for every company FMP covers. From
+    /// <c>stable/cash-flow-statement-bulk</c> — 41,697 rows and 12.5 MB measured 2026-08-26 for 2025 Q1.
+    ///
+    /// <para>Rows map to <see cref="CashFlowStatement"/>; the CSV carries exactly the same 47 names as the
+    /// per-symbol model, verified against the header.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    public IAsyncEnumerable<CashFlowStatement> StreamCashFlowsAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/cash-flow-statement-bulk", year, period), CashFlowStatement.FromCsv, ct);
+
+    /// <summary>Streams one fiscal period of cash-flow growth for every company FMP covers. From
+    /// <c>stable/cash-flow-statement-growth-bulk</c> — 41,706 rows and 17.0 MB measured 2026-08-26 for 2025 Q1.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the period was not recognised.</exception>
+    public IAsyncEnumerable<CashFlowGrowth> StreamCashFlowGrowthAsync(
+        int year, BulkFiscalPeriod period, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(Periodic("stable/cash-flow-statement-growth-bulk", year, period), CashFlowGrowth.FromCsv, ct);
+
+    /// <summary>The <c>year</c> + <c>period</c> query the six statement-family bulk endpoints share.</summary>
+    private static FmpRequest Periodic(string path, int year, BulkFiscalPeriod period) =>
+        new FmpRequest(path)
+            .With("year", year.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            .With("period", period.ToQueryValue());
+
     /// <summary>Streams every symbol's analyst price-target summary. From <c>stable/price-target-summary-bulk</c>,
     /// which takes no parameters and answers the whole covered universe in one response — 5,277 rows and 314 kB
     /// measured 2026-08-26.
