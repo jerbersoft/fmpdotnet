@@ -24,6 +24,62 @@ namespace FmpDotNet.Endpoints;
 /// fall back to the per-symbol path; do not infer entitlement from a row count.</para></summary>
 public sealed class BulkEndpoints(FmpBulkTransport transport)
 {
+    /// <summary>Streams FMP's letter rating and component scores for every company it covers. From
+    /// <c>stable/rating-bulk</c> — 45,008 rows and 1.8 MB measured 2026-08-26.
+    ///
+    /// <para>The letter scale runs above <c>A+</c>: see <see cref="BulkCompanyRating.Rating"/>.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    public IAsyncEnumerable<BulkCompanyRating> StreamRatingsAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/rating-bulk"), BulkCompanyRating.FromCsv, ct);
+
+    /// <summary>Streams FMP's discounted-cash-flow valuation beside the market price, for every company it
+    /// covers. From <c>stable/dcf-bulk</c> — 33,583 rows and 1.6 MB measured 2026-08-26.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    public IAsyncEnumerable<BulkDiscountedCashFlow> StreamDiscountedCashFlowsAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/dcf-bulk"), BulkDiscountedCashFlow.FromCsv, ct);
+
+    /// <summary>Streams Altman Z and Piotroski F scores for every company FMP covers. From
+    /// <c>stable/scores-bulk</c> — 62,339 rows and 6.7 MB measured 2026-08-26.
+    ///
+    /// <para>Rows map to <see cref="FinancialScores"/>, the same type <c>Statements.GetScoresAsync</c> returns:
+    /// the CSV carries exactly the same 11 names, verified against the header.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    public IAsyncEnumerable<FinancialScores> StreamScoresAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/scores-bulk"), FinancialScores.FromCsv, ct);
+
+    /// <summary>Streams every company's peer group. From <c>stable/peers-bulk</c> — 82,930 rows and 6.5 MB
+    /// measured 2026-08-26, the widest symbol coverage of any endpoint the SDK models.</summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call.</exception>
+    public IAsyncEnumerable<BulkPeers> StreamPeersAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(new FmpRequest("stable/peers-bulk"), BulkPeers.FromCsv, ct);
+
+    /// <summary>Streams one <paramref name="part"/> of every ETF's holdings. From
+    /// <c>stable/etf-holder-bulk</c>.
+    ///
+    /// <para><b>This is the largest response the SDK models, by a wide margin.</b> Measured 2026-08-26,
+    /// <c>part=0</c> alone was <b>298,693,192 bytes over 2,571,137 rows</b> covering 4,610 ETFs. Buffering it is
+    /// not an option and neither is materialising it — <c>ToListAsync</c> on this would be millions of records
+    /// live at once.</para></summary>
+    /// <param name="part">Zero-based part index. An out-of-range part answers HTTP 400.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or the part is out of range.</exception>
+    public IAsyncEnumerable<BulkEtfHolding> StreamEtfHoldingsAsync(int part, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(
+            new FmpRequest("stable/etf-holder-bulk").With("part", part.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            BulkEtfHolding.FromCsv, ct);
+
+    /// <summary>Streams every part of <c>stable/etf-holder-bulk</c>, walking until FMP refuses the next part.
+    ///
+    /// <para><b>Consider carefully before calling this.</b> Part 0 alone is 298 MB and 2.57 million rows; the
+    /// whole walk is an unknown multiple of that, downloaded through a throttle deliberately set to a trickle.
+    /// If you want one fund's holdings, this is the wrong call.</para>
+    ///
+    /// <para>See <see cref="WalkPartsAsync"/> for how the walk decides it has finished, which is a heuristic
+    /// rather than a contract.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call, or part 0 was rejected.</exception>
+    public IAsyncEnumerable<BulkEtfHolding> StreamAllEtfHoldingsAsync(CancellationToken ct = default) =>
+        WalkPartsAsync(StreamEtfHoldingsAsync, ct);
+
     /// <summary>Streams trailing-twelve-month key metrics for every company FMP covers. From
     /// <c>stable/key-metrics-ttm-bulk</c> — 71,500 rows and 44.0 MB measured 2026-08-26.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
@@ -220,14 +276,29 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
     /// caller pacing this walk itself — rather than letting it run flat out — is the difference between finishing
     /// and being refused on part 1.</para></summary>
     /// <param name="ct">Cancels the walk between parts as well as mid-part.</param>
-    public async IAsyncEnumerable<BulkCompanyProfile> StreamAllProfilesAsync(
-        [EnumeratorCancellation] CancellationToken ct = default)
+    public IAsyncEnumerable<BulkCompanyProfile> StreamAllProfilesAsync(CancellationToken ct = default) =>
+        WalkPartsAsync(StreamProfilesAsync, ct);
+
+    /// <summary>Walks a <c>part</c>-paged bulk endpoint from part 0 until it runs out.
+    ///
+    /// <para><b>Termination is a heuristic, because the endpoint family gives nothing better.</b> An out-of-range
+    /// part answers <b>HTTP 400</b> with a plain-text body under a <c>content-type</c> of <c>application/json</c>
+    /// that is a lie; there is no empty-response terminator and no count of parts anywhere. So a 400 ends the
+    /// walk — except on part 0, where it is rethrown, since a 400 on the very first request means the request
+    /// itself was wrong rather than the universe being exhausted. A part that yields no rows also ends it.</para>
+    ///
+    /// <para>Shared by <see cref="StreamAllProfilesAsync"/> and <see cref="StreamAllEtfHoldingsAsync"/>. The
+    /// logic is small but easy to get subtly wrong — swallowing the part-0 case, or disposing the enumerator on
+    /// the wrong path — and two copies would be two places to get it wrong.</para></summary>
+    private static async IAsyncEnumerable<T> WalkPartsAsync<T>(
+        Func<int, CancellationToken, IAsyncEnumerable<T>> part,
+        [EnumeratorCancellation] CancellationToken ct)
     {
-        for (var part = 0; ; part++)
+        for (var index = 0; ; index++)
         {
             var rows = 0;
             var exhausted = false;
-            var enumerator = StreamProfilesAsync(part, ct).GetAsyncEnumerator(ct);
+            var enumerator = part(index, ct).GetAsyncEnumerator(ct);
             try
             {
                 while (true)
@@ -237,7 +308,7 @@ public sealed class BulkEndpoints(FmpBulkTransport transport)
                     {
                         moved = await enumerator.MoveNextAsync().ConfigureAwait(false);
                     }
-                    catch (FmpApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest && part > 0)
+                    catch (FmpApiException ex) when (ex.StatusCode == HttpStatusCode.BadRequest && index > 0)
                     {
                         exhausted = true;
                         break;

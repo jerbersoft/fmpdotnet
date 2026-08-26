@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Models;
 
@@ -121,4 +122,24 @@ public sealed record FinancialScores
 
     /// <summary>Sales. Altman's X5 numerator, and the term that carries the unit weight.</summary>
     [JsonPropertyName("revenue")] public decimal? Revenue { get; init; }
+
+    /// <summary>Maps one row of <c>stable/scores-bulk</c>.
+    ///
+    /// <para>Shared with the per-symbol <c>stable/financial-scores</c> deliberately: the bulk CSV header was
+    /// compared field by field against this model's <c>[JsonPropertyName]</c> values on 2026-08-26 and the two
+    /// carry exactly the same 11 names. The bulk response was 62,339 rows and 6.7 MB.</para></summary>
+    internal static FinancialScores FromCsv(CsvRow row) => new()
+    {
+        Symbol = row.GetString("symbol") ?? "",
+        ReportedCurrency = row.GetString("reportedCurrency"),
+        AltmanZScore = row.GetDecimal("altmanZScore"),
+        PiotroskiScore = row.GetDecimal("piotroskiScore"),
+        WorkingCapital = row.GetDecimal("workingCapital"),
+        TotalAssets = row.GetDecimal("totalAssets"),
+        RetainedEarnings = row.GetDecimal("retainedEarnings"),
+        Ebit = row.GetDecimal("ebit"),
+        MarketCap = row.GetDecimal("marketCap"),
+        TotalLiabilities = row.GetDecimal("totalLiabilities"),
+        Revenue = row.GetDecimal("revenue"),
+    };
 }

@@ -14,7 +14,7 @@ re-document `/stable/quote` and friends), and the first release targets 39 of th
 ## Status
 
 Foundation, both pipelines, the period-shaped fundamentals, the directory endpoints, every endpoint trader calls,
-and the first slice of the bulk surface. `dotnet test` — 274 passing.
+and the whole bulk surface. `dotnet test` — 305 passing.
 
 | Area | State |
 |---|---|
@@ -39,8 +39,13 @@ and the first slice of the bulk surface. `dotnet test` — 274 passing.
 | `Bulk.StreamPriceTargetSummariesAsync` | done |
 | `Bulk.StreamAnalystConsensusAsync` | done |
 | `Bulk.StreamEarningsSurprisesAsync` | done |
+| `Bulk.StreamIncomeStatementsAsync` / `…BalanceSheetsAsync` / `…CashFlowsAsync` | done |
+| `Bulk.Stream*GrowthAsync` — the three growth variants | done |
+| `Bulk.StreamKeyMetricsTtmAsync` / `StreamRatiosTtmAsync` | done |
+| `Bulk.StreamRatingsAsync` / `StreamDiscountedCashFlowsAsync` / `StreamScoresAsync` / `StreamPeersAsync` | done |
+| `Bulk.StreamEtfHoldingsAsync` / `StreamAllEtfHoldingsAsync` | done |
 | Developer disk cache for bulk responses | done |
-| Remaining 17 endpoints | not started |
+| Remaining 4 endpoints — the universe and directory lists | not started |
 
 Every endpoint `Trader.Adapters.MarketData.Fmp` calls is now modelled, which is what the adapter's removal was
 waiting on.
@@ -277,7 +282,9 @@ Delete the directory to refetch. Entries are keyed by the request URL with the A
 key does not orphan the cache.
 
 Every bulk model in this repository was written against a response captured this way and verified by streaming
-the whole of it through the mapper — 84,585 rows for the three analyst downloads, not a sample.
+the whole of it through the mapper, not a sample. Across the milestone that is **3.2 million rows and roughly
+560 MB** — including `etf-holder-bulk`'s single 298 MB part, which streamed 2,571,137 rows at 0.2 MB of peak live
+memory.
 
 **Why it exists.** Bulk is throttled separately and far more tightly than the ordinary endpoints — measured
 2026-08-26, a second call moments after the first was already refused — and FMP's own error text warns that
