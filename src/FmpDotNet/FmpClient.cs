@@ -8,6 +8,7 @@ namespace FmpDotNet;
 /// <see cref="DependencyInjection.FmpServiceCollectionExtensions.AddFmp(Microsoft.Extensions.DependencyInjection.IServiceCollection, Action{FmpOptions})"/>.</para></summary>
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
+    CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -16,8 +17,23 @@ public sealed class FmpClient(
     /// <summary>The reference vocabularies — the sector and industry labels everything else classifies against.</summary>
     public DirectoryEndpoints Directory { get; } = directory;
 
-    /// <summary>The period-shaped fundamentals: statements, ratios, metrics, growth and enterprise values.</summary>
+    /// <summary>The period-shaped fundamentals: statements, ratios, metrics, growth, enterprise values and
+    /// scores.</summary>
     public StatementEndpoints Statements { get; } = statements;
+
+    /// <summary>What a company has reported and when it reports next — per-symbol earnings history, and the
+    /// whole-market earnings calendar.
+    ///
+    /// <para>Both answer dates rather than periods, which is why they are not on <see cref="Statements"/>: neither
+    /// takes a <see cref="FiscalPeriod"/>, and the calendar takes no symbol at all.</para></summary>
+    public CalendarEndpoints Calendar { get; } = calendar;
+
+    /// <summary>Forward consensus — what analysts expect rather than what was reported.</summary>
+    public AnalystEndpoints Analyst { get; } = analyst;
+
+    /// <summary>Macroeconomic releases. Global and unfiltered by design — see
+    /// <see cref="EconomicsEndpoints"/>.</summary>
+    public EconomicsEndpoints Economics { get; } = economics;
 
     /// <summary>Whole-universe CSV downloads. Streamed, and throttled separately — see
     /// <see cref="BulkEndpoints"/>.</summary>

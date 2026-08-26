@@ -18,14 +18,25 @@ public class AddFmpTests
         return new ServiceCollection().AddLogging().AddFmp(configuration).BuildServiceProvider();
     }
 
+    /// <summary>Every group on <see cref="FmpClient"/> resolves.
+    ///
+    /// <para>Named for the whole surface rather than for a count, because the count keeps changing: a group added
+    /// to the client but never registered fails only here, and only if this test names it. The constructor is
+    /// where that would surface otherwise — which is to say, at the first resolve in a consumer's application
+    /// rather than in this build.</para></summary>
     [Fact]
-    public void Resolves_the_client_and_both_endpoint_groups()
+    public void Resolves_the_client_and_every_endpoint_group()
     {
         using var provider = Build(("Fmp:ApiKey", "k"));
 
         var client = provider.GetRequiredService<FmpClient>();
 
         Assert.NotNull(client.Company);
+        Assert.NotNull(client.Directory);
+        Assert.NotNull(client.Statements);
+        Assert.NotNull(client.Calendar);
+        Assert.NotNull(client.Analyst);
+        Assert.NotNull(client.Economics);
         Assert.NotNull(client.Bulk);
     }
 
