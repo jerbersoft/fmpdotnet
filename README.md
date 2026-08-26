@@ -13,8 +13,8 @@ re-document `/stable/quote` and friends), and the first release targets 39 of th
 
 ## Status
 
-Foundation, both pipelines, the period-shaped fundamentals, the directory endpoints, and every endpoint trader
-calls. `dotnet test` — 242 passing.
+Foundation, both pipelines, the period-shaped fundamentals, the directory endpoints, every endpoint trader calls,
+and the first slice of the bulk surface. `dotnet test` — 274 passing.
 
 | Area | State |
 |---|---|
@@ -36,7 +36,11 @@ calls. `dotnet test` — 242 passing.
 | `Economics.GetEconomicCalendarAsync` — macro releases | done |
 | `Bulk.StreamEndOfDayAsync` | done |
 | `Bulk.StreamProfilesAsync` / `StreamAllProfilesAsync` | done |
-| Remaining 20 endpoints | not started |
+| `Bulk.StreamPriceTargetSummariesAsync` | done |
+| `Bulk.StreamAnalystConsensusAsync` | done |
+| `Bulk.StreamEarningsSurprisesAsync` | done |
+| Developer disk cache for bulk responses | done |
+| Remaining 17 endpoints | not started |
 
 Every endpoint `Trader.Adapters.MarketData.Fmp` calls is now modelled, which is what the adapter's removal was
 waiting on.
@@ -271,6 +275,9 @@ on a `FromCsv` mapper without re-downloading it.
 
 Delete the directory to refetch. Entries are keyed by the request URL with the API key stripped, so rotating your
 key does not orphan the cache.
+
+Every bulk model in this repository was written against a response captured this way and verified by streaming
+the whole of it through the mapper — 84,585 rows for the three analyst downloads, not a sample.
 
 **Why it exists.** Bulk is throttled separately and far more tightly than the ordinary endpoints — measured
 2026-08-26, a second call moments after the first was already refused — and FMP's own error text warns that

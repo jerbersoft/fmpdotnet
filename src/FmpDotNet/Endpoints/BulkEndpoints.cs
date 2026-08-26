@@ -24,6 +24,48 @@ namespace FmpDotNet.Endpoints;
 /// fall back to the per-symbol path; do not infer entitlement from a row count.</para></summary>
 public sealed class BulkEndpoints(FmpBulkTransport transport)
 {
+    /// <summary>Streams every symbol's analyst price-target summary. From <c>stable/price-target-summary-bulk</c>,
+    /// which takes no parameters and answers the whole covered universe in one response — 5,277 rows and 314 kB
+    /// measured 2026-08-26.
+    ///
+    /// <para>Read <see cref="BulkPriceTargetSummary"/> before using the averages: no field is ever blank, so a
+    /// window with no coverage arrives as a zero count and a zero average rather than as null.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
+    /// JSON error body, not as a 429.</exception>
+    public IAsyncEnumerable<BulkPriceTargetSummary> StreamPriceTargetSummariesAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(
+            new FmpRequest("stable/price-target-summary-bulk"),
+            BulkPriceTargetSummary.FromCsv, ct);
+
+    /// <summary>Streams every symbol's analyst rating distribution and consensus label. From
+    /// <c>stable/upgrades-downgrades-consensus-bulk</c>, which takes no parameters — 13,363 rows and 326 kB
+    /// measured 2026-08-26.
+    ///
+    /// <para>This universe is global and symbol-ordered, so the first rows are Shenzhen and Hong Kong listings
+    /// rather than US ones. It is two and a half times the row count of
+    /// <see cref="StreamPriceTargetSummariesAsync"/>.</para></summary>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
+    /// JSON error body, not as a 429.</exception>
+    public IAsyncEnumerable<BulkAnalystConsensus> StreamAnalystConsensusAsync(CancellationToken ct = default) =>
+        transport.StreamCsvAsync(
+            new FmpRequest("stable/upgrades-downgrades-consensus-bulk"),
+            BulkAnalystConsensus.FromCsv, ct);
+
+    /// <summary>Streams every earnings result reported in <paramref name="year"/>, against its estimate. From
+    /// <c>stable/earnings-surprises-bulk</c> — 65,945 rows and 3.1 MB measured 2026-08-26 for 2025.
+    ///
+    /// <para><b>Symbol and date together do not identify a row</b>: 210 pairs repeated within the measured year.
+    /// See <see cref="BulkEarningsSurprise"/> before storing these under a unique index.</para></summary>
+    /// <param name="year">The calendar year to fetch. FMP selects on the reported date, so a fiscal quarter
+    /// ending in January lands in that January's year.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
+    /// JSON error body, not as a 429.</exception>
+    public IAsyncEnumerable<BulkEarningsSurprise> StreamEarningsSurprisesAsync(int year, CancellationToken ct = default) =>
+        transport.StreamCsvAsync(
+            new FmpRequest("stable/earnings-surprises-bulk").With("year", year.ToString(System.Globalization.CultureInfo.InvariantCulture)),
+            BulkEarningsSurprise.FromCsv, ct);
+
     /// <summary>Streams end-of-day bars for every symbol FMP covers on <paramref name="date"/>.</summary>
     /// <exception cref="FmpApiException">The bulk throttle refused the call — which arrives as HTTP 200 carrying a
     /// JSON error body, not as a 429.</exception>
