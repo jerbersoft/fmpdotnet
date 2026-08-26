@@ -4,6 +4,8 @@ obj/
 [Dd]ebug/
 [Rr]elease/
 artifacts/
+TestResults/
+*.trx
 
 # IDE
 .vs/

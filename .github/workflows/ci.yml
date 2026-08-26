@@ -1,0 +1,95 @@
+name: CI
+
+# The gate in front of a package other people will depend on.
+#
+# The build runs under TreatWarningsAsErrors (Directory.Build.props) covering NU* as well as CS*, so a new
+# compiler warning OR a newly-published advisory against any package — direct or transitive — fails this job
+# rather than adding a line nobody reads.
+#
+# It also carries the trim/AOT analysers for free. The library declares IsAotCompatible, which turns IL2026 and
+# IL3050 into build errors: any reflection-based JSON or configuration binding that creeps back in fails HERE,
+# not months later in a consumer's trimmed publish. That is not a theoretical guard — those two errors are what
+# forced the source-generated JsonSerializerContext and the by-name options binding in the first place.
+#
+# Deliberately NOT here yet:
+#   * pack / publish to NuGet — the library has no package metadata (id, description, licence, repository URL)
+#     until #21. Packing before then would produce a package that restores but tells a consumer nothing, and a
+#     publish step with no metadata to publish is worse than no publish step.
+#   * a live smoke suite against the real API — #26. It needs a key, and its bulk calls would have to be
+#     excluded or heavily paced, because FMP warns that frequent bulk use can get a key restricted. That does
+#     not belong on every push.
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [master]
+  workflow_dispatch:      # so a run can be forced without pushing a commit
+
+# This repository is PRIVATE, so runner minutes are billed rather than free. Superseded runs on a branch are
+# cancelled; master is exempt because its runs are the record for a merged commit and should complete even if
+# another merge lands behind them.
+#
+# Branch pushes are built, not just PRs, because work here happens on feature branches that may sit for a while
+# before one is opened — CI that only runs at PR time would leave the branch unverified for exactly the period
+# when the feedback is worth most. A branch that later gets a PR is therefore built twice; on a repo this size
+# that is a few minutes, and it buys immediate feedback on every push.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+permissions:
+  contents: read          # least privilege — nothing here writes to the repo
+
+jobs:
+  dotnet:
+    name: .NET — build + test
+    runs-on: ubuntu-latest
+    # Explicit, because the GitHub default is 360 minutes. On a billed private repo a single hung step would
+    # otherwise burn six hours of minutes before anyone noticed.
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # No dotnet-version here: global.json pins the SDK feature band, so the runner and a developer's machine
+      # resolve the same compiler. Passing a version as well would let the two disagree silently.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      # setup-dotnet's own `cache: true` keys off packages.lock.json, which this repo does not use, so it would
+      # silently cache nothing. Key off the project files instead.
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore
+        run: dotnet restore fmpdotnet.slnx
+
+      - name: Build
+        run: dotnet build fmpdotnet.slnx --no-restore
+
+      # `-- RunConfiguration.TreatNoTestsAsError=true` is the part that makes this step a gate rather than a
+      # formality. VSTest treats "discovery selected zero tests" as a WARNING and still exits 0, so without it a
+      # green tick can mean nothing ran at all — a renamed test project, a broken discovery, or a filter typo all
+      # reach that state. The setting makes zero selected tests exit 1 instead, per project.
+      #
+      # Plain `--logger trx`, with no --results-directory: with a solution every project would otherwise write
+      # its trx to the same path under the same name and only the last to finish would survive.
+      - name: Test
+        run: dotnet test fmpdotnet.slnx --no-build --logger trx -- RunConfiguration.TreatNoTestsAsError=true
+
+      # Failure only. These are read when something broke; uploading them on every green run bills artifact
+      # storage on a private repo for files nobody opens.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: dotnet-test-results
+          path: '**/TestResults/*.trx'
+          retention-days: 14
