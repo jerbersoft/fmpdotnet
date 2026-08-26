@@ -1,0 +1,702 @@
+[
+  {
+    "symbol": "NB2.F",
+    "companyName": "Northern Data AG",
+    "exchange": "FSX",
+    "ipoDate": "2018-10-02",
+    "delistedDate": "2026-12-30"
+  },
+  {
+    "symbol": "082640.KS",
+    "companyName": "Tong Yang Life Insurance Co., Ltd.",
+    "exchange": "KSC",
+    "ipoDate": "2009-10-08",
+    "delistedDate": "2026-08-31"
+  },
+  {
+    "symbol": "SOYO",
+    "companyName": "Soyo Group Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2023-05-23",
+    "delistedDate": "2026-08-25"
+  },
+  {
+    "symbol": "MTC.AX",
+    "companyName": "MetalsTech Limited",
+    "exchange": "ASX",
+    "ipoDate": "2017-02-23",
+    "delistedDate": "2026-08-25"
+  },
+  {
+    "symbol": "SBEV",
+    "companyName": "Splash Beverage Group, Inc.",
+    "exchange": "AMEX",
+    "ipoDate": "2019-02-05",
+    "delistedDate": "2026-08-24"
+  },
+  {
+    "symbol": "LBRDK",
+    "companyName": "Liberty Broadband Corporation",
+    "exchange": "NASDAQ",
+    "ipoDate": "2014-11-05",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "BEDZ",
+    "companyName": "AdvisorShares Hotel ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2021-04-21",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "LBRDA",
+    "companyName": "Liberty Broadband Corporation",
+    "exchange": "NASDAQ",
+    "ipoDate": "2014-11-04",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "LBRDP",
+    "companyName": "Liberty Broadband Corporation",
+    "exchange": "NASDAQ",
+    "ipoDate": "2020-12-22",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "JTCPF",
+    "companyName": "JTC Plc",
+    "exchange": "OTC",
+    "ipoDate": "2021-08-09",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "VICE",
+    "companyName": "AdvisorShares Vice ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2017-12-13",
+    "delistedDate": "2026-08-21"
+  },
+  {
+    "symbol": "WBS",
+    "companyName": "Webster Financial Corporation",
+    "exchange": "NYSE",
+    "ipoDate": "1986-12-12",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "YBMN",
+    "companyName": "Defiance BMNR Option Income ETF",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-11-25",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "SALM",
+    "companyName": "Salem Media Group, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "1999-07-01",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "AACB",
+    "companyName": "Artius II Acquisition Inc. Class A Ordinary Shares",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-02-13",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "AACBU",
+    "companyName": "Artius II Acquisition Inc. Units",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-02-13",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "MVMD.CN",
+    "companyName": "Mountain Valley MD Holdings Inc.",
+    "exchange": "CNQ",
+    "ipoDate": "2020-03-02",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "XVO",
+    "companyName": "Corgi U.S. Mid-Cap 2x Daily ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2026-06-03",
+    "delistedDate": "2026-08-20"
+  },
+  {
+    "symbol": "IWFL",
+    "companyName": "ETRACS 2x Leveraged US Growth Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "QULL",
+    "companyName": "ETRACS 2x Leveraged MSCI US Quality Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "AACBR",
+    "companyName": "Artius II Acquisition Inc. Rights",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-02-13",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "HLEOD",
+    "companyName": "Helio Corporation",
+    "exchange": "OTC",
+    "ipoDate": "2023-10-24",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "IWML",
+    "companyName": "ETRACS 2x Leveraged US Size Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "SCDL",
+    "companyName": "ETRACS 2x Leveraged US Dividend Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "GGRP",
+    "companyName": "The Glimpse Group, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2021-07-01",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "USML",
+    "companyName": "ETRACS 2x Leveraged MSCI US Minimum Volatility Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "EKSN",
+    "companyName": "Erickson Incorporated",
+    "exchange": "OTC",
+    "ipoDate": "2021-06-10",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "LBRDB",
+    "companyName": "Liberty Broadband Corporation",
+    "exchange": "OTC",
+    "ipoDate": "2014-11-21",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "GRL.AX",
+    "companyName": "Godolphin Resources Limited",
+    "exchange": "ASX",
+    "ipoDate": "2019-12-17",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "BOLT.CN",
+    "companyName": "Bolt Metals Corp.",
+    "exchange": "CNQ",
+    "ipoDate": "2010-12-17",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "WBS-PG",
+    "companyName": "Webster Financial Corporation",
+    "exchange": "NYSE",
+    "ipoDate": "2022-02-02",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "WBS-PF",
+    "companyName": "Webster Financial Corporation",
+    "exchange": "NYSE",
+    "ipoDate": "2017-12-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "IWDL",
+    "companyName": "ETRACS 2x Leveraged US Value Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "AOTS",
+    "companyName": "AOT Software Platform ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2025-12-23",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "LESAF",
+    "companyName": "Le Saunda Holdings Limited",
+    "exchange": "OTC",
+    "ipoDate": "2009-05-20",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "MTUL",
+    "companyName": "ETRACS 2x Leveraged MSCI US Momentum Factor TR ETN",
+    "exchange": "AMEX",
+    "ipoDate": "2021-02-05",
+    "delistedDate": "2026-08-19"
+  },
+  {
+    "symbol": "FTRK",
+    "companyName": "Fast Track Group",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-05-23",
+    "delistedDate": "2026-08-18"
+  },
+  {
+    "symbol": "ADWPF",
+    "companyName": "Andrew Peller Limited",
+    "exchange": "OTC",
+    "ipoDate": "2012-02-07",
+    "delistedDate": "2026-08-18"
+  },
+  {
+    "symbol": "EQR",
+    "companyName": "Equity Residential",
+    "exchange": "NYSE",
+    "ipoDate": "1993-08-12",
+    "delistedDate": "2026-08-18"
+  },
+  {
+    "symbol": "IR1.AX",
+    "companyName": "IRIS Metals Limited",
+    "exchange": "ASX",
+    "ipoDate": "2021-09-23",
+    "delistedDate": "2026-08-18"
+  },
+  {
+    "symbol": "2958.HK",
+    "companyName": "Vision Values Holdings Limited",
+    "exchange": "HKSE",
+    "ipoDate": "2026-05-27",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "PCIG",
+    "companyName": "Polen Capital International Growth ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2024-03-15",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "IPCX",
+    "companyName": "Inflection Point Acquisition Corp. III",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-04-25",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "PCCE",
+    "companyName": "Polen Capital China Growth ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2024-03-15",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "BBBY",
+    "companyName": "Bed Bath & Beyond Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1992-06-01",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "COPN.SW",
+    "companyName": "Cosmo Pharmaceuticals N.V.",
+    "exchange": "SIX",
+    "ipoDate": "2007-03-12",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "ISSC",
+    "companyName": "Innovative Aerosystems, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2000-08-04",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "BRLXF",
+    "companyName": "Boralex Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2010-04-05",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "TALK",
+    "companyName": "Talkspace, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2020-07-30",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "DEFI",
+    "companyName": "Hashdex Bitcoin Futures ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2022-09-16",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "AVB",
+    "companyName": "AvalonBay Communities, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1994-03-11",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "BLX.TO",
+    "companyName": "Boralex Inc.",
+    "exchange": "TSX",
+    "ipoDate": "1996-08-06",
+    "delistedDate": "2026-08-17"
+  },
+  {
+    "symbol": "BNRG",
+    "companyName": "Brenmiller Energy Ltd",
+    "exchange": "NASDAQ",
+    "ipoDate": "2022-05-25",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "PGO.AX",
+    "companyName": "Pacgold Limited",
+    "exchange": "ASX",
+    "ipoDate": "2021-07-08",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "IPCXU",
+    "companyName": "Inflection Point Acquisition Corp. III Units",
+    "exchange": "NASDAQ",
+    "ipoDate": "2025-04-25",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "IPCXR",
+    "companyName": "Inflection Point Acquisition Corp. III",
+    "exchange": "NASDAQ",
+    "ipoDate": "2017-04-24",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "BCHI",
+    "companyName": "GMO Beyond China ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2025-02-13",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "PCGG",
+    "companyName": "Polen Capital Global Growth ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2023-08-30",
+    "delistedDate": "2026-08-14"
+  },
+  {
+    "symbol": "IEDI",
+    "companyName": "iShares U.S. Consumer Focused ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2018-03-23",
+    "delistedDate": "2026-08-13"
+  },
+  {
+    "symbol": "BELT",
+    "companyName": "iShares U.S. Select Equity Active ETF",
+    "exchange": "NASDAQ",
+    "ipoDate": "2024-06-18",
+    "delistedDate": "2026-08-13"
+  },
+  {
+    "symbol": "KSIOF",
+    "companyName": "Kneat.com, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2014-07-01",
+    "delistedDate": "2026-08-13"
+  },
+  {
+    "symbol": "ANSCU",
+    "companyName": "Agriculture & Natural Solutions Acquisition Corporation Unit",
+    "exchange": "NASDAQ",
+    "ipoDate": "2023-11-09",
+    "delistedDate": "2026-08-13"
+  },
+  {
+    "symbol": "BWNB",
+    "companyName": "Babcock & Wilcox Enterprises, I",
+    "exchange": "NYSE",
+    "ipoDate": "2021-12-17",
+    "delistedDate": "2026-08-13"
+  },
+  {
+    "symbol": "AGRH",
+    "companyName": "iShares Interest Rate Hedged U.S. Aggregate Bond ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2022-06-22",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "EAOK",
+    "companyName": "iShares ESG Aware 30/70 Conservative Allocation ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2020-06-18",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "EAOA",
+    "companyName": "iShares ESG Aware 80/20 Aggressive Allocation ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2020-06-18",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "ANSCW",
+    "companyName": "Agriculture & Natural Solutions Co.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2026-03-06",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "EAOM",
+    "companyName": "iShares ESG Aware 40/60 Moderate Allocation ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2020-06-18",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "NLLGF",
+    "companyName": "Nil\u00f6rngruppen AB",
+    "exchange": "OTC",
+    "ipoDate": "2017-12-07",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "EAOR",
+    "companyName": "iShares ESG Aware 60/40 Balanced Allocation ETF",
+    "exchange": "CBOE",
+    "ipoDate": "2020-06-18",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "IVRS",
+    "companyName": "iShares Future Metaverse Tech and Communications ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2023-02-16",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "ARYX",
+    "companyName": "ARYx Therapeutics, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2007-11-07",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "MDV",
+    "companyName": "Modiv Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2022-02-11",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "KSI.TO",
+    "companyName": "Kneat.com, Inc.",
+    "exchange": "TSX",
+    "ipoDate": "2017-03-01",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "KCO.DE",
+    "companyName": "Kl\u00f6ckner & Co SE",
+    "exchange": "XETRA",
+    "ipoDate": "2006-06-28",
+    "delistedDate": "2026-08-12"
+  },
+  {
+    "symbol": "IPFPF",
+    "companyName": "International Personal Finance plc",
+    "exchange": "OTC",
+    "ipoDate": "2010-12-16",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "BUNM",
+    "companyName": "Burned Media, Ltd.",
+    "exchange": "OTC",
+    "ipoDate": "1994-11-01",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "CNONF",
+    "companyName": "Lynx Global Digital Finance Corporation",
+    "exchange": "OTC",
+    "ipoDate": "2019-05-31",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "ANSC",
+    "companyName": "Agriculture & Natural Solutions Acquisition Corporation",
+    "exchange": "NASDAQ",
+    "ipoDate": "2024-01-03",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "GE.SW",
+    "companyName": "General Electric Company",
+    "exchange": "SIX",
+    "ipoDate": "1998-07-17",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "MDV-PA",
+    "companyName": "Modiv Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2021-09-17",
+    "delistedDate": "2026-08-11"
+  },
+  {
+    "symbol": "HNDI",
+    "companyName": "Handeni Gold Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2005-03-23",
+    "delistedDate": "2026-08-10"
+  },
+  {
+    "symbol": "STAFQ",
+    "companyName": "Staffing 360 Solutions, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2025-09-10",
+    "delistedDate": "2026-08-10"
+  },
+  {
+    "symbol": "8283.T",
+    "companyName": "Paltac Corporation",
+    "exchange": "JPX",
+    "ipoDate": "2010-03-18",
+    "delistedDate": "2026-08-10"
+  },
+  {
+    "symbol": "4546.TWO",
+    "companyName": "Chaheng Precision Co., Ltd.",
+    "exchange": "TWO",
+    "ipoDate": "2013-07-30",
+    "delistedDate": "2026-08-08"
+  },
+  {
+    "symbol": "BNZIW",
+    "companyName": "Banzai International, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2023-12-15",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "AXIA",
+    "companyName": "AXIA Energia S.A.",
+    "exchange": "NYSE",
+    "ipoDate": "2008-11-19",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "FCT",
+    "companyName": "First Trust Senior Floating Rate Income Fund II",
+    "exchange": "NYSE",
+    "ipoDate": "2004-05-26",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "STRS",
+    "companyName": "Stratus Properties Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1992-07-01",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "QVCAQ",
+    "companyName": "QVC Group Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2006-05-10",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "INNOVATIVE.BO",
+    "companyName": "Innovative Ideals and Services",
+    "exchange": "BSE",
+    "ipoDate": "2018-10-05",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "HCHDY",
+    "companyName": "Hochschild Mining PLC",
+    "exchange": "OTC",
+    "ipoDate": "2006-11-08",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "CINT.ST",
+    "companyName": "Cint Group AB (publ)",
+    "exchange": "STO",
+    "ipoDate": "2021-02-19",
+    "delistedDate": "2026-08-07"
+  },
+  {
+    "symbol": "BNZI",
+    "companyName": "Banzai International, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2021-02-12",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "PONOU",
+    "companyName": "Pono Capital Four, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2026-03-16",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "MIAPF",
+    "companyName": "Minto Apartment REIT",
+    "exchange": "OTC",
+    "ipoDate": "2024-04-01",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "SECUF",
+    "companyName": "SSC Security Services Corp.",
+    "exchange": "OTC",
+    "ipoDate": "2013-08-07",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "DBRM",
+    "companyName": "Daybreak Oil and Gas, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2004-05-21",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "JRE",
+    "companyName": "Janus Henderson U.S. Real Estate ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2021-06-23",
+    "delistedDate": "2026-08-06"
+  },
+  {
+    "symbol": "MI-UN.TO",
+    "companyName": "Minto Apartment Real Estate Investment Trust",
+    "exchange": "TSX",
+    "ipoDate": "2018-07-02",
+    "delistedDate": "2026-08-06"
+  }
+]

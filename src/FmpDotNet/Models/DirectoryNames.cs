@@ -28,3 +28,38 @@ internal sealed record IndustryName
     /// <summary>The industry label. See <see cref="SectorName.Sector"/> for why it is nullable.</summary>
     [JsonPropertyName("industry")] public string? Industry { get; init; }
 }
+
+/// <summary>One row of <c>stable/stock-list</c>: a ticker and its company name under the key
+/// <c>companyName</c>.
+///
+/// <para><see langword="internal"/> for the same reason as <see cref="SectorName"/>, and for one more: this shape
+/// and <see cref="ActivelyTradingRow"/> differ only in that key name, and publishing both would push an upstream
+/// spelling inconsistency onto every caller. They are unwrapped into the single public
+/// <see cref="CompanySymbol"/> inside
+/// <see cref="Endpoints.DirectoryEndpoints.GetStockListAsync(CancellationToken)"/>.</para></summary>
+internal sealed record StockListRow
+{
+    /// <summary>The ticker. Nullable because the deserialiser cannot promise a key is present — no measured row
+    /// omitted it, and all 91,844 were unique.</summary>
+    [JsonPropertyName("symbol")] public string? Symbol { get; init; }
+
+    /// <summary>The company name, under <c>companyName</c>.</summary>
+    [JsonPropertyName("companyName")] public string? CompanyName { get; init; }
+}
+
+/// <summary>One row of <c>stable/actively-trading-list</c>: the same ticker-and-name pair as
+/// <see cref="StockListRow"/>, except that the name arrives under <c>name</c> rather than <c>companyName</c>.
+///
+/// <para>The two spellings are the whole difference between the endpoints' row shapes, and the values behind them
+/// agree character for character on every shared symbol. That is why this type exists rather than a second
+/// <c>[JsonPropertyName]</c> on one model: System.Text.Json binds one wire name per property, so two names need
+/// two shapes — mapped to one public <see cref="CompanySymbol"/> at the endpoint.</para></summary>
+internal sealed record ActivelyTradingRow
+{
+    /// <summary>The ticker. See <see cref="StockListRow.Symbol"/>.</summary>
+    [JsonPropertyName("symbol")] public string? Symbol { get; init; }
+
+    /// <summary>The company name, under <c>name</c> — the key that differs from
+    /// <see cref="StockListRow.CompanyName"/>.</summary>
+    [JsonPropertyName("name")] public string? Name { get; init; }
+}

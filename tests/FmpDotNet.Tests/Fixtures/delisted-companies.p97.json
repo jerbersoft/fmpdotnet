@@ -1,0 +1,576 @@
+[
+  {
+    "symbol": "MNRK",
+    "companyName": "Monarch Financial Holdings, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-06-24"
+  },
+  {
+    "symbol": "CVC",
+    "companyName": "Cablevision Systems Corporation",
+    "exchange": "NYSE",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-06-20"
+  },
+  {
+    "symbol": "SOCB",
+    "companyName": "Southcoast Financial Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-06-16"
+  },
+  {
+    "symbol": "MTSN",
+    "companyName": "Mattson Technology Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1994-09-28",
+    "delistedDate": "2016-06-06"
+  },
+  {
+    "symbol": "RIT",
+    "companyName": "LMP Real Estate Income Fund",
+    "exchange": "NYSE",
+    "ipoDate": "2002-07-29",
+    "delistedDate": "2016-06-06"
+  },
+  {
+    "symbol": "AZUR",
+    "companyName": "Azure Midstream Partners, LP Co",
+    "exchange": "AMEX",
+    "ipoDate": "2015-01-30",
+    "delistedDate": "2016-06-04"
+  },
+  {
+    "symbol": "RKUS",
+    "companyName": "Ruckus Wireless, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2012-11-15",
+    "delistedDate": "2016-05-26"
+  },
+  {
+    "symbol": "CKP",
+    "companyName": "Checkpoint Systems, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1986-11-12",
+    "delistedDate": "2016-05-23"
+  },
+  {
+    "symbol": "HFFC",
+    "companyName": "HF Financial Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-05-16"
+  },
+  {
+    "symbol": "SSE",
+    "companyName": "Seventy Seven Energy Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2014-06-26",
+    "delistedDate": "2016-05-16"
+  },
+  {
+    "symbol": "NTLS",
+    "companyName": "NTELOS Holdings Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2006-02-09",
+    "delistedDate": "2016-05-06"
+  },
+  {
+    "symbol": "PULB",
+    "companyName": "Pulaski Financial Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-04-29"
+  },
+  {
+    "symbol": "BYLK",
+    "companyName": "Baylake Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-04-29"
+  },
+  {
+    "symbol": "ABCW",
+    "companyName": "Anchor BanCorp Wisconsin Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-04-29"
+  },
+  {
+    "symbol": "HPY",
+    "companyName": "Heartland Payment Systems, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2005-08-15",
+    "delistedDate": "2016-04-22"
+  },
+  {
+    "symbol": "BLT",
+    "companyName": "Blount Intl, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1999-08-19",
+    "delistedDate": "2016-04-11"
+  },
+  {
+    "symbol": "ATML",
+    "companyName": "Atmel Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-04-04"
+  },
+  {
+    "symbol": "NPBC",
+    "companyName": "National Penn Bancshares Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-04-01"
+  },
+  {
+    "symbol": "AFFX",
+    "companyName": "Affymetrix, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-03-31"
+  },
+  {
+    "symbol": "JAXB",
+    "companyName": "Jacksonville Bancorp Inc/FL",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-03-21"
+  },
+  {
+    "symbol": "LOJN",
+    "companyName": "Lojack Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1993-03-24",
+    "delistedDate": "2016-03-18"
+  },
+  {
+    "symbol": "ANAD",
+    "companyName": "Anadigics Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-03-15"
+  },
+  {
+    "symbol": "POZN",
+    "companyName": "POZEN Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-03-14"
+  },
+  {
+    "symbol": "SFG",
+    "companyName": "StanCorp Financial Group, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2014-12-01",
+    "delistedDate": "2016-03-07"
+  },
+  {
+    "symbol": "SLH",
+    "companyName": "Solera Holdings, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2007-05-10",
+    "delistedDate": "2016-03-03"
+  },
+  {
+    "symbol": "GMCR",
+    "companyName": "Keurig Green Mountain, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2001-01-12",
+    "delistedDate": "2016-03-02"
+  },
+  {
+    "symbol": "RIVR",
+    "companyName": "River Valley Bancorp",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-02-29"
+  },
+  {
+    "symbol": "SIRO",
+    "companyName": "Sirona Dental Systems, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2002-01-22",
+    "delistedDate": "2016-02-26"
+  },
+  {
+    "symbol": "TSYS",
+    "companyName": "TeleCommunication Systems Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2000-08-08",
+    "delistedDate": "2016-02-23"
+  },
+  {
+    "symbol": "METR",
+    "companyName": "Metro Bancorp, Inc",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-02-12"
+  },
+  {
+    "symbol": "OCAT",
+    "companyName": "Ocata Therapeutics Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2014-08-27",
+    "delistedDate": "2016-02-09"
+  },
+  {
+    "symbol": "WAVX",
+    "companyName": "Wave Systems, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1996-02-07",
+    "delistedDate": "2016-02-09"
+  },
+  {
+    "symbol": "CTCT",
+    "companyName": "Constant Contact, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2007-10-11",
+    "delistedDate": "2016-02-09"
+  },
+  {
+    "symbol": "AXPW",
+    "companyName": "Axion Power International, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2003-09-01",
+    "delistedDate": "2016-02-05"
+  },
+  {
+    "symbol": "BKESF",
+    "companyName": "Banco Esp\u00edrito Santo, S.A.",
+    "exchange": "OTC",
+    "ipoDate": "2009-09-09",
+    "delistedDate": "2016-02-03"
+  },
+  {
+    "symbol": "PCP",
+    "companyName": "Precision Castparts Corp.",
+    "exchange": "NYSE",
+    "ipoDate": "1989-01-01",
+    "delistedDate": "2016-01-29"
+  },
+  {
+    "symbol": "BRCM",
+    "companyName": "Broadcom Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-01-29"
+  },
+  {
+    "symbol": "OVTI",
+    "companyName": "OmniVision Technologies, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2001-01-02",
+    "delistedDate": "2016-01-27"
+  },
+  {
+    "symbol": "UTIW",
+    "companyName": "UTi Worldwide, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-01-21"
+  },
+  {
+    "symbol": "DYAX",
+    "companyName": "Dyax Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2000-08-15",
+    "delistedDate": "2016-01-21"
+  },
+  {
+    "symbol": "PRSN",
+    "companyName": "Perseon Corporation",
+    "exchange": "NASDAQ",
+    "ipoDate": "2005-06-23",
+    "delistedDate": "2016-01-15"
+  },
+  {
+    "symbol": "NVSL",
+    "companyName": "Naugatuck Valley Financial Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-01-15"
+  },
+  {
+    "symbol": "PMCS",
+    "companyName": "PMC-Sierra, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2016-01-04",
+    "delistedDate": "2016-01-14"
+  },
+  {
+    "symbol": "CU",
+    "companyName": "First Trust ISE Global Copper ETF",
+    "exchange": "NASDAQ",
+    "ipoDate": "2000-01-03",
+    "delistedDate": "2015-12-17"
+  },
+  {
+    "symbol": "END",
+    "companyName": "Endeavour International Corp",
+    "exchange": "NYSE",
+    "ipoDate": "2004-09-15",
+    "delistedDate": "2015-10-20"
+  },
+  {
+    "symbol": "HILL",
+    "companyName": "Dot Hill Systems Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1997-10-01",
+    "delistedDate": "2015-10-19"
+  },
+  {
+    "symbol": "ALTUR.PA",
+    "companyName": "Altur Investissement SCA, SCR",
+    "exchange": "PAR",
+    "ipoDate": "2006-12-11",
+    "delistedDate": "2015-06-12"
+  },
+  {
+    "symbol": "FSIMX",
+    "companyName": "Forward Funds - Salient Select Income Fund",
+    "exchange": "NASDAQ",
+    "ipoDate": "2010-02-02",
+    "delistedDate": "2015-06-10"
+  },
+  {
+    "symbol": "SPE.L",
+    "companyName": "Sopheon plc",
+    "exchange": "LSE",
+    "ipoDate": "1996-09-10",
+    "delistedDate": "2015-05-07"
+  },
+  {
+    "symbol": "BPP",
+    "companyName": "Blackrock Preferred Opportunity Trust",
+    "exchange": "NYSE",
+    "ipoDate": "2009-10-09",
+    "delistedDate": "2015-02-26"
+  },
+  {
+    "symbol": "CBST",
+    "companyName": "Cubist Pharmaceuticals Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1996-10-25",
+    "delistedDate": "2015-02-10"
+  },
+  {
+    "symbol": "CFI.PA",
+    "companyName": "CFI-Compagnie Fonci\u00e8re Internationale",
+    "exchange": "PAR",
+    "ipoDate": "2000-01-03",
+    "delistedDate": "2015-01-09"
+  },
+  {
+    "symbol": "CTC",
+    "companyName": "IFM Investments Ltd.",
+    "exchange": "NYSE",
+    "ipoDate": "2007-12-28",
+    "delistedDate": "2015-01-08"
+  },
+  {
+    "symbol": "WRN.L",
+    "companyName": "Worthington Group PLC",
+    "exchange": "LSE",
+    "ipoDate": "1989-03-07",
+    "delistedDate": "2014-10-10"
+  },
+  {
+    "symbol": "ALPLA.PA",
+    "companyName": "Erold S.A.",
+    "exchange": "PAR",
+    "ipoDate": "2005-07-06",
+    "delistedDate": "2014-07-29"
+  },
+  {
+    "symbol": "CEC",
+    "companyName": "Cec Entertainment, Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1998-07-01",
+    "delistedDate": "2014-02-13"
+  },
+  {
+    "symbol": "COGO",
+    "companyName": "Viewtran Group, Inc.",
+    "exchange": "OTC",
+    "ipoDate": "2004-07-22",
+    "delistedDate": "2013-11-25"
+  },
+  {
+    "symbol": "IBCPO",
+    "companyName": "IBC Capital Finance II, 8.25% Cumul Trust Preferred Securities",
+    "exchange": "NASDAQ",
+    "ipoDate": "2003-03-19",
+    "delistedDate": "2013-10-11"
+  },
+  {
+    "symbol": "SFC",
+    "companyName": "Spirit Finance Corp.",
+    "exchange": "NYSE",
+    "ipoDate": "2008-02-20",
+    "delistedDate": "2013-07-17"
+  },
+  {
+    "symbol": "SNDS",
+    "companyName": "YieldShares High Income ETF",
+    "exchange": "AMEX",
+    "ipoDate": "2012-06-11",
+    "delistedDate": "2013-06-20"
+  },
+  {
+    "symbol": "ETC",
+    "companyName": "Environmental Tectonics Corp.",
+    "exchange": "OTC",
+    "ipoDate": "2004-06-21",
+    "delistedDate": "2013-03-27"
+  },
+  {
+    "symbol": "CMM",
+    "companyName": "China Mass Media Corp.",
+    "exchange": "OTC",
+    "ipoDate": "2011-07-29",
+    "delistedDate": "2012-11-07"
+  },
+  {
+    "symbol": "WGP.L",
+    "companyName": "Worldlink Group PLC",
+    "exchange": "LSE",
+    "ipoDate": "2011-11-24",
+    "delistedDate": "2012-06-29"
+  },
+  {
+    "symbol": "GFZ",
+    "companyName": "American Financial Group",
+    "exchange": "NYSE",
+    "ipoDate": "1997-01-01",
+    "delistedDate": "2012-06-28"
+  },
+  {
+    "symbol": "DPL",
+    "companyName": "DPL Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "2004-12-23",
+    "delistedDate": "2011-11-28"
+  },
+  {
+    "symbol": "CPD",
+    "companyName": "Caraco Pharmaceutical Laboratories Ltd",
+    "exchange": "AMEX",
+    "ipoDate": "1994-03-01",
+    "delistedDate": "2011-06-14"
+  },
+  {
+    "symbol": "ACF",
+    "companyName": "AmeriCredit Corp.",
+    "exchange": "NYSE",
+    "ipoDate": "2008-06-27",
+    "delistedDate": "2010-10-01"
+  },
+  {
+    "symbol": "FLE",
+    "companyName": "Fleetwood Enterprises Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1965-01-01",
+    "delistedDate": "2010-08-23"
+  },
+  {
+    "symbol": "MHD.AX",
+    "companyName": "Millennium Limited",
+    "exchange": "ASX",
+    "ipoDate": "2009-03-20",
+    "delistedDate": "2010-08-16"
+  },
+  {
+    "symbol": "ATSI",
+    "companyName": "ATS Medical, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "2000-04-20",
+    "delistedDate": "2010-08-12"
+  },
+  {
+    "symbol": "LJPC",
+    "companyName": "La Jolla Pharmaceutical Company",
+    "exchange": "NASDAQ",
+    "ipoDate": "1994-06-03",
+    "delistedDate": "2010-03-04"
+  },
+  {
+    "symbol": "BNI",
+    "companyName": "Burlington Northern Santa Fe Corp.",
+    "exchange": "NYSE",
+    "ipoDate": "1995-09-22",
+    "delistedDate": "2010-02-12"
+  },
+  {
+    "symbol": "XLRM",
+    "companyName": "XLR Medical Corp.",
+    "exchange": "OTC",
+    "ipoDate": "2004-09-15",
+    "delistedDate": "2009-02-26"
+  },
+  {
+    "symbol": "RCCC",
+    "companyName": "Rural Cellular Corp.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1996-05-02",
+    "delistedDate": "2008-08-07"
+  },
+  {
+    "symbol": "FSTW",
+    "companyName": "Firstwave Tech, Inc.",
+    "exchange": "NASDAQ",
+    "ipoDate": "1993-02-04",
+    "delistedDate": "2007-09-21"
+  },
+  {
+    "symbol": "BF",
+    "companyName": "BASF SE",
+    "exchange": "OTC",
+    "ipoDate": "1999-10-27",
+    "delistedDate": "2007-09-05"
+  },
+  {
+    "symbol": "NAV",
+    "companyName": "Navistar International Corporation",
+    "exchange": "NYSE",
+    "ipoDate": "1980-03-17",
+    "delistedDate": "2007-02-14"
+  },
+  {
+    "symbol": "INDBN",
+    "companyName": "Independent Capital Trust III, 8.625% Cumul Trust Preferred Securities",
+    "exchange": "NASDAQ",
+    "ipoDate": "2001-12-07",
+    "delistedDate": "2006-12-31"
+  },
+  {
+    "symbol": "PRL",
+    "companyName": "Progress Rail Services Inc.",
+    "exchange": "NYSE",
+    "ipoDate": "1993-10-27",
+    "delistedDate": "2006-06-21"
+  },
+  {
+    "symbol": "MEDC",
+    "companyName": "Med-Design Corp. (The)",
+    "exchange": "NASDAQ",
+    "ipoDate": "1995-06-01",
+    "delistedDate": "2006-05-16"
+  },
+  {
+    "symbol": "TSA",
+    "companyName": "The Sports Authority Inc",
+    "exchange": "NYSE",
+    "ipoDate": "1994-08-03",
+    "delistedDate": "2006-05-10"
+  },
+  {
+    "symbol": "NMK",
+    "companyName": "Niagara Mohawk Power Corporation PFD 3.90%",
+    "exchange": "NYSE",
+    "ipoDate": "1980-01-02",
+    "delistedDate": "2002-01-31"
+  }
+]

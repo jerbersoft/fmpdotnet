@@ -207,11 +207,19 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
                 {
                     // Not JSON after all, or truncated by the cap — the raw text below is still the best evidence.
                 }
-            message ??= text;
+            // A JSON ARRAY body carries no explanation — it is the SUCCESS shape, arriving on a failure. Measured
+            // 2026-08-26, `stable/company-symbol-list` — the path that reads like the right name for the symbol
+            // directory and is not one — answers HTTP 404 with the body `[]`. Passing that through produced
+            // `FmpApiException: []`, a message naming neither the status nor the path, for what is really "you
+            // asked for a path that does not exist". The status fallback below says both.
+            message ??= text[0] == '[' ? null : text;
         }
 
         return new FmpApiException(
-            message ?? $"FMP answered HTTP {(int)status} ({status}) with no body.", request.ToString(), status);
+            message ?? (text is null or ""
+                ? $"FMP answered HTTP {(int)status} ({status}) with no body."
+                : $"FMP answered HTTP {(int)status} ({status}) with no explanation in the body."),
+            request.ToString(), status);
     }
 
     /// <summary>How much of a failing body is read before the rest is abandoned.</summary>

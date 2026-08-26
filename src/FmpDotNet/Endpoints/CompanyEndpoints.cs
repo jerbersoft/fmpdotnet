@@ -97,4 +97,55 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             new FmpRequest("stable/shares-float-all").With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListSharesFloat, ct);
     }
+
+    /// <summary>The largest page <c>stable/delisted-companies</c> will serve, measured rather than documented.
+    ///
+    /// <para>This is a <b>cap, not a page size</b>, and that distinction is the whole reason the constant exists.
+    /// On 2026-08-26 <c>limit=1000</c> and <c>limit=100</c> returned byte-identical 16,982-byte bodies of 100 rows,
+    /// while <c>limit=10</c> was honoured — so the parameter works downward and is silently clamped upward. A
+    /// caller who asks for 1,000 and walks pages assuming they got them skips 90% of the archive and never sees an
+    /// error. <see cref="GetDelistedAsync(int, int, CancellationToken)"/> therefore rejects a larger
+    /// <c>limit</c> rather than passing it on to be clamped.</para></summary>
+    public const int MaxDelistedPageSize = 100;
+
+    /// <summary>One page of <c>stable/delisted-companies</c> — the archive of securities FMP no longer carries as
+    /// listed, with the date each stopped.
+    ///
+    /// <para><b>Ordered newest delisting first, which puts scheduled future delistings on page 0.</b> Measured
+    /// 2026-08-26, the first row was <c>NB2.F</c> dated <c>2026-12-30</c> — four months ahead of the call. Reading
+    /// this endpoint as "securities that have stopped trading" therefore marks live securities as gone. Compare
+    /// <see cref="DelistedCompany.DelistedDate"/> against today.</para>
+    ///
+    /// <para><b>The walk is finite and ends short, not empty.</b> The archive held 9,782 rows on 2026-08-26: pages
+    /// 0 to 96 full at 100 rows, page 97 carrying 82, page 98 and everything past it answering <c>[]</c> with HTTP
+    /// 200 — including <c>page=100000</c>, which is not an error either. Either terminator works, but stopping at
+    /// the first short page saves a request. History runs back to <c>2002-01-31</c>.</para>
+    ///
+    /// <para>This is the endpoint that carries a delisting <b>date</b>.
+    /// <see cref="DirectoryEndpoints.GetActivelyTradingAsync(CancellationToken)"/> carries only presence, so
+    /// absence from that list says something changed while this says when.</para></summary>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxDelistedPageSize"/>. Required rather than defaulted,
+    /// matching <see cref="GetAllSharesFloatAsync(int, int, CancellationToken)"/>: the page size and the page index
+    /// have to agree for a walk to be complete, and a default would let them disagree invisibly.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's rows, in FMP's order. Empty past the end of the archive, never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative, or
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxDelistedPageSize"/> — see that constant for why the
+    /// upper bound is enforced here instead of being silently clamped upstream.</exception>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429. Likely if 98 pages are walked flat out.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<DelistedCompany>> GetDelistedAsync(
+        int page, int limit, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxDelistedPageSize);
+        return transport.GetListAsync(
+            new FmpRequest("stable/delisted-companies").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListDelistedCompany, ct);
+    }
 }

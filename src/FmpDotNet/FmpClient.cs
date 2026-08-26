@@ -14,7 +14,8 @@ public sealed class FmpClient(
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
 
-    /// <summary>The reference vocabularies — the sector and industry labels everything else classifies against.</summary>
+    /// <summary>What exists — the symbol universe, and the sector and industry labels everything else classifies
+    /// against.</summary>
     public DirectoryEndpoints Directory { get; } = directory;
 
     /// <summary>The period-shaped fundamentals: statements, ratios, metrics, growth, enterprise values and
