@@ -1,0 +1,148 @@
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using FinancialModelingPrep.DependencyInjection;
+using FinancialModelingPrep.Http;
+
+using NodaTime;
+
+namespace FinancialModelingPrep.Tests;
+
+public class AddFmpTests
+{
+    private static ServiceProvider Build(params (string Key, string Value)[] settings)
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(settings.Select(s => new KeyValuePair<string, string?>(s.Key, s.Value)))
+            .Build();
+        return new ServiceCollection().AddLogging().AddFmp(configuration).BuildServiceProvider();
+    }
+
+    [Fact]
+    public void Resolves_the_client_and_both_endpoint_groups()
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"));
+
+        var client = provider.GetRequiredService<FmpClient>();
+
+        Assert.NotNull(client.Company);
+        Assert.NotNull(client.Bulk);
+    }
+
+    [Fact]
+    public void Binds_every_option_from_configuration()
+    {
+        using var provider = Build(
+            ("Fmp:ApiKey", "k"),
+            ("Fmp:BaseUrl", "https://example.test"),
+            ("Fmp:PerMinuteCap", "500"),
+            ("Fmp:BulkPerMinuteCap", "3"),
+            ("Fmp:RequestTimeout", "00:00:45"),
+            ("Fmp:BulkRequestTimeout", "00:20:00"),
+            ("Fmp:MaxRetryAfter", "00:01:00"));
+
+        var o = provider.GetRequiredService<IOptions<FmpOptions>>().Value;
+
+        Assert.Equal("k", o.ApiKey);
+        Assert.Equal("https://example.test", o.BaseUrl);
+        Assert.Equal(500, o.PerMinuteCap);
+        Assert.Equal(3, o.BulkPerMinuteCap);
+        Assert.Equal(Duration.FromSeconds(45), o.RequestTimeout);
+        Assert.Equal(Duration.FromMinutes(20), o.BulkRequestTimeout);
+        Assert.Equal(Duration.FromMinutes(1), o.MaxRetryAfter);
+    }
+
+    [Fact]
+    public void Accepts_a_bare_number_of_seconds_for_a_timeout()
+    {
+        // What anyone setting this from an environment variable reaches for first — and TimeSpan.TryParse("45")
+        // silently means 45 DAYS, so getting this order wrong disables the timeout rather than failing.
+        using var provider = Build(("Fmp:ApiKey", "k"), ("Fmp:RequestTimeout", "45"));
+
+        Assert.Equal(Duration.FromSeconds(45),
+            provider.GetRequiredService<IOptions<FmpOptions>>().Value.RequestTimeout);
+    }
+
+    [Fact]
+    public void Leaves_defaults_alone_when_configuration_is_silent()
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"));
+
+        var o = provider.GetRequiredService<IOptions<FmpOptions>>().Value;
+
+        Assert.Equal("https://financialmodelingprep.com", o.BaseUrl);
+        Assert.Equal(660, o.PerMinuteCap);
+        Assert.Equal(2, o.BulkPerMinuteCap);
+    }
+
+    [Fact]
+    public void Does_not_require_an_api_key_because_an_sdk_cannot_know_the_caller_intends_to_call()
+    {
+        using var provider = Build(("Fmp:BaseUrl", "https://example.test"));
+
+        Assert.Equal("", provider.GetRequiredService<IOptions<FmpOptions>>().Value.ApiKey);
+    }
+
+    [Theory]
+    [InlineData("Fmp:BaseUrl", "not-a-uri")]
+    [InlineData("Fmp:PerMinuteCap", "0")]
+    [InlineData("Fmp:BulkPerMinuteCap", "0")]
+    [InlineData("Fmp:RequestTimeout", "0")]
+    [InlineData("Fmp:BulkRequestTimeout", "0")]
+    public void Rejects_configuration_that_would_hang_or_throw_later(string key, string value)
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"), (key, value));
+
+        // A zero cap means a reservoir that never refills, so the first request waits forever — failing by name
+        // at startup beats hanging with a log line that says only "waiting".
+        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IOptions<FmpOptions>>().Value);
+    }
+
+    [Fact]
+    public void Registers_exactly_one_reservoir_pair_however_many_times_AddFmp_is_called()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        using var provider = new ServiceCollection().AddLogging()
+            .AddFmp(configuration).AddFmp(configuration).AddFmp(configuration)
+            .BuildServiceProvider();
+
+        // Handlers are transient and HttpClientFactory rebuilds them; a second reservoir would mean an aggregate
+        // emitted rate above the cap.
+        Assert.Same(provider.GetRequiredService<FmpBuckets>(), provider.GetRequiredService<FmpBuckets>());
+    }
+
+    [Fact]
+    public void Gives_the_two_clients_separate_reservoirs()
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"));
+        var buckets = provider.GetRequiredService<FmpBuckets>();
+
+        Assert.NotSame(buckets.Standard, buckets.Bulk);
+    }
+
+    [Fact]
+    public void Leaves_client_timeouts_infinite_so_the_handler_owns_the_deadline()
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"));
+
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+
+        // A client-level timeout surfaces as TaskCanceledException, which callers mistake for a shutdown; the
+        // deadline belongs to FmpTimeoutHandler, which sits inside the throttle and raises TimeoutException.
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            factory.CreateClient(FmpServiceCollectionExtensions.StandardClient).Timeout);
+        Assert.Equal(Timeout.InfiniteTimeSpan,
+            factory.CreateClient(FmpServiceCollectionExtensions.BulkClient).Timeout);
+    }
+
+    [Fact]
+    public void Base_address_ends_in_a_slash_so_relative_paths_do_not_lose_a_segment()
+    {
+        using var provider = Build(("Fmp:ApiKey", "k"), ("Fmp:BaseUrl", "https://example.test"));
+
+        var http = provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient);
+
+        Assert.Equal("https://example.test/", http.BaseAddress!.ToString());
+    }
+}
