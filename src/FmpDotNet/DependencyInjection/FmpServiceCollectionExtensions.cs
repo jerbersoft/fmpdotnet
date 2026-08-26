@@ -39,6 +39,8 @@ public static class FmpServiceCollectionExtensions
         if (Span(section[nameof(FmpOptions.RequestTimeout)]) is { } timeout) o.RequestTimeout = timeout;
         if (Span(section[nameof(FmpOptions.BulkRequestTimeout)]) is { } bulkTimeout) o.BulkRequestTimeout = bulkTimeout;
         if (Span(section[nameof(FmpOptions.MaxRetryAfter)]) is { } retry) o.MaxRetryAfter = retry;
+        if (section[nameof(FmpOptions.DeveloperBulkCacheDirectory)] is { } cache)
+            o.DeveloperBulkCacheDirectory = cache;
 
         static int? Int32(string? raw) =>
             int.TryParse(raw, System.Globalization.NumberStyles.Integer,
@@ -102,12 +104,18 @@ public static class FmpServiceCollectionExtensions
         services.TryAddTransient<FmpBulkRateLimitHandler>();
         services.TryAddTransient<FmpTimeoutHandler>();
         services.TryAddTransient<FmpBulkTimeoutHandler>();
+        services.TryAddTransient<FmpDeveloperBulkCacheHandler>();
 
         Configure(services.AddHttpClient<FmpTransport>(StandardClient))
             .AddHttpMessageHandler<FmpRateLimitHandler>()
             .AddHttpMessageHandler<FmpTimeoutHandler>();
 
+        // The developer cache is added FIRST, which makes it the OUTERMOST handler, and that placement is the
+        // point rather than a detail: a replay must not consume a bulk token or start a timeout. A cache hit
+        // therefore never reaches the rate limiter at all. It is inert unless
+        // FmpOptions.DeveloperBulkCacheDirectory is set, so it costs a null check when it is off.
         Configure(services.AddHttpClient<FmpBulkTransport>(BulkClient))
+            .AddHttpMessageHandler<FmpDeveloperBulkCacheHandler>()
             .AddHttpMessageHandler<FmpBulkRateLimitHandler>()
             .AddHttpMessageHandler<FmpBulkTimeoutHandler>();
 

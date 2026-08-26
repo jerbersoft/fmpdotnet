@@ -52,4 +52,21 @@ public sealed class FmpOptions
     /// <c>key-metrics-ttm-bulk</c> 44 MB in a single response, which the 30 s ordinary budget will not carry on a
     /// normal connection.</summary>
     public Duration BulkRequestTimeout { get; set; } = Duration.FromMinutes(10);
+
+    /// <summary>Directory in which to replay <c>*-bulk</c> responses from disk instead of calling FMP. Null or
+    /// empty — the default — means every bulk call goes to the upstream.
+    ///
+    /// <para><b>A development aid, not a caching layer, and the distinction is load-bearing.</b> Entries never
+    /// expire and are never invalidated: once a response is on disk it is served forever, so a run against a set
+    /// directory is a run against whatever FMP said the first time. Setting this in a deployed application means
+    /// that application silently stops reading live data.</para>
+    ///
+    /// <para><b>Why it exists.</b> Bulk is throttled separately and far more tightly than the ordinary endpoints —
+    /// measured 2026-08-26, a second call moments after the first was already refused — and FMP's own error text
+    /// warns that "frequent abuse on this API Endpoint may result in restrictions placed on this API Key". Working
+    /// on a CSV mapper means re-reading the same response repeatedly, against payloads reaching 69 MB, for data
+    /// FMP refreshes only once every few hours. Those repeat calls buy nothing and spend the key's standing.</para>
+    ///
+    /// <para>Delete the directory to refetch. See <see cref="FmpDotNet.Http.FmpDeveloperBulkCacheHandler"/>.</para></summary>
+    public string? DeveloperBulkCacheDirectory { get; set; }
 }

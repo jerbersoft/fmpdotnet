@@ -246,7 +246,8 @@ Measured against the live API on 2026-08-26 unless noted.
     "BulkPerMinuteCap": 2,
     "RequestTimeout": "00:00:30",
     "BulkRequestTimeout": "00:10:00",
-    "MaxRetryAfter": "00:02:00"
+    "MaxRetryAfter": "00:02:00",
+    "DeveloperBulkCacheDirectory": null
   }
 }
 ```
@@ -257,6 +258,31 @@ turn `RequestTimeout=45` into a timeout that never fires.
 
 The API key is not validated — an SDK cannot know whether its caller intends to make a request; assert it in the
 host that does.
+
+## Working on a bulk mapper
+
+Set `Fmp:DeveloperBulkCacheDirectory` while you are writing or changing a `*-bulk` model. The first call to each
+bulk URL is written to that directory; every later call to the same URL is replayed from disk, so you can iterate
+on a `FromCsv` mapper without re-downloading it.
+
+```json
+{ "Fmp": { "DeveloperBulkCacheDirectory": ".fmp-bulk-cache" } }
+```
+
+Delete the directory to refetch. Entries are keyed by the request URL with the API key stripped, so rotating your
+key does not orphan the cache.
+
+**Why it exists.** Bulk is throttled separately and far more tightly than the ordinary endpoints — measured
+2026-08-26, a second call moments after the first was already refused — and FMP's own error text warns that
+"frequent abuse on this API Endpoint may result in restrictions placed on this API Key". The payloads reach 69 MB,
+and FMP refreshes them only once every few hours, so re-fetching while you iterate buys nothing and spends your
+key's standing.
+
+**It is not a caching layer.** Entries never expire, nothing is invalidated, nothing is bounded, and a stale entry
+is served forever. Setting this in a deployed application means that application silently stops reading live data.
+It is off by default, it applies only to the bulk client — never to the per-symbol endpoints — and it logs a
+warning the first time it serves anything, so it cannot be on without saying so. Responses that look like an error
+payload are delivered but never kept, so a failure cannot be replayed forever as if it were data.
 
 ## Endpoints not yet modelled
 

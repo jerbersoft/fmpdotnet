@@ -50,7 +50,8 @@ public class AddFmpTests
             ("Fmp:BulkPerMinuteCap", "3"),
             ("Fmp:RequestTimeout", "00:00:45"),
             ("Fmp:BulkRequestTimeout", "00:20:00"),
-            ("Fmp:MaxRetryAfter", "00:01:00"));
+            ("Fmp:MaxRetryAfter", "00:01:00"),
+            ("Fmp:DeveloperBulkCacheDirectory", "/tmp/fmp-bulk"));
 
         var o = provider.GetRequiredService<IOptions<FmpOptions>>().Value;
 
@@ -61,6 +62,17 @@ public class AddFmpTests
         Assert.Equal(Duration.FromSeconds(45), o.RequestTimeout);
         Assert.Equal(Duration.FromMinutes(20), o.BulkRequestTimeout);
         Assert.Equal(Duration.FromMinutes(1), o.MaxRetryAfter);
+        Assert.Equal("/tmp/fmp-bulk", o.DeveloperBulkCacheDirectory);
+    }
+
+    [Fact]
+    public void The_developer_bulk_cache_is_off_unless_a_directory_is_configured()
+    {
+        // The default has to be off: an entry never expires, so a cache that switched itself on would mean an
+        // application silently serving whatever FMP said the first time, forever.
+        using var provider = Build(("Fmp:ApiKey", "k"));
+
+        Assert.Null(provider.GetRequiredService<IOptions<FmpOptions>>().Value.DeveloperBulkCacheDirectory);
     }
 
     [Fact]
@@ -144,6 +156,55 @@ public class AddFmpTests
             factory.CreateClient(FmpServiceCollectionExtensions.StandardClient).Timeout);
         Assert.Equal(Timeout.InfiniteTimeSpan,
             factory.CreateClient(FmpServiceCollectionExtensions.BulkClient).Timeout);
+    }
+
+    /// <summary>Counts requests that actually reached the network.</summary>
+    private sealed class CountingHandler : HttpMessageHandler
+    {
+        public int Sends;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+        {
+            Interlocked.Increment(ref Sends);
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+            {
+                Content = new StringContent("symbol,sector\nAAA,Technology\n", System.Text.Encoding.UTF8, "text/csv"),
+                RequestMessage = req,
+            });
+        }
+    }
+
+    [Fact]
+    public async Task The_developer_bulk_cache_is_wired_to_the_bulk_client_and_only_to_it()
+    {
+        // Two claims in one test, because each is only meaningful with the other. It has to be ON the bulk client
+        // — that is the throttle FMP warns about — and it has to be OFF the ordinary one, where responses are
+        // small, per-symbol and expected to be live. A cache silently covering `stable/profile` would make every
+        // symbol answer with whichever company happened to be fetched first.
+        var directory = Path.Combine(Path.GetTempPath(), "fmpdotnet-wiring-tests", Guid.NewGuid().ToString("n"));
+        var upstream = new CountingHandler();
+        try
+        {
+            var services = new ServiceCollection().AddLogging();
+            services.AddFmp(o => { o.ApiKey = "k"; o.DeveloperBulkCacheDirectory = directory; });
+            services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
+            using var provider = services.BuildServiceProvider();
+            var factory = provider.GetRequiredService<IHttpClientFactory>();
+
+            var bulk = factory.CreateClient(FmpServiceCollectionExtensions.BulkClient);
+            (await bulk.GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
+            (await bulk.GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
+            Assert.Equal(1, upstream.Sends);          // second call replayed from disk
+
+            var standard = factory.CreateClient(FmpServiceCollectionExtensions.StandardClient);
+            (await standard.GetAsync("stable/profile?symbol=AAPL&apikey=k")).Dispose();
+            (await standard.GetAsync("stable/profile?symbol=AAPL&apikey=k")).Dispose();
+            Assert.Equal(3, upstream.Sends);          // both went to the upstream
+        }
+        finally
+        {
+            if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
+        }
     }
 
     [Fact]
