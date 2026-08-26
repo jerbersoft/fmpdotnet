@@ -1,0 +1,37 @@
+[
+  {
+    "symbol": "000001.SZ",
+    "date": "2026-08-25 21:36:25",
+    "freeFloat": 41.40900000201062,
+    "floatShares": 8035796667,
+    "outstandingShares": 19405918198
+  },
+  {
+    "symbol": "000002.SZ",
+    "date": "2026-08-26 12:02:20",
+    "freeFloat": 52.768990912282426,
+    "floatShares": 6282270789,
+    "outstandingShares": 11905231994
+  },
+  {
+    "symbol": "000004.SZ",
+    "date": "2026-07-26 21:15:50",
+    "freeFloat": 59.53577317504128,
+    "floatShares": 78813624,
+    "outstandingShares": 132380282
+  },
+  {
+    "symbol": "000005.SZ",
+    "date": "2024-03-05 07:04:21",
+    "freeFloat": 79.91881,
+    "floatShares": 845972573,
+    "outstandingShares": 1058540032
+  },
+  {
+    "symbol": "000006.SZ",
+    "date": "2026-08-26 13:49:30",
+    "freeFloat": 62.48499996347394,
+    "floatShares": 843544404,
+    "outstandingShares": 1349995046
+  }
+]
