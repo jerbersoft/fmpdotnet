@@ -14,7 +14,17 @@ namespace FmpDotNet.Endpoints;
 /// statements, not because it is period-shaped.</para></summary>
 public sealed class StatementEndpoints(FmpTransport transport)
 {
+    // CS1573 fires once a method documents ANY parameter and not all of them. `symbol` and `ct` were undocumented
+    // before this task and stay that way here — only `period` and `limit` changed behaviour in this task, and
+    // documenting the other two is scope this task does not own (task 1 brief, step 7). Scoped to these seven
+    // methods only; restored before GetScoresAsync below, which carries no partial <param> tags of its own.
+#pragma warning disable CS1573
     /// <summary>Income statements for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -24,6 +34,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListIncomeStatement, ct);
 
     /// <summary>Balance sheets for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -33,6 +48,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListBalanceSheetStatement, ct);
 
     /// <summary>Cash flow statements for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -42,6 +62,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListCashFlowStatement, ct);
 
     /// <summary>Financial ratios for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -51,6 +76,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListFinancialRatios, ct);
 
     /// <summary>Key metrics for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -60,6 +90,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListKeyMetrics, ct);
 
     /// <summary>Period-on-period growth rates for one symbol, newest first.</summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -75,6 +110,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// both measured against AAPL on 2026-08-26: the caller must remember which series it asked for, and
     /// <c>(symbol, date)</c> is <b>not</b> a unique key across both, because a Q4 end and a fiscal year end are the
     /// same day — <c>2025-09-27</c> appears in the annual series and the quarterly one.</para></summary>
+    /// <param name="period">Which series to ask for. All six values work on this path, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
+    /// reads an omitted limit as 5. See that constant.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -82,6 +122,7 @@ public sealed class StatementEndpoints(FmpTransport transport)
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/enterprise-values", symbol, period, limit),
             FmpJsonContext.Default.ListEnterpriseValues, ct);
+#pragma warning restore CS1573
 
     /// <summary>Altman Z and Piotroski F for one symbol, or null when FMP has no scores for it.
     ///
@@ -109,6 +150,24 @@ public sealed class StatementEndpoints(FmpTransport transport)
         return rows.Count > 0 ? rows[0] : null;
     }
 
+    /// <summary>The <c>limit</c> the SDK sends when the caller asks for no limit, and the reason it sends one.
+    ///
+    /// <para><b>Without it FMP returns five rows.</b> Measured 2026-08-27, every per-symbol paged path in this
+    /// group has an undocumented default of 5: <c>stable/income-statement</c> for AAPL answered 5 rows of a
+    /// 41-row annual history, <c>cash-flow-statement</c> 5 of 37, and so on across all seven of the paths this
+    /// SDK shipped before that measurement. A well-formed HTTP 200 array of five rows is indistinguishable from a
+    /// complete one, so a caller asking for a company's history got 12% of it and nothing said so.</para>
+    ///
+    /// <para>100,000 rather than the deepest history found is headroom rather than a guess. The deepest series
+    /// measured was <c>income-statement-ttm</c> at 164 rows back to 1985-09-30, and the ceiling was probed:
+    /// <c>limit=1000</c>, <c>limit=10000</c> and <c>limit=100000</c> all returned the same true total, so there is
+    /// no server-side cap between them and asking for more costs nothing. The precedent is
+    /// <see cref="DirectoryEndpoints.SymbolChangeRequestLimit"/>, which exists for exactly this failure.</para>
+    ///
+    /// <para><b>One endpoint in this group caps below any limit you send.</b> <c>owner-earnings</c> stops at 50
+    /// rows regardless — see <c>MaxOwnerEarningsRows</c>.</para></summary>
+    public const int FullHistoryLimit = 100_000;
+
     /// <summary>The one query shape all seven share. Written once so the seven cannot drift apart.</summary>
     private static FmpRequest Periodic(string path, string symbol, FiscalPeriod period, int? limit)
     {
@@ -118,6 +177,8 @@ public sealed class StatementEndpoints(FmpTransport transport)
         return new FmpRequest(path)
             .With("symbol", symbol)
             .With("period", period.ToQueryValue())
-            .With("limit", limit);
+            // `limit ?? FullHistoryLimit`, not `limit` — a null limit means "all of it", and FMP reads a missing
+            // limit as 5. See FullHistoryLimit.
+            .With("limit", limit ?? FullHistoryLimit);
     }
 }
