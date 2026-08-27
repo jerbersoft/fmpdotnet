@@ -95,4 +95,64 @@ public class CompanyPeopleTests
 
         Assert.Empty(await endpoints.GetEmployeeCountAsync("XOM"));
     }
+
+    [Fact]
+    public async Task Binds_an_executive_and_leaves_the_nulls_null()
+    {
+        var (endpoints, _) = Build(StubHandler.Json(Binding.Fixture("key-executives.AAPL.json")));
+
+        var executives = await endpoints.GetKeyExecutivesAsync("AAPL");
+
+        Assert.Equal(4, executives.Count);
+        var cfo = executives[0];
+        Assert.Equal("Kevan Parekh", cfo.Name);
+        Assert.Equal("Senior Vice President & Chief Financial Officer", cfo.Title);
+        Assert.Equal(4034174m, cfo.Pay);
+        Assert.Equal("USD", cfo.CurrencyPay);
+        Assert.Equal("male", cfo.Gender);
+        Assert.Equal(1972, cfo.YearBorn);
+
+        // Measured 2026-08-27 over 203 rows across 18 symbols: pay null on 32 of the first 64, yearBorn on 24,
+        // gender on 9. Typing any of these non-nullable binds a zero or an empty string over a real absence.
+        Assert.Null(executives[1].Pay);
+        Assert.Null(executives[1].YearBorn);
+        Assert.Null(executives[2].Gender);
+    }
+
+    [Fact]
+    public async Task Executive_pay_is_not_always_in_dollars()
+    {
+        // TSM reports in TWD. Comparing Pay across rows without reading CurrencyPay compares 64,496,506 TWD
+        // against 4,034,174 USD as though they were the same unit.
+        var (endpoints, _) = Build(StubHandler.Json(Binding.Fixture("key-executives.TSM.json")));
+
+        var executives = await endpoints.GetKeyExecutivesAsync("TSM");
+
+        Assert.Equal("TWD", executives[0].CurrencyPay);
+        Assert.Equal(64496506m, executives[0].Pay);
+    }
+
+    [Fact]
+    public async Task Title_since_binds_as_a_string_so_a_future_value_of_any_shape_cannot_throw()
+    {
+        // Null on all 203 rows measured 2026-08-27, and null in the one documented example an independent
+        // client typed from — so no populated value has ever been seen from either source and there is no
+        // measured shape to infer a format from. Typed Instant?, LocalDate? or int?, the day FMP starts
+        // populating it with anything else is the day this endpoint starts throwing. A string? cannot.
+        var (endpoints, _) = Build(StubHandler.Json(
+            """[{"name":"A Person","titleSince":"2019-04-01","active":true}]"""));
+
+        var executive = Assert.Single(await endpoints.GetKeyExecutivesAsync("AAPL"));
+
+        Assert.Equal("2019-04-01", executive.TitleSince);
+    }
+
+    [Fact]
+    public async Task An_etf_has_no_executives_and_that_is_not_an_error()
+    {
+        // SPY answered [] on 2026-08-27.
+        var (endpoints, _) = Build(StubHandler.Json("[]"));
+
+        Assert.Empty(await endpoints.GetKeyExecutivesAsync("SPY"));
+    }
 }

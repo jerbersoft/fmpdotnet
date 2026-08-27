@@ -346,6 +346,28 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListEmployeeCount, ct);
     }
 
+    /// <summary>Named officers for one issuer — <c>stable/key-executives</c>.
+    ///
+    /// <para>Measured 2026-08-27 across 18 symbols: <c>AAPL</c> answered 8 rows, <c>TSM</c> 10, <c>SPY</c>
+    /// <c>[]</c> — an ETF has no executives. Two of the eight fields carried nothing on every one of the 203
+    /// rows; see <see cref="KeyExecutive.TitleSince"/> and <see cref="KeyExecutive.Active"/> before building
+    /// on either, and <see cref="KeyExecutive.CurrencyPay"/> before comparing pay across
+    /// issuers.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The officers, in FMP's order. Empty for an issuer with none. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<KeyExecutive>> GetKeyExecutivesAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/key-executives").With("symbol", symbol),
+            FmpJsonContext.Default.ListKeyExecutive, ct);
+    }
+
     /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
     ///
     /// <para>Nullable on both ends because the range is optional here, unlike on the chart endpoints: one end

@@ -66,6 +66,7 @@ namespace FmpDotNet.Serialization;
 // PropertyNameCaseInsensitive staying set. See StatementReuseBindingTests.
 [JsonSerializable(typeof(List<RatiosTtm>))]
 [JsonSerializable(typeof(List<KeyMetricsTtm>))]
+[JsonSerializable(typeof(List<KeyExecutive>))]
 [JsonSerializable(typeof(List<IncomeStatementGrowth>))]
 [JsonSerializable(typeof(List<BalanceSheetGrowth>))]
 [JsonSerializable(typeof(List<CashFlowGrowth>))]

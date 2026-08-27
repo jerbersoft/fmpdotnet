@@ -1,0 +1,22 @@
+[
+  {
+    "title": "Chairman & Chief Executive Officer",
+    "name": "C. C. Wei",
+    "pay": 64496506,
+    "currencyPay": "TWD",
+    "gender": null,
+    "yearBorn": null,
+    "titleSince": null,
+    "active": true
+  },
+  {
+    "title": "VP of Research, Development, Pathfinding & Corporate Research and CTO",
+    "name": "Min Cao",
+    "pay": null,
+    "currencyPay": "TWD",
+    "gender": null,
+    "yearBorn": null,
+    "titleSince": null,
+    "active": true
+  }
+]

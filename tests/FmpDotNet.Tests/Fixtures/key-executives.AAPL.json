@@ -1,0 +1,42 @@
+[
+  {
+    "title": "Senior Vice President & Chief Financial Officer",
+    "name": "Kevan Parekh",
+    "pay": 4034174,
+    "currencyPay": "USD",
+    "gender": "male",
+    "yearBorn": 1972,
+    "titleSince": null,
+    "active": true
+  },
+  {
+    "title": "Vice President of Worldwide Communications",
+    "name": "Kristin Huguet Quayle",
+    "pay": null,
+    "currencyPay": "USD",
+    "gender": "female",
+    "yearBorn": null,
+    "titleSince": null,
+    "active": true
+  },
+  {
+    "title": "Director of Investor Relations",
+    "name": "Suhasini Chandramouli",
+    "pay": null,
+    "currencyPay": "USD",
+    "gender": null,
+    "yearBorn": null,
+    "titleSince": null,
+    "active": true
+  },
+  {
+    "title": "Senior Vice President of Worldwide Marketing",
+    "name": "Greg Joswiak",
+    "pay": null,
+    "currencyPay": "USD",
+    "gender": "male",
+    "yearBorn": null,
+    "titleSince": null,
+    "active": true
+  }
+]
