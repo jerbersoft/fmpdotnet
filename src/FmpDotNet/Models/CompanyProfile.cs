@@ -21,8 +21,16 @@ public sealed record CompanyProfile
     /// <summary>Latest trade price in <see cref="Currency"/>.</summary>
     [JsonPropertyName("price")] public decimal? Price { get; init; }
 
-    /// <summary>Market capitalisation.</summary>
-    [JsonPropertyName("marketCap")] public long? MarketCap { get; init; }
+    /// <summary>Market capitalisation, in <see cref="Currency"/>.
+    ///
+    /// <para><b><see langword="decimal"/> and not <see langword="long"/>, because FMP serves this fractional.</b>
+    /// Measured live 2026-08-27: <c>symbol=GOOG</c> answered <c>4098415617064.9995</c> while <c>GOOGL</c>
+    /// answered the integral <c>4122584209576</c> the same minute. Read as <c>long?</c> — which this was until
+    /// that measurement — <c>System.Text.Json</c> throws <c>JsonException</c> on the fractional row and aborts
+    /// the whole response, so all 36 fields of the profile are lost to one fraction on one of them. The same
+    /// defect, found the same way, as <see cref="Quote.MarketCap"/> and
+    /// <see cref="MarketCapitalization.MarketCap"/>.</para></summary>
+    [JsonPropertyName("marketCap")] public decimal? MarketCap { get; init; }
 
     /// <summary>Beta against the broad market.</summary>
     [JsonPropertyName("beta")] public decimal? Beta { get; init; }

@@ -209,7 +209,7 @@ public class CompanyScreenerTests
         var nvda = rows[0];
         Assert.Equal("NVDA", nvda.Symbol);
         Assert.Equal("NVIDIA Corporation", nvda.CompanyName);
-        Assert.Equal(5_078_174_860_000L, nvda.MarketCap);
+        Assert.Equal(5_078_174_860_000m, nvda.MarketCap);
         Assert.Equal("Technology", nvda.Sector);
         Assert.Equal("Semiconductors", nvda.Industry);
         Assert.Equal(2.215m, nvda.Beta);

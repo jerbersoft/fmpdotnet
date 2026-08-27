@@ -20,9 +20,16 @@ public sealed record ScreenerResult
     /// <summary>The company name, spelled <c>companyName</c> as on <c>stock-list</c>.</summary>
     [JsonPropertyName("companyName")] public string? CompanyName { get; init; }
 
-    /// <summary>Market capitalisation, and the sort key for the whole response — see the note on the type. Read as
-    /// <see langword="long"/> to match <see cref="CompanyProfile.MarketCap"/>.</summary>
-    [JsonPropertyName("marketCap")] public long? MarketCap { get; init; }
+    /// <summary>Market capitalisation, and the sort key for the whole response — see the note on the type.
+    ///
+    /// <para><see langword="decimal"/> to match <see cref="CompanyProfile.MarketCap"/>, which had to widen from
+    /// <see langword="long"/> when <c>stable/profile</c> was measured serving <c>GOOG</c> as
+    /// <c>4098415617064.9995</c> on 2026-08-27. <b>The screener itself was measured the same minute and rounds:
+    /// it answered <c>4098415617065</c> for that company, and no fractional value has ever been observed
+    /// here.</b> So this widening is a precaution rather than a fix — the two fields are the same quantity from
+    /// the same upstream, the rounding is undocumented and can stop, and a <c>long?</c> would abort the whole
+    /// screener response on the first row that stops being rounded.</para></summary>
+    [JsonPropertyName("marketCap")] public decimal? MarketCap { get; init; }
 
     /// <summary>Sector label, spelled as
     /// <see cref="Endpoints.DirectoryEndpoints.GetSectorsAsync(CancellationToken)"/> returns it. That endpoint is

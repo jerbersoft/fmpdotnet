@@ -23,6 +23,33 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         return rows.Count > 0 ? rows[0] : null;
     }
 
+    /// <summary>Company profile for one SEC Central Index Key — <c>stable/profile-cik</c>. Returns
+    /// <see langword="null"/> when FMP knows no such filer.
+    ///
+    /// <para>The same 36 fields as <see cref="GetProfileAsync"/>, in the same order, in a single-element array —
+    /// compared field by field on 2026-08-27, which is why this shares <see cref="CompanyProfile"/> rather than
+    /// declaring a type of its own. Use it when what you hold is a CIK from an EDGAR filing rather than a
+    /// ticker.</para>
+    ///
+    /// <para><b>The CIK is sent exactly as given, because FMP accepts either spelling.</b> The zero-padded
+    /// <c>0000320193</c> and the bare <c>320193</c> both answered the same AAPL row on 2026-08-27, so there is
+    /// nothing to normalise and normalising would silently rewrite the caller's identifier. An unknown but
+    /// numeric CIK — <c>9999999999</c> — answers <c>[]</c> with HTTP 200; a non-numeric one answers
+    /// <b>400</b>.</para></summary>
+    /// <param name="cik">The Central Index Key, padded or not.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The profile, or <see langword="null"/> when FMP has none.</returns>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<CompanyProfile?> GetProfileByCikAsync(string cik, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/profile-cik").With("cik", cik),
+            FmpJsonContext.Default.ListCompanyProfile, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
     /// <summary>Public float and shares outstanding for one symbol, or null when FMP knows no such symbol.
     ///
     /// <para>Single object rather than a list, and no <c>limit</c> parameter, because <c>stable/shares-float</c>

@@ -55,7 +55,7 @@ public class FmpTransportTests
         var rows = await transport.GetListAsync(new FmpRequest("stable/profile"),
             FmpJsonContext.Default.ListCompanyProfile);
 
-        Assert.Equal(4551611624400L, rows[0].MarketCap);
+        Assert.Equal(4551611624400m, rows[0].MarketCap);
         Assert.Equal("166000", rows[0].FullTimeEmployees);
     }
 
