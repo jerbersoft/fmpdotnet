@@ -229,3 +229,34 @@ Eight passes, recorded in the session's scratchpad: reach all 19; classify shape
 `period` and caps; diff field sets against the shipped models and against the CSV headers cached
 from 2026-08-26; vary the filer; and pin the error shapes. Bulk was read from the on-disk developer
 cache rather than refetched, so no `*-bulk` call was made.
+
+## Addendum — the report paths' `period` vocabulary, measured 2026-08-27 while planning
+
+The design left open which vocabulary `financial-reports-json` and `financial-reports-xlsx` take. The
+links `financial-reports-dates` hands out use the **response** vocabulary — `&period=Q3` — which
+would have made the SDK's `FiscalPeriod` unusable on them. Measured rather than assumed:
+
+| `period=` | `financial-reports-json` | `financial-reports-xlsx` |
+|---|---|---|
+| `FY` | 200, 73 keys, echoes `"period": "FY"` | 200, `AAPL_2025_FY_.xlsx`, 1,399,564 bytes |
+| `annual` | 200, 73 keys, echoes `"period": "FY"` | 200, `AAPL_2025_FY_.xlsx`, 1,399,564 bytes |
+| `Q3` | 200, 47 keys, echoes `"period": "Q3"` | 200, `AAPL_2025_Q3_.xlsx`, 785,087 bytes |
+| `quarter` | 200, 45 keys, echoes **`"period": "Q1"`** | 200, **`AAPL_2025_Q1_.xlsx`**, 58,263 bytes |
+| `bogus` | **HTTP 400** `Query Error: Invalid or missing query parameter - period` | — |
+
+Both vocabularies work and normalise to the response one, so `FiscalPeriod` maps onto these paths
+without a second enum.
+
+**`period=quarter` is a trap on these two paths.** A report is identified by one fiscal period, and
+there is no such document as "the 2025 quarterly report" — so FMP picks Q1 and says so only in a
+field the caller has to go looking for. The size difference is the evidence that this is not what
+anyone meant: 58 KB for the Q1 workbook against 785 KB for the Q3 one they asked for. The SDK
+rejects `FiscalPeriod.Quarter` on the two document methods rather than passing it on.
+
+**An unrecognised `period` is a 400 here**, not the silent annual fallback the statement paths give.
+The two behaviours differ on the same query parameter of the same API.
+
+**A miss carries no `Content-Disposition`.** Both a bad symbol and a good symbol in a year with no
+filing answer HTTP 200, 16 bytes of `Error with query`, and the header absent — a second signal
+agreeing with the `PK\x03\x04` test. The magic number stays the rule, because it describes the body
+the SDK is about to hand back rather than a header FMP could stop sending.
