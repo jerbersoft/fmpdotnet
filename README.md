@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**101 of FMP's 243 endpoint paths are modelled.**
+**114 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -169,10 +169,23 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 | FMP endpoint | Method |
 |---|---|
+| `stable/company-notes` | `GetNotesAsync` |
 | `stable/delisted-companies` | `GetDelistedAsync` |
+| `stable/employee-count` | `GetEmployeeCountAsync` |
+| `stable/executive-compensation-benchmark` | `GetExecutiveCompensationBenchmarkAsync` |
+| `stable/governance-executive-compensation` | `GetExecutiveCompensationAsync` |
+| `stable/historical-employee-count` | `GetHistoricalEmployeeCountAsync` |
+| `stable/historical-market-capitalization` | `GetHistoricalMarketCapAsync` |
+| `stable/key-executives` | `GetKeyExecutivesAsync` |
+| `stable/market-capitalization` | `GetMarketCapAsync` |
+| `stable/market-capitalization-batch` | `GetMarketCapBatchAsync` |
+| `stable/mergers-acquisitions-latest` | `GetLatestMergersAcquisitionsAsync` |
+| `stable/mergers-acquisitions-search` | `SearchMergersAcquisitionsAsync` |
 | `stable/profile` | `GetProfileAsync` |
+| `stable/profile-cik` | `GetProfileByCikAsync` |
 | `stable/shares-float` | `GetSharesFloatAsync` |
 | `stable/shares-float-all` | `GetAllSharesFloatAsync` |
+| `stable/stock-peers` | `GetPeersAsync` |
 
 `fmp.Directory`
 

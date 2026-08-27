@@ -307,6 +307,7 @@ internal static class Probe
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,
+                "name" => LiveApi.AcquirerNameQuery,
                 _ => LiveApi.Symbol,
             };
 

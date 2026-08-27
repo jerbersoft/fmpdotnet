@@ -136,4 +136,17 @@ internal static class LiveApi
     /// respectively on 2026-08-27. A value that worked on only one of them would leave the other recording an
     /// empty baseline.</para></summary>
     public const string SearchQuery = Symbol;
+
+    /// <summary>The company name the M&amp;A search is probed with.
+    ///
+    /// <para><b>Named rather than falling out of the default string case, for the reason recorded on
+    /// <see cref="Exchange"/>.</b> <c>Probe.Argument</c> maps any unrecognised string to <see cref="Symbol"/>,
+    /// which would send <c>name=AAPL</c> — and <c>mergers-acquisitions-search</c> matches company names, not
+    /// tickers, answering an unmatched name with an empty array and HTTP 200 rather than an error. The probe
+    /// would record <c>rows 0</c> as the baseline and match it every week thereafter.</para>
+    ///
+    /// <para><c>"Apple"</c> rather than <c>"Bank"</c>: measured 2026-08-27, <c>Apple</c> answers 3 rows in
+    /// which all nine fields are populated at least once — everything the baseline records — while <c>Bank</c>
+    /// answers 233 rows and an 84 KB response for the same information.</para></summary>
+    public const string AcquirerNameQuery = "Apple";
 }

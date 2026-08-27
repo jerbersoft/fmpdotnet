@@ -73,4 +73,19 @@ public class SweepCoverageTests
         Assert.Contains(groups, g => Probe.IsBulk(g.PropertyType));
         Assert.Contains(groups, g => !Probe.IsBulk(g.PropertyType));
     }
+
+    [Fact]
+    public void The_sweep_asks_the_ma_search_for_a_company_name_rather_than_a_ticker()
+    {
+        // Probe.Argument maps any unrecognised string parameter to LiveApi.Symbol, which would send
+        // name=AAPL to mergers-acquisitions-search. That endpoint matches company NAMES: name=Apple answered
+        // 3 rows on 2026-08-27 and a ticker matches nothing. The probe would record `rows 0` as the baseline
+        // and agree with itself every week thereafter, reporting a healthy endpoint that has never returned
+        // anything — the same silent-green failure LiveApi.Exchange and LiveApi.Cik exist to prevent.
+        var name = typeof(Endpoints.CompanyEndpoints)
+            .GetMethod(nameof(Endpoints.CompanyEndpoints.SearchMergersAcquisitionsAsync))!
+            .GetParameters()[0];
+
+        Assert.Equal("Apple", Probe.Argument(name));
+    }
 }
