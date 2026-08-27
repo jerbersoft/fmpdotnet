@@ -200,6 +200,9 @@ internal static class Probe
     private static IReadOnlyList<object> Flatten(object? value) => value switch
     {
         null => [],
+        // A workbook is ONE answer, not a row set. byte[] is an IEnumerable, so without this the 1.4 MB
+        // financial-reports-xlsx response flattens to 1.4 million boxed bytes — measured 2026-08-27.
+        byte[] bytes => bytes.Length > 0 ? [bytes] : [],
         IEnumerable rows => rows.Cast<object?>().Where(r => r is not null).Select(r => r!).ToList(),
         var single => [single],
     };
@@ -230,6 +233,9 @@ internal static class Probe
         if (typeof(Task).IsAssignableFrom(returnType) && returnType.IsGenericType)
         {
             var inner = returnType.GetGenericArguments()[0];
+            // Before the IReadOnlyList probe: byte[] implements IReadOnlyList<byte>, and resolving this to
+            // `byte` would make the baseline describe a workbook as a sequence of bytes.
+            if (inner == typeof(byte[])) return typeof(byte[]);
             // Prepend(inner) because GetInterfaces() on IReadOnlyList<T> does not include IReadOnlyList<T>.
             var list = inner.GetInterfaces().Prepend(inner)
                 .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IReadOnlyList<>));
@@ -244,7 +250,7 @@ internal static class Probe
     /// <summary>The properties whose population is recorded. Empty for a scalar row type — <c>GetSectorsAsync</c>
     /// answers a list of strings, and <c>string.Length</c> is not a field FMP sends.</summary>
     private static IReadOnlyList<PropertyInfo> Fields(Type row) =>
-        row == typeof(string) || row.IsPrimitive || row.IsEnum
+        row == typeof(string) || row.IsPrimitive || row.IsEnum || row.IsArray
             ? []
             : [.. row.GetProperties(BindingFlags.Public | BindingFlags.Instance)
                     .Where(p => p.CanRead && p.GetIndexParameters().Length == 0)
