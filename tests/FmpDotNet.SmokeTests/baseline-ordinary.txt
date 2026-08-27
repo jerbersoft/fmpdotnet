@@ -129,7 +129,149 @@ set Exchange
 set IpoDate
 set Symbol
 
+[Company.GetEmployeeCountAsync]
+outcome rows
+set AcceptanceTime
+set Cik
+set CompanyName
+set Employees
+set FilingDate
+set FormType
+set PeriodOfReport
+set Source
+set Symbol
+
+[Company.GetExecutiveCompensationAsync]
+outcome rows
+set AcceptedDate
+set AllOtherCompensation
+set Bonus
+set Cik
+set CompanyName
+set FilingDate
+set IncentivePlanCompensation
+set Link
+set NameAndPosition
+set OptionAward
+set Salary
+set StockAward
+set Symbol
+set Total
+set Year
+
+[Company.GetExecutiveCompensationBenchmarkAsync]
+outcome rows
+set AverageCompensation
+set IndustryTitle
+set Year
+
+[Company.GetHistoricalEmployeeCountAsync]
+outcome rows
+set AcceptanceTime
+set Cik
+set CompanyName
+set Employees
+set FilingDate
+set FormType
+set PeriodOfReport
+set Source
+set Symbol
+
+[Company.GetHistoricalMarketCapAsync]
+outcome rows
+set Date
+set MarketCap
+set Symbol
+
+[Company.GetKeyExecutivesAsync]
+outcome rows
+set Active
+set CurrencyPay
+set Gender
+set Name
+set Pay
+set Title
+set YearBorn
+null TitleSince
+
+[Company.GetLatestMergersAcquisitionsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set CompanyName
+set Link
+set Symbol
+set TargetedCik
+set TargetedCompanyName
+set TargetedSymbol
+set TransactionDate
+
+[Company.GetMarketCapAsync]
+outcome rows
+set Date
+set MarketCap
+set Symbol
+
+[Company.GetMarketCapBatchAsync]
+outcome rows
+set Date
+set MarketCap
+set Symbol
+
+[Company.GetNotesAsync]
+outcome rows
+set Cik
+set Exchange
+set Symbol
+set Title
+
+[Company.GetPeersAsync]
+outcome rows
+set CompanyName
+set MarketCap
+set Price
+set Symbol
+
 [Company.GetProfileAsync]
+outcome rows
+set Address
+set AverageVolume
+set Beta
+set Ceo
+set Change
+set ChangePercentage
+set Cik
+set City
+set CompanyName
+set Country
+set Currency
+set Cusip
+set DefaultImage
+set Description
+set Exchange
+set ExchangeFullName
+set FullTimeEmployees
+set Image
+set Industry
+set IpoDate
+set IsActivelyTrading
+set IsAdr
+set IsEtf
+set IsFund
+set Isin
+set LastDividend
+set MarketCap
+set Phone
+set Price
+set Range
+set Sector
+set State
+set Symbol
+set Volume
+set Website
+set Zip
+
+[Company.GetProfileByCikAsync]
 outcome rows
 set Address
 set AverageVolume
@@ -176,6 +318,18 @@ set FreeFloat
 set OutstandingShares
 set Source
 set Symbol
+
+[Company.SearchMergersAcquisitionsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set CompanyName
+set Link
+set Symbol
+set TargetedCik
+set TargetedCompanyName
+set TargetedSymbol
+set TransactionDate
 
 [Directory.GetActivelyTradingAsync]
 outcome rows
