@@ -39,7 +39,9 @@ public class StatementEndpointsTests
         Assert.Equal($"/{path}", uri.AbsolutePath);
         Assert.Contains("symbol=AAPL", uri.Query);
         Assert.Contains("period=annual", uri.Query);   // the default, and FMP's request vocabulary not its response one
-        Assert.DoesNotContain("limit=", uri.Query);    // omitted rather than guessed at when the caller gives none
+        // NOT omitted. FMP's undocumented default is 5, so sending nothing returned 5 rows of a 41-row history
+        // — measured 2026-08-27 on all seven of these paths. See StatementEndpoints.FullHistoryLimit.
+        Assert.Contains($"limit={StatementEndpoints.FullHistoryLimit}", uri.Query);
     }
 
     [Theory]
@@ -114,5 +116,39 @@ public class StatementEndpointsTests
         var (endpoints, _) = Build("[]");
 
         Assert.Empty(await endpoints.GetIncomeStatementAsync("NOSUCH"));
+    }
+
+    [Theory]
+    [InlineData(FiscalPeriod.Annual, "period=annual")]
+    [InlineData(FiscalPeriod.Quarter, "period=quarter")]
+    [InlineData(FiscalPeriod.Q1, "period=Q1")]
+    [InlineData(FiscalPeriod.Q2, "period=Q2")]
+    [InlineData(FiscalPeriod.Q3, "period=Q3")]
+    [InlineData(FiscalPeriod.Q4, "period=Q4")]
+    public async Task All_six_period_values_reach_the_wire(FiscalPeriod period, string expected)
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIncomeStatementAsync("AAPL", period);
+
+        Assert.Contains(expected, handler.Requests.Single().Query);
+    }
+
+    [Fact]
+    public void An_undeclared_period_throws_rather_than_reaching_the_wire()
+    {
+        // The throw is the point. An unrecognised period is silently read as annual by FMP (measured 2026-08-27,
+        // `period=bogus` answered FY rows at HTTP 200), so a value that got past this would produce a well-formed
+        // answer to a question nobody asked.
+        Assert.Throws<ArgumentOutOfRangeException>(() => ((FiscalPeriod)99).ToQueryValue());
+    }
+
+    [Fact]
+    public void The_two_original_period_ordinals_did_not_move()
+    {
+        // Q1-Q4 were appended, not inserted. A caller who persisted the underlying int keeps reading what they
+        // stored — which is the whole reason the enum was widened at the end rather than in fiscal order.
+        Assert.Equal(0, (int)FiscalPeriod.Annual);
+        Assert.Equal(1, (int)FiscalPeriod.Quarter);
     }
 }

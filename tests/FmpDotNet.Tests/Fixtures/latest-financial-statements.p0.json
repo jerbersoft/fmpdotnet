@@ -1,0 +1,30 @@
+[
+  {
+    "symbol": "300415.SZ",
+    "calendarYear": 2026,
+    "period": "Q2",
+    "date": "2026-06-30",
+    "dateAdded": "2026-08-27 11:03:21"
+  },
+  {
+    "symbol": "URBN",
+    "calendarYear": 2027,
+    "period": "Q2",
+    "date": "2026-07-31",
+    "dateAdded": "2026-08-27 10:50:02"
+  },
+  {
+    "symbol": "BOE.AX",
+    "calendarYear": 2026,
+    "period": "Q4",
+    "date": "2026-06-30",
+    "dateAdded": "2026-08-27 10:31:03"
+  },
+  {
+    "symbol": "BOE.AX",
+    "calendarYear": 2026,
+    "period": "FY",
+    "date": "2026-06-30",
+    "dateAdded": "2026-08-27 10:31:02"
+  }
+]

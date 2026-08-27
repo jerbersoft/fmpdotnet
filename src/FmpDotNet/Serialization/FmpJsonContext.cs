@@ -54,6 +54,25 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<EndOfDayBar>))]
 [JsonSerializable(typeof(List<AdjustedEndOfDayBar>))]
 [JsonSerializable(typeof(List<IntradayBar>))]
+// The five below were built for the *-bulk CSV surface and are registered here because their per-symbol JSON
+// twins carry the identical field set, measured 2026-08-27. Every property still carries [JsonPropertyName], but
+// measured 2026-08-27 only 108 of the 237 attributes across these five types are load-bearing — the TTM suffixes
+// on RatiosTtm and KeyMetricsTtm, FMP's four "Activites" typos on CashFlowGrowth, and two abbreviation mismatches
+// on IncomeStatementGrowth. The rest, including all 56 on BalanceSheetGrowth, would bind the same way from the
+// C# property name alone; they are kept so the mapping stays explicit rather than contingent on
+// PropertyNameCaseInsensitive staying set. See StatementReuseBindingTests.
+[JsonSerializable(typeof(List<RatiosTtm>))]
+[JsonSerializable(typeof(List<KeyMetricsTtm>))]
+[JsonSerializable(typeof(List<IncomeStatementGrowth>))]
+[JsonSerializable(typeof(List<BalanceSheetGrowth>))]
+[JsonSerializable(typeof(List<CashFlowGrowth>))]
+[JsonSerializable(typeof(List<AsReportedStatement>))]
+[JsonSerializable(typeof(List<RevenueSegmentation>))]
+[JsonSerializable(typeof(List<OwnerEarnings>))]
+[JsonSerializable(typeof(List<LatestFinancialStatement>))]
+[JsonSerializable(typeof(List<FinancialReportLink>))]
+// Not a list — the only object-shaped response in this slice. See FinancialReport.
+[JsonSerializable(typeof(FinancialReport))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and
 // BulkPriceTargetSummary parses it — through the source generator like everything else, because this assembly
 // declares IsAotCompatible and a reflection-based Deserialize would fail the build on IL2026/IL3050.

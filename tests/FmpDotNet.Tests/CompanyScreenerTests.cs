@@ -215,13 +215,28 @@ public class CompanyScreenerTests
         Assert.Equal(2.215m, nvda.Beta);
         Assert.Equal(209.66m, nvda.Price);
         Assert.Equal(0.28m, nvda.LastAnnualDividend);
-        Assert.Equal(145_070_184L, nvda.Volume);
+        Assert.Equal(145_070_184m, nvda.Volume);
         Assert.Equal("NASDAQ Global Select", nvda.Exchange);
         Assert.Equal("NASDAQ", nvda.ExchangeShortName);
         Assert.Equal("US", nvda.Country);
         Assert.False(nvda.IsEtf);
         Assert.False(nvda.IsFund);
         Assert.True(nvda.IsActivelyTrading);
+    }
+
+    [Fact]
+    public async Task A_fractional_volume_deserialises_without_throwing()
+    {
+        // Constructed to exercise the non-integer path, not captured from the wire. See the note on
+        // ScreenerResult.Volume: a live sweep on 2026-08-27 measured a company-screener response whose volume
+        // would not convert to an integer, and the exact literal was never captured — a follow-up request the
+        // same day came back with only plain integers. This binds a synthetic fractional value instead, so the
+        // regression is "decimal? accepts what long? refused" rather than a claim about what FMP actually sent.
+        var (endpoints, _) = Build("""[{"symbol":"NVDA","volume":262507631.5}]""");
+
+        var rows = await endpoints.ScreenAsync(new ScreenerCriteria());
+
+        Assert.Equal(262507631.5m, rows[0].Volume);
     }
 
     [Fact]

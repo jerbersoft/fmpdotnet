@@ -96,8 +96,8 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     /// <para>The symbol and limit rules match <c>StatementEndpoints.Periodic</c> deliberately — a blank symbol and
     /// a non-positive limit are caller mistakes, and both are worth catching here rather than spending a request
     /// to have FMP answer an empty array that reads like "no coverage". They are re-stated rather than shared:
-    /// this endpoint takes a <c>page</c> the seven period-shaped ones do not, and widening a helper that seven
-    /// call sites depend on, to serve an eighth with a different query shape, trades a few duplicated lines for a
+    /// this endpoint takes a <c>page</c> the period-shaped ones do not, and widening a helper that fourteen
+    /// call sites depend on, to also serve this endpoint's different query shape, trades a few duplicated lines for a
     /// coupling that would have to be undone the first time the two shapes diverge again.</para></summary>
     private static FmpRequest Estimates(string symbol, FiscalPeriod period, int? limit, int? page)
     {

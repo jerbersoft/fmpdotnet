@@ -40,7 +40,7 @@ var fmp = provider.GetRequiredService<FmpClient>();
 
 var profile = await fmp.Company.GetProfileAsync("AAPL");
 
-// The seven period-shaped endpoints share one signature: symbol, cadence, limit.
+// The period-shaped endpoints share one signature: symbol, cadence, limit.
 var income  = await fmp.Statements.GetIncomeStatementAsync("AAPL", FiscalPeriod.Annual, limit: 5);
 var ratios  = await fmp.Statements.GetRatiosAsync("AAPL", FiscalPeriod.Quarter, limit: 8);
 
@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**82 of FMP's 243 endpoint paths are modelled.**
+**101 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -238,24 +238,43 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/balance-sheet-statement` | `GetBalanceSheetAsync` |
+| `stable/balance-sheet-statement-as-reported` | `GetBalanceSheetAsReportedAsync` |
+| `stable/balance-sheet-statement-growth` | `GetBalanceSheetGrowthAsync` |
+| `stable/balance-sheet-statement-ttm` | `GetBalanceSheetTtmAsync` |
 | `stable/cash-flow-statement` | `GetCashFlowAsync` |
+| `stable/cash-flow-statement-as-reported` | `GetCashFlowAsReportedAsync` |
+| `stable/cash-flow-statement-growth` | `GetCashFlowGrowthAsync` |
+| `stable/cash-flow-statement-ttm` | `GetCashFlowTtmAsync` |
 | `stable/enterprise-values` | `GetEnterpriseValuesAsync` |
 | `stable/financial-growth` | `GetFinancialGrowthAsync` |
+| `stable/financial-reports-dates` | `GetFinancialReportDatesAsync` |
+| `stable/financial-reports-json` | `GetFinancialReportAsync` |
+| `stable/financial-reports-xlsx` | `GetFinancialReportWorkbookAsync` |
 | `stable/financial-scores` | `GetScoresAsync` |
+| `stable/financial-statement-full-as-reported` | `GetFullStatementAsReportedAsync` |
 | `stable/income-statement` | `GetIncomeStatementAsync` |
+| `stable/income-statement-as-reported` | `GetIncomeStatementAsReportedAsync` |
+| `stable/income-statement-growth` | `GetIncomeStatementGrowthAsync` |
+| `stable/income-statement-ttm` | `GetIncomeStatementTtmAsync` |
 | `stable/key-metrics` | `GetKeyMetricsAsync` |
+| `stable/key-metrics-ttm` | `GetKeyMetricsTtmAsync` |
+| `stable/latest-financial-statements` | `GetLatestStatementsAsync`, `StreamLatestStatementsAsync` |
+| `stable/owner-earnings` | `GetOwnerEarningsAsync` |
 | `stable/ratios` | `GetRatiosAsync` |
+| `stable/ratios-ttm` | `GetRatiosTtmAsync` |
+| `stable/revenue-geographic-segmentation` | `GetRevenueByGeographyAsync` |
+| `stable/revenue-product-segmentation` | `GetRevenueByProductAsync` |
 
 <!-- END GENERATED: endpoint coverage -->
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **161 paths
-remain**, of which **154 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **142 paths
+remain**, of which **135 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest groups are Statements (19), Company (13), SEC
-Filings (12), Senate (12), Market Performance (11) and News (10); ETF & Mutual Funds and Technical Indicators carry
-9 apiece, Form 13F 8, and Analyst and Calendar 7 each.
+spread the way FMP's own section headings suggest: the largest groups are Company (13), SEC Filings (12), Senate
+(12), Market Performance (11) and News (10); ETF & Mutual Funds and Technical Indicators carry 9 apiece, Form 13F
+8, and Analyst and Calendar 7 each.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -263,9 +282,10 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as thirteen actionable issues under the epic, each 9 to 19 paths and each carrying the
-measured path list for its group. Statements and Company are the largest and the two a trading consumer needs, so
-they are the natural next slices rather than long-tail work.
+That remainder is tracked as twelve actionable issues under the epic, each 9 to 14 paths and each carrying the
+measured path list for its group. Company (13 paths) is not the largest — the Form 13F/Insider Trades issue and
+the Analyst/Calendar issue are each 14 — but it is the one a trading consumer needs next, so it is the natural
+next slice rather than long-tail work.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is

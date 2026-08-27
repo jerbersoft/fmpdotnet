@@ -134,7 +134,7 @@ public class CalendarEndpointsTests
     [Fact]
     public async Task Earnings_sends_symbol_and_limit_and_no_period()
     {
-        // Unlike the seven period-shaped endpoints this one takes no period. Sending one would be inventing a
+        // Unlike the period-shaped endpoints this one takes no period. Sending one would be inventing a
         // parameter the API does not have.
         var (endpoints, handler) = Build();
 

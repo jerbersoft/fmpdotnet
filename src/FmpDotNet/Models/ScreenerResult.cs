@@ -51,8 +51,15 @@ public sealed record ScreenerResult
     /// yield.</summary>
     [JsonPropertyName("lastAnnualDividend")] public decimal? LastAnnualDividend { get; init; }
 
-    /// <summary>Share volume.</summary>
-    [JsonPropertyName("volume")] public long? Volume { get; init; }
+    /// <summary>Share volume, as <see langword="decimal"/> rather than an integer type. Measured 2026-08-27: a
+    /// live <c>company-screener</c> sweep returned a <c>volume</c> at <c>$[0].volume</c> that would not convert to
+    /// an integer, which failed the whole response. The literal value was not captured, and a follow-up request
+    /// the same day returned only plain integers — so the non-integer shape is real but not reliably
+    /// reproducible. Every other volume field in this SDK that has met the same problem is already
+    /// <see langword="decimal"/>? — <see cref="Quote.Volume"/>, <see cref="IntradayBar.Volume"/>,
+    /// <see cref="AftermarketQuote.Volume"/>, <see cref="BulkCompanyProfile.Volume"/> and
+    /// <see cref="ShortQuote.Volume"/>.</summary>
+    [JsonPropertyName("volume")] public decimal? Volume { get; init; }
 
     /// <summary>The exchange's <b>long</b> name — <c>NASDAQ Global Select</c>, <c>New York Stock Exchange</c>.
     ///

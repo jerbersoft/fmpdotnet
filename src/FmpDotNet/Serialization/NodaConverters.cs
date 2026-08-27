@@ -124,6 +124,43 @@ public sealed class NullableEasternInstantJsonConverter : JsonConverter<Instant?
     }
 }
 
+/// <summary>Reads FMP's <c>"yyyy-MM-dd HH:mm:ss"</c> timestamps as a <see cref="LocalDateTime"/> — a wall clock
+/// with <b>no timezone attached</b>, which is exactly what is known about them.
+///
+/// <para><b>The third converter for this wire shape, and the only honest one where the zone was never
+/// measured.</b> <see cref="NullableFmpInstantJsonConverter"/> reads it as UTC and
+/// <see cref="NullableEasternInstantJsonConverter"/> reads it as Eastern; each of those readings was established
+/// by measuring a DST shift on its own endpoint, and the two are four or five hours apart. Applying either to a
+/// field whose zone nobody checked would not be a small risk — it would be a fabricated fact, wrong by hours,
+/// with nothing in the data to reveal it.</para>
+///
+/// <para>So this converter declines to guess. A <see cref="LocalDateTime"/> still sorts, still compares and still
+/// formats; what it will not do is claim to be a moment in time. If the zone is ever measured, this becomes an
+/// <see cref="Instant"/> and the caller's code gets more correct rather than differently wrong.</para>
+///
+/// <para>Null on an unparseable value, following the rest of this file: one bad stamp costs one field rather than
+/// the whole response.</para></summary>
+public sealed class NullableLocalDateTimeJsonConverter : JsonConverter<LocalDateTime?>
+{
+    private static readonly LocalDateTimePattern Pattern =
+        LocalDateTimePattern.CreateWithInvariantCulture("uuuu-MM-dd HH:mm:ss");
+
+    /// <inheritdoc/>
+    public override LocalDateTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, LocalDateTime? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}
+
 /// <summary>Reads a Unix epoch timestamp in <b>seconds</b> as an <see cref="Instant"/> — the form
 /// <c>stable/quote</c> uses.
 ///

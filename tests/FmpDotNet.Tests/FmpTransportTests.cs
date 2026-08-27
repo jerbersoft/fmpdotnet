@@ -178,4 +178,76 @@ public class FmpTransportTests
         Assert.Equal("SYM49", rows[49].Symbol);
         Assert.Equal(49, rows[49].Volume);
     }
+
+    [Fact]
+    public async Task GetObjectAsync_reads_a_json_object_body()
+    {
+        var (transport, handler) = Build(StubHandler.Json("""{"symbol":"AAPL","period":"FY","year":"2025"}"""));
+
+        var report = await transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport);
+
+        Assert.NotNull(report);
+        Assert.Equal("AAPL", report.Symbol);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetObjectAsync_raises_an_error_envelope_that_arrived_as_a_200()
+    {
+        // The reason this method cannot use GetListAsync's first-byte test: here BOTH the success shape and the
+        // error shape are JSON objects. Measured 2026-08-27, a miss on financial-reports-json is HTTP 200
+        // carrying {"Error Message": "No Data for this symbol or invalid API call…"}.
+        var (transport, _) = Build(StubHandler.Json(
+            """{"Error Message":"No Data for this symbol or invalid API call."}"""));
+
+        var ex = await Assert.ThrowsAsync<FmpApiException>(
+            () => transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport));
+
+        Assert.Contains("No Data for this symbol", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetObjectAsync_raises_a_plan_restriction_before_reading_the_body()
+    {
+        var (transport, _) = Build(StubHandler.Status(HttpStatusCode.PaymentRequired));
+
+        await Assert.ThrowsAsync<FmpPlanRestrictedException>(
+            () => transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport));
+    }
+
+    [Fact]
+    public async Task GetBytesAsync_returns_the_body_verbatim_without_looking_at_it()
+    {
+        // Deliberately not JSON and deliberately not a zip. The transport does not classify a binary body — the
+        // endpoint that knows what it asked for does.
+        byte[] payload = [0x50, 0x4B, 0x03, 0x04, 0xFF, 0x00, 0x41];
+        var (transport, _) = Build(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            // The content type FMP actually sends for a workbook, which is a lie, and is ignored here.
+            Content = new ByteArrayContent(payload)
+            {
+                Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json") },
+            },
+        });
+
+        Assert.Equal(payload, await transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
+
+    [Fact]
+    public async Task GetBytesAsync_still_raises_a_failure_status()
+    {
+        var (transport, _) = Build(StubHandler.Status(HttpStatusCode.BadRequest));
+
+        await Assert.ThrowsAsync<FmpApiException>(() => transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.PaymentRequired)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task GetBytesAsync_raises_a_plan_restriction_before_reading_the_body(HttpStatusCode status)
+    {
+        var (transport, _) = Build(StubHandler.Status(status));
+
+        await Assert.ThrowsAsync<FmpPlanRestrictedException>(() => transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
 }

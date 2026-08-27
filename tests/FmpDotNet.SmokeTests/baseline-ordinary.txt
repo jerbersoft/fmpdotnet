@@ -674,6 +674,15 @@ set Sector
 set Symbol
 set Volume
 
+[Statements.GetBalanceSheetAsReportedAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
 [Statements.GetBalanceSheetAsync]
 outcome rows
 set AcceptedDate
@@ -738,7 +747,234 @@ set TotalPayables
 set TotalStockholdersEquity
 set TreasuryStock
 
+[Statements.GetBalanceSheetGrowthAsync]
+outcome rows
+set Date
+set FiscalYear
+set GrowthAccountPayables
+set GrowthAccountsReceivables
+set GrowthAccruedExpenses
+set GrowthAccumulatedOtherComprehensiveIncomeLoss
+set GrowthAdditionalPaidInCapital
+set GrowthCapitalLeaseObligationsCurrent
+set GrowthCashAndCashEquivalents
+set GrowthCashAndShortTermInvestments
+set GrowthCommonStock
+set GrowthDeferredRevenue
+set GrowthDeferredRevenueNonCurrent
+set GrowthDeferredTaxLiabilitiesNonCurrent
+set GrowthGoodwill
+set GrowthGoodwillAndIntangibleAssets
+set GrowthIntangibleAssets
+set GrowthInventory
+set GrowthLongTermDebt
+set GrowthLongTermInvestments
+set GrowthMinorityInterest
+set GrowthNetDebt
+set GrowthNetReceivables
+set GrowthOtherAssets
+set GrowthOtherCurrentAssets
+set GrowthOtherCurrentLiabilities
+set GrowthOtherLiabilities
+set GrowthOtherNonCurrentAssets
+set GrowthOtherNonCurrentLiabilities
+set GrowthOtherPayables
+set GrowthOtherReceivables
+set GrowthOtherTotalStockholdersEquity
+set GrowthPreferredStock
+set GrowthPrepaids
+set GrowthPropertyPlantEquipmentNet
+set GrowthRetainedEarnings
+set GrowthShortTermDebt
+set GrowthShortTermInvestments
+set GrowthTaxAssets
+set GrowthTaxPayables
+set GrowthTotalAssets
+set GrowthTotalCurrentAssets
+set GrowthTotalCurrentLiabilities
+set GrowthTotalDebt
+set GrowthTotalEquity
+set GrowthTotalInvestments
+set GrowthTotalLiabilities
+set GrowthTotalLiabilitiesAndStockholdersEquity
+set GrowthTotalNonCurrentAssets
+set GrowthTotalNonCurrentLiabilities
+set GrowthTotalPayables
+set GrowthTotalStockholdersEquity
+set GrowthTreasuryStock
+set Period
+set ReportedCurrency
+set Symbol
+
+[Statements.GetBalanceSheetTtmAsync]
+outcome rows
+set AcceptedDate
+set AccountPayables
+set AccountsReceivables
+set AccruedExpenses
+set AccumulatedOtherComprehensiveIncomeLoss
+set AdditionalPaidInCapital
+set CapitalLeaseObligations
+set CapitalLeaseObligationsCurrent
+set CashAndCashEquivalents
+set CashAndShortTermInvestments
+set Cik
+set CommonStock
+set Date
+set DeferredRevenue
+set DeferredRevenueNonCurrent
+set DeferredTaxLiabilitiesNonCurrent
+set FilingDate
+set FiscalYear
+set Goodwill
+set GoodwillAndIntangibleAssets
+set IntangibleAssets
+set Inventory
+set LongTermDebt
+set LongTermInvestments
+set MinorityInterest
+set NetDebt
+set NetReceivables
+set OtherAssets
+set OtherCurrentAssets
+set OtherCurrentLiabilities
+set OtherLiabilities
+set OtherNonCurrentAssets
+set OtherNonCurrentLiabilities
+set OtherPayables
+set OtherReceivables
+set OtherTotalStockholdersEquity
+set Period
+set PreferredStock
+set Prepaids
+set PropertyPlantEquipmentNet
+set ReportedCurrency
+set RetainedEarnings
+set ShortTermDebt
+set ShortTermInvestments
+set Symbol
+set TaxAssets
+set TaxPayables
+set TotalAssets
+set TotalCurrentAssets
+set TotalCurrentLiabilities
+set TotalDebt
+set TotalEquity
+set TotalInvestments
+set TotalLiabilities
+set TotalLiabilitiesAndTotalEquity
+set TotalNonCurrentAssets
+set TotalNonCurrentLiabilities
+set TotalPayables
+set TotalStockholdersEquity
+set TreasuryStock
+null CapitalLeaseObligationsNonCurrent
+
+[Statements.GetCashFlowAsReportedAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
 [Statements.GetCashFlowAsync]
+outcome rows
+set AcceptedDate
+set AccountsPayables
+set AccountsReceivables
+set AcquisitionsNet
+set CapitalExpenditure
+set CashAtBeginningOfPeriod
+set CashAtEndOfPeriod
+set ChangeInWorkingCapital
+set Cik
+set CommonDividendsPaid
+set CommonStockIssuance
+set CommonStockRepurchased
+set Date
+set DeferredIncomeTax
+set DepreciationAndAmortization
+set EffectOfForexChangesOnCash
+set FilingDate
+set FiscalYear
+set FreeCashFlow
+set IncomeTaxesPaid
+set InterestPaid
+set Inventory
+set InvestmentsInPropertyPlantAndEquipment
+set LongTermNetDebtIssuance
+set NetCashProvidedByFinancingActivities
+set NetCashProvidedByInvestingActivities
+set NetCashProvidedByOperatingActivities
+set NetChangeInCash
+set NetCommonStockIssuance
+set NetDebtIssuance
+set NetDividendsPaid
+set NetIncome
+set NetPreferredStockIssuance
+set NetStockIssuance
+set OperatingCashFlow
+set OtherFinancingActivities
+set OtherInvestingActivities
+set OtherNonCashItems
+set OtherWorkingCapital
+set Period
+set PreferredDividendsPaid
+set PurchasesOfInvestments
+set ReportedCurrency
+set SalesMaturitiesOfInvestments
+set ShortTermNetDebtIssuance
+set StockBasedCompensation
+set Symbol
+
+[Statements.GetCashFlowGrowthAsync]
+outcome rows
+set Date
+set FiscalYear
+set GrowthAccountsPayables
+set GrowthAccountsReceivables
+set GrowthAcquisitionsNet
+set GrowthCapitalExpenditure
+set GrowthCashAtBeginningOfPeriod
+set GrowthCashAtEndOfPeriod
+set GrowthChangeInWorkingCapital
+set GrowthCommonStockIssued
+set GrowthCommonStockRepurchased
+set GrowthDebtRepayment
+set GrowthDeferredIncomeTax
+set GrowthDepreciationAndAmortization
+set GrowthDividendsPaid
+set GrowthEffectOfForexChangesOnCash
+set GrowthFreeCashFlow
+set GrowthIncomeTaxesPaid
+set GrowthInterestPaid
+set GrowthInventory
+set GrowthInvestmentsInPropertyPlantAndEquipment
+set GrowthLongTermNetDebtIssuance
+set GrowthNetCashProvidedByOperatingActivities
+set GrowthNetCashUsedForInvestingActivities
+set GrowthNetCashUsedProvidedByFinancingActivities
+set GrowthNetChangeInCash
+set GrowthNetDebtIssuance
+set GrowthNetIncome
+set GrowthNetStockIssuance
+set GrowthOperatingCashFlow
+set GrowthOtherFinancingActivities
+set GrowthOtherInvestingActivities
+set GrowthOtherNonCashItems
+set GrowthOtherWorkingCapital
+set GrowthPreferredDividendsPaid
+set GrowthPurchasesOfInvestments
+set GrowthSalesMaturitiesOfInvestments
+set GrowthShortTermNetDebtIssuance
+set GrowthStockBasedCompensation
+set Period
+set ReportedCurrency
+set Symbol
+
+[Statements.GetCashFlowTtmAsync]
 outcome rows
 set AcceptedDate
 set AccountsPayables
@@ -846,7 +1082,122 @@ set ThreeYShareholdersEquityGrowthPerShare
 set WeightedAverageSharesDilutedGrowth
 set WeightedAverageSharesGrowth
 
+[Statements.GetFinancialReportAsync]
+outcome rows
+set Period
+set Sections
+set Symbol
+set Year
+
+[Statements.GetFinancialReportDatesAsync]
+outcome rows
+set FiscalYear
+set LinkJson
+set LinkXlsx
+set Period
+set Symbol
+
+[Statements.GetFinancialReportWorkbookAsync]
+outcome rows
+
+[Statements.GetFullStatementAsReportedAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
+[Statements.GetIncomeStatementAsReportedAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
 [Statements.GetIncomeStatementAsync]
+outcome rows
+set AcceptedDate
+set BottomLineNetIncome
+set Cik
+set CostAndExpenses
+set CostOfRevenue
+set Date
+set DepreciationAndAmortization
+set Ebit
+set Ebitda
+set Eps
+set EpsDiluted
+set FilingDate
+set FiscalYear
+set GeneralAndAdministrativeExpenses
+set GrossProfit
+set IncomeBeforeTax
+set IncomeTaxExpense
+set InterestExpense
+set InterestIncome
+set NetIncome
+set NetIncomeDeductions
+set NetIncomeFromContinuingOperations
+set NetIncomeFromDiscontinuedOperations
+set NetInterestIncome
+set NonOperatingIncomeExcludingInterest
+set OperatingExpenses
+set OperatingIncome
+set OtherAdjustmentsToNetIncome
+set OtherExpenses
+set Period
+set ReportedCurrency
+set ResearchAndDevelopmentExpenses
+set Revenue
+set SellingAndMarketingExpenses
+set SellingGeneralAndAdministrativeExpenses
+set Symbol
+set TotalOtherIncomeExpensesNet
+set WeightedAverageSharesOutstanding
+set WeightedAverageSharesOutstandingDiluted
+
+[Statements.GetIncomeStatementGrowthAsync]
+outcome rows
+set Date
+set FiscalYear
+set GrowthCostAndExpenses
+set GrowthCostOfRevenue
+set GrowthDepreciationAndAmortization
+set GrowthEbit
+set GrowthEbitda
+set GrowthEps
+set GrowthEpsDiluted
+set GrowthGeneralAndAdministrativeExpenses
+set GrowthGrossProfit
+set GrowthGrossProfitRatio
+set GrowthIncomeBeforeTax
+set GrowthIncomeTaxExpense
+set GrowthInterestExpense
+set GrowthInterestIncome
+set GrowthNetIncome
+set GrowthNetIncomeDeductions
+set GrowthNetIncomeFromContinuingOperations
+set GrowthNetInterestIncome
+set GrowthNonOperatingIncomeExcludingInterest
+set GrowthOperatingExpenses
+set GrowthOperatingIncome
+set GrowthOtherAdjustmentsToNetIncome
+set GrowthOtherExpenses
+set GrowthResearchAndDevelopmentExpenses
+set GrowthRevenue
+set GrowthSellingAndMarketingExpenses
+set GrowthTotalOtherIncomeExpensesNet
+set GrowthWeightedAverageSharesOutstanding
+set GrowthWeightedAverageSharesOutstandingDiluted
+set Period
+set ReportedCurrency
+set Symbol
+
+[Statements.GetIncomeStatementTtmAsync]
 outcome rows
 set AcceptedDate
 set BottomLineNetIncome
@@ -938,6 +1289,73 @@ set TangibleAssetValue
 set TaxBurden
 set WorkingCapital
 
+[Statements.GetKeyMetricsTtmAsync]
+outcome rows
+set AverageInventory
+set AveragePayables
+set AverageReceivables
+set CapexToDepreciation
+set CapexToOperatingCashFlow
+set CapexToRevenue
+set CashConversionCycle
+set CurrentRatio
+set DaysOfInventoryOutstanding
+set DaysOfPayablesOutstanding
+set DaysOfSalesOutstanding
+set EarningsYield
+set EnterpriseValue
+set EvToEbitda
+set EvToFreeCashFlow
+set EvToOperatingCashFlow
+set EvToSales
+set FreeCashFlowToEquity
+set FreeCashFlowToFirm
+set FreeCashFlowYield
+set GrahamNetNet
+set GrahamNumber
+set IncomeQuality
+set IntangiblesToTotalAssets
+set InterestBurden
+set InvestedCapital
+set MarketCap
+set NetCurrentAssetValue
+set NetDebtToEbitda
+set OperatingCycle
+set OperatingReturnOnAssets
+set ResearchAndDevelopmentToRevenue
+set ReturnOnAssets
+set ReturnOnCapitalEmployed
+set ReturnOnEquity
+set ReturnOnInvestedCapital
+set ReturnOnTangibleAssets
+set SalesGeneralAndAdministrativeToRevenue
+set StockBasedCompensationToRevenue
+set Symbol
+set TangibleAssetValue
+set TaxBurden
+set WorkingCapital
+
+[Statements.GetLatestStatementsAsync]
+outcome rows
+set CalendarYear
+set Date
+set DateAdded
+set Period
+set Symbol
+
+[Statements.GetOwnerEarningsAsync]
+outcome rows
+set AveragePpe
+set Date
+set FiscalYear
+set GrowthCapex
+set MaintenanceCapex
+set OwnersEarnings
+set OwnersEarningsPerShare
+set Period
+set ReportedCurrency
+set Symbol
+
 [Statements.GetRatiosAsync]
 outcome rows
 set AssetTurnover
@@ -1007,6 +1425,89 @@ set Symbol
 set TangibleBookValuePerShare
 set WorkingCapitalTurnoverRatio
 
+[Statements.GetRatiosTtmAsync]
+outcome rows
+set AssetTurnover
+set BookValuePerShare
+set BottomLineProfitMargin
+set CapexPerShare
+set CapitalExpenditureCoverageRatio
+set CashPerShare
+set CashRatio
+set ContinuousOperationsProfitMargin
+set CurrentRatio
+set DebtServiceCoverageRatio
+set DebtToAssetsRatio
+set DebtToCapitalRatio
+set DebtToEquityRatio
+set DebtToMarketCap
+set DividendPaidAndCapexCoverageRatio
+set DividendPayoutRatio
+set DividendPerShare
+set DividendYield
+set EbitMargin
+set EbitdaMargin
+set EbtPerEbit
+set EffectiveTaxRate
+set EnterpriseValue
+set EnterpriseValueMultiple
+set FinancialLeverageRatio
+set FixedAssetTurnover
+set ForwardPriceToEarningsGrowthRatio
+set FreeCashFlowOperatingCashFlowRatio
+set FreeCashFlowPerShare
+set GrossProfitMargin
+set InterestCoverageRatio
+set InterestDebtPerShare
+set InventoryTurnover
+set LongTermDebtToCapitalRatio
+set NetIncomePerEbt
+set NetIncomePerShare
+set NetProfitMargin
+set OperatingCashFlowCoverageRatio
+set OperatingCashFlowPerShare
+set OperatingCashFlowRatio
+set OperatingCashFlowSalesRatio
+set OperatingProfitMargin
+set PayablesTurnover
+set PretaxProfitMargin
+set PriceToBookRatio
+set PriceToEarningsDilutedGrowthRatio
+set PriceToEarningsDilutedRatio
+set PriceToEarningsGrowthRatio
+set PriceToEarningsRatio
+set PriceToFairValue
+set PriceToFreeCashFlowRatio
+set PriceToOperatingCashFlowRatio
+set PriceToSalesRatio
+set QuickRatio
+set ReceivablesTurnover
+set RevenuePerShare
+set ShareholdersEquityPerShare
+set ShortTermOperatingCashFlowCoverageRatio
+set SolvencyRatio
+set Symbol
+set TangibleBookValuePerShare
+set WorkingCapitalTurnoverRatio
+
+[Statements.GetRevenueByGeographyAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
+[Statements.GetRevenueByProductAsync]
+outcome rows
+set Data
+set Date
+set FiscalYear
+set Period
+set ReportedCurrency
+set Symbol
+
 [Statements.GetScoresAsync]
 outcome rows
 set AltmanZScore
@@ -1020,4 +1521,12 @@ set Symbol
 set TotalAssets
 set TotalLiabilities
 set WorkingCapital
+
+[Statements.StreamLatestStatementsAsync]
+outcome rows
+set CalendarYear
+set Date
+set DateAdded
+set Period
+set Symbol
 

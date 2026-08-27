@@ -1,0 +1,49 @@
+{
+  "symbol": "AAPL",
+  "period": "FY",
+  "year": "2025",
+  "Cover Page": [
+    {
+      "Cover Page - USD ($) shares in Thousands, $ in Millions": [
+        "12 Months Ended",
+        "",
+        ""
+      ]
+    },
+    {
+      "items": [
+        "Sep. 27, 2025",
+        "Oct. 17, 2025",
+        "Mar. 28, 2025"
+      ]
+    },
+    {
+      "Entity Information [Line Items]": [
+        "",
+        "",
+        ""
+      ]
+    }
+  ],
+  "CONSOLIDATED STATEMENTS OF OPER": [
+    {
+      "CONSOLIDATED STATEMENTS OF OPERATIONS - USD ($) shares in Thousands, $ in Millions": [
+        "12 Months Ended"
+      ]
+    },
+    {
+      "items": [
+        "Sep. 27, 2025",
+        "Sep. 28, 2024",
+        "Sep. 30, 2023"
+      ]
+    },
+    {
+      "Net sales": [
+        416161,
+        391035,
+        383285
+      ]
+    }
+  ]
+}

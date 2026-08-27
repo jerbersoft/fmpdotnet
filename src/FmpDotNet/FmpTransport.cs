@@ -82,6 +82,82 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         return await deserialise(body, ct).ConfigureAwait(false) ?? [];
     }
 
+    /// <summary>GETs a JSON <b>object</b> and deserialises it through a source-generated
+    /// <see cref="JsonTypeInfo{T}"/>. Null only when FMP sent a literal JSON <c>null</c>.
+    ///
+    /// <para><b>Separate from <see cref="GetListAsync"/> because the error test is different, not because the
+    /// shape is.</b> That method tells success from failure by the first meaningful byte: success is a JSON
+    /// array and an FMP error envelope is a JSON object, so one byte separates them without parsing either. Here
+    /// both are objects — measured 2026-08-27, a miss on <c>stable/financial-reports-json</c> answers HTTP 200
+    /// carrying <c>{"Error Message": …}</c>, and a hit answers HTTP 200 carrying a 73-key document. No prefix
+    /// distinguishes them.</para>
+    ///
+    /// <para>So the body is buffered into a <see cref="JsonDocument"/> and its root is offered to the same
+    /// error-envelope check the rest of the transport uses. <b>Buffering is a real cost</b> — the measured report
+    /// is 558 KB — and it is accepted because the alternative is guessing.</para></summary>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    /// <exception cref="FmpApiException">FMP reported an error — in the body of a 200, on a non-success status,
+    /// or in a body that is not valid JSON at all.</exception>
+    public async Task<T?> GetObjectAsync<T>(
+        FmpRequest request, JsonTypeInfo<T> typeInfo, CancellationToken ct = default)
+    {
+        using var response = await SendAsync(request, HttpCompletionOption.ResponseContentRead, ct)
+            .ConfigureAwait(false);
+        if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden)
+            throw FmpPlanRestrictedException.For(response.StatusCode, request);
+        if (!response.IsSuccessStatusCode)
+            throw await ReadFailureAsync(response, request, ct).ConfigureAwait(false);
+
+        var body = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
+        await using var _ = body.ConfigureAwait(false);
+
+        JsonDocument document;
+        try
+        {
+            document = await JsonDocument.ParseAsync(body, cancellationToken: ct).ConfigureAwait(false);
+        }
+        catch (JsonException ex)
+        {
+            throw new FmpApiException(
+                $"FMP answered a body that is not JSON: {ex.Message}", request.ToString());
+        }
+
+        using (document)
+        {
+            if (ErrorTextFrom(document.RootElement) is { } message)
+                throw new FmpApiException(message, request.ToString());
+            return document.RootElement.Deserialize(typeInfo);
+        }
+    }
+
+    /// <summary>GETs a body and hands back its bytes, unexamined.
+    ///
+    /// <para><b>It must not go near a JSON reader, and it deliberately does not classify what arrived.</b>
+    /// <c>stable/financial-reports-xlsx</c> answers an XLSX zip under
+    /// <c>Content-Type: application/json; charset=utf-8</c> — measured 2026-08-27, 1,399,564 bytes beginning
+    /// <c>PK\x03\x04</c> — and answers a MISS the same way: HTTP 200, the same content type, and 16 bytes of
+    /// <c>Error with query</c>. Neither the status nor the header separates them, so the only reliable test is
+    /// the magic number, and that test belongs to the endpoint that knows it asked for a workbook rather than to
+    /// a transport that would be guessing on one path's behalf.</para>
+    ///
+    /// <para>The whole body is buffered, because bytes are what the caller asked for. Non-success statuses still
+    /// raise, so a 402, a 429 or a 400 behaves as it does everywhere else.</para></summary>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    /// <exception cref="FmpApiException">FMP answered a non-success status.</exception>
+    public async Task<byte[]> GetBytesAsync(FmpRequest request, CancellationToken ct = default)
+    {
+        using var response = await SendAsync(request, HttpCompletionOption.ResponseContentRead, ct)
+            .ConfigureAwait(false);
+        if (response.StatusCode is HttpStatusCode.PaymentRequired or HttpStatusCode.Forbidden)
+            throw FmpPlanRestrictedException.For(response.StatusCode, request);
+        if (!response.IsSuccessStatusCode)
+            throw await ReadFailureAsync(response, request, ct).ConfigureAwait(false);
+
+        return await response.Content.ReadAsByteArrayAsync(ct).ConfigureAwait(false);
+    }
+
     /// <summary>GETs a CSV payload and streams it, mapping each record as it arrives. The response is never
     /// buffered whole.</summary>
     /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>

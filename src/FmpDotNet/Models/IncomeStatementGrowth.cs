@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FmpDotNet.Serialization;
 using NodaTime;
 
@@ -15,112 +16,114 @@ namespace FmpDotNet.Models;
 public sealed record IncomeStatementGrowth
 {
     /// <summary>Ticker as FMP spells it.</summary>
-    public string Symbol { get; init; } = "";
+    [JsonPropertyName("symbol")] public string Symbol { get; init; } = "";
 
     /// <summary>Period end — the last day of the fiscal period this row reports.</summary>
+    [JsonPropertyName("date")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
     public LocalDate? Date { get; init; }
 
     /// <summary>Fiscal year.</summary>
-    public int? FiscalYear { get; init; }
+    [JsonPropertyName("fiscalYear")] public int? FiscalYear { get; init; }
 
     /// <summary>Fiscal period as FMP labels the row: <c>FY</c> for annual, <c>Q1</c>-<c>Q4</c> for quarterly.</summary>
-    public string? Period { get; init; }
+    [JsonPropertyName("period")] public string? Period { get; init; }
 
     /// <summary>ISO currency the underlying statement is reported in — not necessarily USD.</summary>
-    public string? ReportedCurrency { get; init; }
+    [JsonPropertyName("reportedCurrency")] public string? ReportedCurrency { get; init; }
 
     /// <summary>Period-over-period growth in <c>Revenue</c>, as a fraction.</summary>
-    public decimal? GrowthRevenue { get; init; }
+    [JsonPropertyName("growthRevenue")] public decimal? GrowthRevenue { get; init; }
 
     /// <summary>Period-over-period growth in <c>CostOfRevenue</c>, as a fraction.</summary>
-    public decimal? GrowthCostOfRevenue { get; init; }
+    [JsonPropertyName("growthCostOfRevenue")] public decimal? GrowthCostOfRevenue { get; init; }
 
     /// <summary>Period-over-period growth in <c>GrossProfit</c>, as a fraction.</summary>
-    public decimal? GrowthGrossProfit { get; init; }
+    [JsonPropertyName("growthGrossProfit")] public decimal? GrowthGrossProfit { get; init; }
 
     /// <summary>Period-over-period growth in <c>GrossProfitRatio</c>, as a fraction.</summary>
-    public decimal? GrowthGrossProfitRatio { get; init; }
+    [JsonPropertyName("growthGrossProfitRatio")] public decimal? GrowthGrossProfitRatio { get; init; }
 
     /// <summary>Period-over-period growth in <c>ResearchAndDevelopmentExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthResearchAndDevelopmentExpenses { get; init; }
+    [JsonPropertyName("growthResearchAndDevelopmentExpenses")] public decimal? GrowthResearchAndDevelopmentExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>GeneralAndAdministrativeExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthGeneralAndAdministrativeExpenses { get; init; }
+    [JsonPropertyName("growthGeneralAndAdministrativeExpenses")] public decimal? GrowthGeneralAndAdministrativeExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>SellingAndMarketingExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthSellingAndMarketingExpenses { get; init; }
+    [JsonPropertyName("growthSellingAndMarketingExpenses")] public decimal? GrowthSellingAndMarketingExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>OtherExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthOtherExpenses { get; init; }
+    [JsonPropertyName("growthOtherExpenses")] public decimal? GrowthOtherExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>OperatingExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthOperatingExpenses { get; init; }
+    [JsonPropertyName("growthOperatingExpenses")] public decimal? GrowthOperatingExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>CostAndExpenses</c>, as a fraction.</summary>
-    public decimal? GrowthCostAndExpenses { get; init; }
+    [JsonPropertyName("growthCostAndExpenses")] public decimal? GrowthCostAndExpenses { get; init; }
 
     /// <summary>Period-over-period growth in <c>InterestIncome</c>, as a fraction.</summary>
-    public decimal? GrowthInterestIncome { get; init; }
+    [JsonPropertyName("growthInterestIncome")] public decimal? GrowthInterestIncome { get; init; }
 
     /// <summary>Period-over-period growth in <c>InterestExpense</c>, as a fraction.</summary>
-    public decimal? GrowthInterestExpense { get; init; }
+    [JsonPropertyName("growthInterestExpense")] public decimal? GrowthInterestExpense { get; init; }
 
     /// <summary>Period-over-period growth in <c>DepreciationAndAmortization</c>, as a fraction.</summary>
-    public decimal? GrowthDepreciationAndAmortization { get; init; }
+    [JsonPropertyName("growthDepreciationAndAmortization")] public decimal? GrowthDepreciationAndAmortization { get; init; }
 
     /// <summary>Period-over-period growth in <c>EBITDA</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthEBITDA</c>.</remarks>
-    public decimal? GrowthEbitda { get; init; }
+    [JsonPropertyName("growthEBITDA")] public decimal? GrowthEbitda { get; init; }
 
     /// <summary>Period-over-period growth in <c>OperatingIncome</c>, as a fraction.</summary>
-    public decimal? GrowthOperatingIncome { get; init; }
+    [JsonPropertyName("growthOperatingIncome")] public decimal? GrowthOperatingIncome { get; init; }
 
     /// <summary>Period-over-period growth in <c>IncomeBeforeTax</c>, as a fraction.</summary>
-    public decimal? GrowthIncomeBeforeTax { get; init; }
+    [JsonPropertyName("growthIncomeBeforeTax")] public decimal? GrowthIncomeBeforeTax { get; init; }
 
     /// <summary>Period-over-period growth in <c>IncomeTaxExpense</c>, as a fraction.</summary>
-    public decimal? GrowthIncomeTaxExpense { get; init; }
+    [JsonPropertyName("growthIncomeTaxExpense")] public decimal? GrowthIncomeTaxExpense { get; init; }
 
     /// <summary>Period-over-period growth in <c>NetIncome</c>, as a fraction.</summary>
-    public decimal? GrowthNetIncome { get; init; }
+    [JsonPropertyName("growthNetIncome")] public decimal? GrowthNetIncome { get; init; }
 
     /// <summary>Period-over-period growth in <c>EPS</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthEPS</c>.</remarks>
-    public decimal? GrowthEps { get; init; }
+    [JsonPropertyName("growthEPS")] public decimal? GrowthEps { get; init; }
 
     /// <summary>Period-over-period growth in <c>EPSDiluted</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthEPSDiluted</c>.</remarks>
-    public decimal? GrowthEpsDiluted { get; init; }
+    [JsonPropertyName("growthEPSDiluted")] public decimal? GrowthEpsDiluted { get; init; }
 
     /// <summary>Period-over-period growth in <c>WeightedAverageShsOut</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthWeightedAverageShsOut</c>.</remarks>
-    public decimal? GrowthWeightedAverageSharesOutstanding { get; init; }
+    [JsonPropertyName("growthWeightedAverageShsOut")] public decimal? GrowthWeightedAverageSharesOutstanding { get; init; }
 
     /// <summary>Period-over-period growth in <c>WeightedAverageShsOutDil</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthWeightedAverageShsOutDil</c>.</remarks>
-    public decimal? GrowthWeightedAverageSharesOutstandingDiluted { get; init; }
+    [JsonPropertyName("growthWeightedAverageShsOutDil")] public decimal? GrowthWeightedAverageSharesOutstandingDiluted { get; init; }
 
     /// <summary>Period-over-period growth in <c>EBIT</c>, as a fraction.</summary>
     /// <remarks>FMP spells the column <c>growthEBIT</c>.</remarks>
-    public decimal? GrowthEbit { get; init; }
+    [JsonPropertyName("growthEBIT")] public decimal? GrowthEbit { get; init; }
 
     /// <summary>Period-over-period growth in <c>NonOperatingIncomeExcludingInterest</c>, as a fraction.</summary>
-    public decimal? GrowthNonOperatingIncomeExcludingInterest { get; init; }
+    [JsonPropertyName("growthNonOperatingIncomeExcludingInterest")] public decimal? GrowthNonOperatingIncomeExcludingInterest { get; init; }
 
     /// <summary>Period-over-period growth in <c>NetInterestIncome</c>, as a fraction.</summary>
-    public decimal? GrowthNetInterestIncome { get; init; }
+    [JsonPropertyName("growthNetInterestIncome")] public decimal? GrowthNetInterestIncome { get; init; }
 
     /// <summary>Period-over-period growth in <c>TotalOtherIncomeExpensesNet</c>, as a fraction.</summary>
-    public decimal? GrowthTotalOtherIncomeExpensesNet { get; init; }
+    [JsonPropertyName("growthTotalOtherIncomeExpensesNet")] public decimal? GrowthTotalOtherIncomeExpensesNet { get; init; }
 
     /// <summary>Period-over-period growth in <c>NetIncomeFromContinuingOperations</c>, as a fraction.</summary>
-    public decimal? GrowthNetIncomeFromContinuingOperations { get; init; }
+    [JsonPropertyName("growthNetIncomeFromContinuingOperations")] public decimal? GrowthNetIncomeFromContinuingOperations { get; init; }
 
     /// <summary>Period-over-period growth in <c>OtherAdjustmentsToNetIncome</c>, as a fraction.</summary>
-    public decimal? GrowthOtherAdjustmentsToNetIncome { get; init; }
+    [JsonPropertyName("growthOtherAdjustmentsToNetIncome")] public decimal? GrowthOtherAdjustmentsToNetIncome { get; init; }
 
     /// <summary>Period-over-period growth in <c>NetIncomeDeductions</c>, as a fraction.</summary>
-    public decimal? GrowthNetIncomeDeductions { get; init; }
+    [JsonPropertyName("growthNetIncomeDeductions")] public decimal? GrowthNetIncomeDeductions { get; init; }
 
     internal static IncomeStatementGrowth FromCsv(CsvRow row) => new()
     {
