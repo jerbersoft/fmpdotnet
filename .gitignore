@@ -17,9 +17,18 @@ TestResults/
 # OS
 .DS_Store
 
-# Secrets — the API key belongs in user-secrets or the environment, never in the tree
+# Secrets — the API key belongs in user-secrets or the environment, never in the tree.
+# `.env.*` as well as `.env`: the variants (.env.local, .env.development) are the ones that get created in a
+# hurry and are a rule away from being tracked.
 .env
+.env.*
 *.local.json
+
+# The developer bulk cache — whole *-bulk responses saved to disk so a mapper can be iterated on without
+# re-downloading. The default directory from the README; tens of megabytes of vendor data, and never ours to
+# redistribute. Entries are keyed by the request URL with the API key stripped, but the reason to ignore this
+# is the payloads, not the names.
+.fmp-bulk-cache/
 
 # Agent scratch worktrees — checkouts of this same repo, never content to commit
 .claude/worktrees/
