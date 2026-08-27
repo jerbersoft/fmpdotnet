@@ -294,6 +294,58 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListStockPeer, ct);
     }
 
+    /// <summary>Reported headcounts for one filer — <c>stable/employee-count</c>, newest first.
+    ///
+    /// <para><b>This and
+    /// <see cref="GetHistoricalEmployeeCountAsync(string, int?, CancellationToken)"/> are the same dataset.</b>
+    /// Measured 2026-08-27, the two paths answered byte-identical bodies on every symbol probed — <c>AAPL</c> 32
+    /// rows, <c>JPM</c> 5, <c>SHOP</c> 11, <c>XOM</c> 0 on both — compared as sorted JSON. Neither is deprecated
+    /// and neither is a subset of the other; FMP documents both names, so the SDK ships both and this note tells
+    /// you it does not matter which you call.</para>
+    ///
+    /// <para><c>XOM</c>, a major filer, answers zero rows. An empty result is normal here rather than a
+    /// symptom.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="limit">Row cap. Honoured downward — <c>limit=3</c> answered 3 rows on 2026-08-27. Omitted
+    /// from the request when null.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The rows, newest first. Empty when the filer has no reported history. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<EmployeeCount>> GetEmployeeCountAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+        => EmployeeCounts("stable/employee-count", symbol, limit, ct);
+
+    /// <summary>Reported headcounts for one filer — <c>stable/historical-employee-count</c>, newest first.
+    ///
+    /// <para><b>The same dataset as
+    /// <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>, measured byte-identical on four
+    /// symbols on 2026-08-27.</b> The word "historical" in the path names nothing this one does that the other
+    /// does not — both return the filer's whole reported history. It is shipped because FMP documents the path,
+    /// so a caller who found this name in the docs finds it here.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="limit">Row cap. Honoured downward. Omitted from the request when null.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The rows, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<EmployeeCount>> GetHistoricalEmployeeCountAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+        => EmployeeCounts("stable/historical-employee-count", symbol, limit, ct);
+
+    /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
+    /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
+    /// the only difference, and each caller passes a literal.</summary>
+    private Task<IReadOnlyList<EmployeeCount>> EmployeeCounts(
+        string path, string symbol, int? limit, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest(path).With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListEmployeeCount, ct);
+    }
+
     /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
     ///
     /// <para>Nullable on both ends because the range is optional here, unlike on the chart endpoints: one end
