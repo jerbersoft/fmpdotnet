@@ -487,6 +487,46 @@ public sealed class StatementEndpoints(FmpTransport transport)
         transport.GetListAsync(Envelope("stable/revenue-geographic-segmentation", symbol, period),
             FmpJsonContext.Default.ListRevenueSegmentation, ct);
 
+    /// <summary>The most rows <c>stable/owner-earnings</c> will return, whatever limit is sent — and the reason a
+    /// caller has to care.
+    ///
+    /// <para>Measured 2026-08-27 at <c>limit=100000</c>: AAPL, MSFT, GE, KO, JPM, IBM and PG each returned
+    /// <b>exactly 50</b>, oldest row 2013-12-31 to 2014-05-09. <c>income-statement-ttm</c> reaches 1985 for the
+    /// same filers, so 50 is this endpoint's ceiling rather than the extent of FMP's data.</para>
+    ///
+    /// <para><b>The payload cannot tell you which case you are in.</b> SHOP returned 46, and that is Shopify's
+    /// real history. So fewer than 50 rows is data, exactly 50 rows is a truncation, and the two are
+    /// indistinguishable from the response — there is no <c>hasMore</c>, no total, and no error. Comparing
+    /// <c>rows.Count</c> against this constant is the only signal there is.</para></summary>
+    public const int MaxOwnerEarningsRows = 50;
+
+    /// <summary>Buffett-style owner earnings for one symbol, newest quarter first. From
+    /// <c>stable/owner-earnings</c>.
+    ///
+    /// <para><b>Quarterly only, and capped at <see cref="MaxOwnerEarningsRows"/> rows.</b> A result of exactly 50
+    /// rows is probably truncated and cannot be distinguished from a company with exactly 50 quarters of history
+    /// — read that constant before treating the oldest row as the start of the series. Roughly twelve years,
+    /// measured 2026-08-27.</para>
+    ///
+    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para>
+    ///
+    /// <para>The figures are FMP's estimates rather than filed values — see <see cref="OwnerEarnings"/>, which
+    /// also explains why two of the ten fields are negative.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/> — which this endpoint still caps at
+    /// <see cref="MaxOwnerEarningsRows"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, at most <see cref="MaxOwnerEarningsRows"/> of them, or empty for an unknown
+    /// symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<OwnerEarnings>> GetOwnerEarningsAsync(
+        string symbol, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Rolling("stable/owner-earnings", symbol, limit),
+            FmpJsonContext.Default.ListOwnerEarnings, ct);
+
     /// <summary>The <c>limit</c> the SDK sends when the caller asks for no limit, and the reason it sends one.
     ///
     /// <para><b>Without it FMP returns five rows.</b> Measured 2026-08-27, every per-symbol paged path in this
@@ -502,7 +542,7 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// <see cref="DirectoryEndpoints.SymbolChangeRequestLimit"/>, which exists for exactly this failure.</para>
     ///
     /// <para><b>One endpoint in this group caps below any limit you send.</b> <c>owner-earnings</c> stops at 50
-    /// rows regardless — see <c>MaxOwnerEarningsRows</c>.</para></summary>
+    /// rows regardless — see <see cref="MaxOwnerEarningsRows"/>.</para></summary>
     public const int FullHistoryLimit = 100_000;
 
     /// <summary>The one query shape all seven share. Written once so the seven cannot drift apart.</summary>
