@@ -109,4 +109,31 @@ internal static class LiveApi
     /// baseline and agreed with itself every week thereafter, which is the same silent-green failure the
     /// baseline-recording guard exists to prevent — arriving through the argument synthesiser instead.</para></summary>
     public const string Exchange = "NASDAQ";
+
+    /// <summary>Apple's SEC Central Index Key, for the <c>search-cik</c> probe.
+    ///
+    /// <para><b>Named rather than falling out of the default string case, for the reason recorded on
+    /// <see cref="Exchange"/>.</b> <c>Probe.Argument</c> maps any unrecognised string to <see cref="Symbol"/>,
+    /// which would send <c>cik=AAPL</c> — and every <c>search-*</c> endpoint answers an unrecognised identifier
+    /// with an empty array and HTTP 200, not an error (measured 2026-08-27). The probe would record `rows 0` as
+    /// the baseline and match it every week thereafter, reporting a healthy endpoint that has never been
+    /// exercised.</para>
+    ///
+    /// <para>Given unpadded deliberately: the endpoint accepts either form and always answers with the padded
+    /// one, so this also exercises that normalisation.</para></summary>
+    public const string Cik = "320193";
+
+    /// <summary>Apple's CUSIP, for the <c>search-cusip</c> probe. Named for the reason on <see cref="Cik"/>.</summary>
+    public const string Cusip = "037833100";
+
+    /// <summary>Apple's ISIN, for the <c>search-isin</c> probe. Named for the reason on <see cref="Cik"/>.</summary>
+    public const string Isin = "US0378331005";
+
+    /// <summary>The text the two query-shaped searches are probed with.
+    ///
+    /// <para><see cref="Symbol"/> itself rather than a company name, because <c>search-symbol</c> matches tickers
+    /// and <c>search-name</c> matches names — and "AAPL" is measured to return rows from both, 7 and 1
+    /// respectively on 2026-08-27. A value that worked on only one of them would leave the other recording an
+    /// empty baseline.</para></summary>
+    public const string SearchQuery = Symbol;
 }

@@ -291,7 +291,21 @@ public partial class EndpointCoverageTests
         var type = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
 
         if (type == typeof(CancellationToken)) return CancellationToken.None;
-        if (type == typeof(string)) return "AAPL";
+
+        // Name-dispatched for the same reason as Probe.Argument, though the stakes are lower here: this harness
+        // only records which path went out, so a meaningless value still produces the right table row. The names
+        // are matched anyway so the two harnesses do not drift apart.
+        if (type == typeof(string))
+        {
+            return parameter.Name switch
+            {
+                "cik" => "320193",
+                "cusip" => "037833100",
+                "isin" => "US0378331005",
+                _ => "AAPL",
+            };
+        }
+
         // The batch-quote endpoints. Two symbols rather than one, and non-blank: the methods reject a list that
         // would reach FMP empty, and a rejected call requests nothing and so records no path.
         if (type == typeof(IEnumerable<string>)) return new[] { "AAPL", "MSFT" };

@@ -110,7 +110,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**65 of FMP's 230 endpoint paths are modelled.**
+**82 of FMP's 230 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -177,9 +177,20 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/actively-trading-list` | `GetActivelyTradingAsync` |
+| `stable/available-countries` | `GetCountriesAsync` |
+| `stable/available-exchanges` | `GetExchangesAsync` |
 | `stable/available-industries` | `GetIndustriesAsync` |
 | `stable/available-sectors` | `GetSectorsAsync` |
+| `stable/cik-list` | `GetCikListAsync`, `StreamCikListAsync` |
+| `stable/commodities-list` | `GetCommodityListAsync` |
+| `stable/cryptocurrency-list` | `GetCryptocurrencyListAsync` |
+| `stable/earnings-transcript-list` | `GetTranscriptSymbolsAsync` |
+| `stable/etf-list` | `GetEtfListAsync` |
+| `stable/financial-statement-symbol-list` | `GetFinancialStatementSymbolsAsync` |
+| `stable/forex-list` | `GetForexListAsync` |
+| `stable/index-list` | `GetIndexListAsync` |
 | `stable/stock-list` | `GetStockListAsync` |
+| `stable/symbol-change` | `GetSymbolChangesAsync` |
 
 `fmp.Economics`
 
@@ -213,6 +224,12 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/company-screener` | `ScreenAsync` |
+| `stable/search-cik` | `FindByCikAsync` |
+| `stable/search-cusip` | `FindByCusipAsync` |
+| `stable/search-exchange-variants` | `GetExchangeVariantsAsync` |
+| `stable/search-isin` | `FindByIsinAsync` |
+| `stable/search-name` | `FindByNameAsync` |
+| `stable/search-symbol` | `FindBySymbolAsync` |
 
 `fmp.Statements`
 
