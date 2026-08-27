@@ -293,8 +293,9 @@ public partial class EndpointCoverageTests
         if (type == typeof(CancellationToken)) return CancellationToken.None;
 
         // Name-dispatched for the same reason as Probe.Argument, though the stakes are lower here: this harness
-        // only records which path went out, so a meaningless value still produces the right table row. The names
-        // are matched anyway so the two harnesses do not drift apart.
+        // only records which path went out, not response content, so a meaningless-but-valid value is harmless —
+        // "exchange" and "query" fall through to the AAPL default below rather than getting their own case, and
+        // that is fine for what this harness checks.
         if (type == typeof(string))
         {
             return parameter.Name switch
