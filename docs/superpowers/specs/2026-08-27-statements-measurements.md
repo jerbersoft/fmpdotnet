@@ -42,6 +42,12 @@ Measured over AAPL, JPM, BRK-B and TSM: no null values, no keys colliding under
 case-insensitive comparison, no non-ASCII keys, and the largest magnitude anywhere is 7.1e12 —
 comfortably inside `decimal`.
 
+**The two segmentation paths are the exception, and provably so.** Across AAPL, JPM, XOM, O, TSM,
+SHOP, BRK-B and KO, both segmentation endpoints, and both `annual` and `quarter` — every row, not a
+sample — the `data` values were 3,201 ints and 36 floats and **not one string**. The mixed-type
+problem belongs to the four `*-as-reported` paths only; segmentation is genuinely
+segment-name-to-number, even though it arrives in the same envelope.
+
 ## The remaining thirteen
 
 | path | rows (AAPL) | notes |
@@ -179,12 +185,18 @@ Wire field sets compared exactly against what the SDK already ships:
 |---|---|---|
 | `income-statement-ttm` | `IncomeStatement` | identical set, 39 fields |
 | `cash-flow-statement-ttm` | `CashFlowStatement` | identical set, 47 fields |
-| `balance-sheet-statement-ttm` | `BalanceSheetStatement` | 60 of the model's 61; TTM omits `capitalLeaseObligationsNonCurrent` |
+| `balance-sheet-statement-ttm` | `BalanceSheetStatement` | 60 of the model's 61 — see below |
 | `ratios-ttm` | `RatiosTtm` | identical set, 62 fields |
 | `key-metrics-ttm` | `KeyMetricsTtm` | identical set, 43 fields |
 | `income-statement-growth` | `IncomeStatementGrowth` | identical set, 34 fields |
 | `balance-sheet-statement-growth` | `BalanceSheetGrowth` | identical set, 56 fields |
 | `cash-flow-statement-growth` | `CashFlowGrowth` | identical set, 42 fields |
+
+`balance-sheet-statement-ttm` omits `capitalLeaseObligationsNonCurrent` **structurally, not per
+filer**: across AAPL, JPM, XOM, O, TSM, SHOP, BRK-B, KO, GE and MSFT the TTM row carried exactly 60
+keys and never that one, while the plain `balance-sheet-statement` row carried it for all ten. The
+model's property is nullable, so it binds as null — but a caller reading it off a TTM row is reading
+an absence, not a zero.
 
 The five growth/TTM-metric types were built from the CSV bulk endpoints, and the JSON and CSV forms
 of each carry **exactly the same field names** — including FMP's own typos
