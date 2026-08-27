@@ -35,6 +35,65 @@ already serves.
 - Fixtures are captured from the live responses in the measurement pass and must not contain the API
   key.
 
+## Cross-checked against an independent client
+
+`fmpsdk-20260824.0` — the Python SDK that served as Source B for
+[the endpoint inventory](2026-08-27-endpoint-inventory.md) — models the same 17-method `Company` group.
+Its types are derived from FMP's **documented examples**, not from live calls, which makes it a genuine
+second source on naming and a weak one on nullability. Read 2026-08-27, after this slice was measured
+and before it was implemented.
+
+**It agrees, independently, on three things this design already ruled:**
+
+- `mergers_acquisitions_search(name)` accepts **only** `name` — no `page`, no `limit`.
+- `governance_executive_compensation(symbol)` accepts **only** `symbol` — no `year`.
+- `marketCap` and `mktCap` are both typed `float`, never `int`, and one `MarketCapResult` serves all
+  three market-cap paths, exactly as `MarketCapitalization` does here.
+
+It also shares one `EmployeeCountResult` across both employee-count paths, describing them as "the same
+question at different scope" — reached from the documented examples, where this design reached the same
+place by proving the two responses byte-identical on four symbols.
+
+**It disagrees on nullability, and the measurement says it is wrong:**
+
+| field | Python SDK | measured 2026-08-27 |
+|---|---|---|
+| `CompanyNotesResult.exchange` | `str` | null on 19 of `T`'s 20 rows |
+| `MergersAcquisitionsResult.targetedCik` | `str` | null on 390 of 1,000 |
+| `MergersAcquisitionsResult.targetedSymbol` | `str` | null on 181 of 1,000 |
+| `MergersAcquisitionsResult.targetedCompanyName` | `str` | null on 1 of 1,000 |
+| `KeyExecutiveResult.gender` | `str` | null on 9 of 64 |
+
+Every one of these is a field whose nulls appear only in a large sample. This is the concrete argument
+for why this SDK measures at `limit=1000` rather than trusting a documented example, and it is why
+every property in this slice is nullable unless the measurement proved otherwise.
+
+It also accepts `limit` on `historical_market_capitalization`, documented as "max results to return",
+which the measurement contradicts upward: `limit=5000` and `limit=100000` both answer 65 rows.
+
+**On `titleSince` it hit this design's problem and resolved it differently.** Its comment reads: *"Type
+inferred, not verified: the documented example's only value is `null`, so whether this is a date
+string, a year, or a timestamp is unconfirmed."* It then guesses `int | None`. So the field is null in
+FMP's own documented example and null across all 203 rows measured here — two independent sources, no
+populated value in either. That is the evidence for typing it `string?`: a guessed `int` throws the day
+a date string arrives, and a `string?` cannot.
+
+### Plan gating, which an Ultimate key cannot measure
+
+All 13 paths answered 200 here, so this key proves nothing about lower tiers. Source B recorded 402s it
+hit on the tiers it holds, and those are carried into the doc comments **attributed to it**, not
+restated as this project's measurements:
+
+| endpoint | Source B, 2026-08-23 |
+|---|---|
+| `mergers-acquisitions-latest` | 402 on free; needs Starter or higher |
+| `mergers-acquisitions-search` | 402 on free and Starter; confirmed working on Premium |
+| `executive-compensation-benchmark` | 402 on free and Starter; confirmed working on Premium |
+
+The three doc comments say who measured this and when, because a consumer on Starter will meet a
+`FmpPlanRestrictedException` from two of these and nothing in this repo's own measurements would have
+warned them.
+
 ## The three rulings the measurement forced
 
 ### Market capitalisation is not integral, anywhere
@@ -239,10 +298,12 @@ comments say exactly that — 203 rows across 18 symbols, all null / all true �
 build logic on a constant.
 
 **`TitleSince` is `string?`, not a date type, and that is deliberate.** Not one populated value was
-ever observed, so there is no measured shape to infer a format from. Typing it as `Instant?` or
-`LocalDate?` would be a guess, and a wrong guess throws at bind time the day FMP starts populating it —
-turning a new field into a broken endpoint. A `string?` cannot throw. The doc comment records that the
-type is provisional and says to re-measure before narrowing it.
+ever observed — null across all 203 rows measured here, and null in the single documented example
+`fmpsdk-20260824.0` typed from — so there is no measured shape to infer a format from. That client
+guessed `int | None` and left a comment saying the guess was unverified; this one declines to guess.
+Typing it as `Instant?`, `LocalDate?` or `int?` would throw at bind time the day FMP starts populating
+it with something else, turning a new field into a broken endpoint. A `string?` cannot throw. The doc
+comment records that the type is provisional and says to re-measure before narrowing it.
 
 `CurrencyPay` gets a doc comment warning that `Pay` is not comparable across rows without it. `SPY`
 answers `[]`.
