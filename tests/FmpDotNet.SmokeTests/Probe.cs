@@ -73,7 +73,8 @@ internal static class Probe
     /// the same twenty bulk endpoints: 25 rows takes <b>8 m 4 s</b>, 200 rows takes <b>2 h 39 m</b> and two
     /// endpoints failed outright. Eight times the rows cost twenty times the wall clock, so most of that is not
     /// row-reading — but whatever it is, 200 does not fit inside a scheduled job, and a smoke suite nobody can
-    /// afford to run is not a smoke suite. The ordinary tier is unaffected: 21 endpoints in 5 seconds.</para>
+    /// afford to run is not a smoke suite. The ordinary tier is unaffected: 49 endpoints in 13 seconds, measured
+    /// 2026-08-27 — roughly 20 MB of it whole-universe quote downloads, which cost bytes rather than throttle.</para>
     ///
     /// <para><b>The known cost of 25, left standing deliberately.</b> The 2026-08-26 sweep recorded
     /// <c>BulkCompanyProfile.Cik</c> as absent from <c>profile-bulk</c>, while the fixture captured from that
@@ -286,7 +287,27 @@ internal static class Probe
         var type = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
 
         if (type == typeof(CancellationToken)) return CancellationToken.None;
-        if (type == typeof(string)) return LiveApi.Symbol;
+
+        // Dispatched on the parameter NAME, not just the type. Every string here used to become the symbol, which
+        // is right for `symbol` and quietly wrong for `exchange`: batch-exchange-quote answers an unknown exchange
+        // with an empty array and HTTP 200, so `exchange=AAPL` would have recorded `rows 0` as that endpoint's
+        // baseline and matched it happily every week after. SweepCoverageTests cannot catch that — the argument IS
+        // synthesisable, it is just meaningless — so the default case has to stay narrow.
+        if (type == typeof(string))
+            return parameter.Name switch
+            {
+                "exchange" => LiveApi.Exchange,
+                _ => LiveApi.Symbol,
+            };
+
+        // Two symbols rather than one, so a batch endpoint is probed as a batch. See LiveApi.SecondSymbol.
+        if (type == typeof(IEnumerable<string>)) return new[] { LiveApi.Symbol, LiveApi.SecondSymbol };
+
+        // OneHour rather than OneMinute: every interval sits inside its own lookback window when asked for a
+        // recent range, but the hourly bar answers 434 rows where the minute bar answers 1169 for the same days,
+        // and the sweep is measuring shape rather than depth.
+        if (type == typeof(ChartInterval)) return ChartInterval.OneHour;
+
         if (type == typeof(LocalDate)) return LiveApi.SettledWeekday;
         if (type == typeof(FiscalPeriod)) return FiscalPeriod.Annual;
         // Q1 rather than Annual: the bulk statement family is published per fiscal quarter, and the annual file

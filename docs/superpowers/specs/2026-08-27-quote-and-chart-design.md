@@ -2,7 +2,7 @@
 
 **Issue:** [#24](https://github.com/jerbersoft/fmpdotnet/issues/24) — Coverage: Quote and Chart groups
 **Measured:** 2026-08-27, Premium key, ~70 calls on the ordinary throttle
-**Status:** approved
+**Status:** implemented
 
 FMP's Quote (16 endpoints) and Chart (10) are the closest unmodelled surface to what the SDK already
 covers. They were deprioritised because `trader` sources bars and quotes from Alpaca, not because they
@@ -229,3 +229,70 @@ Each new behaviour is mutation-checked: break the code, confirm the specific tes
   `GetQuoteAsync("EURUSD")`, `GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were all measured
   returning the ordinary full-quote shape. One implementation covers them; typed facades would add
   surface without adding reach, and belong to #25 if they are wanted at all.
+
+
+---
+
+## What implementation found that the design did not
+
+Three claims in the sections above were written from single-symbol probes and corrected by wider measurement
+during implementation. They are left in place, with the corrections here, because the pattern is the point: a
+shape measured on AAPL is a shape measured on AAPL.
+
+### `volume` and `marketCap` are fractional, so neither can be `long`
+
+The design typed both as `long?`, following the existing models and every single-symbol capture. The live sweep
+then failed on **eleven endpoints at once** with `The JSON value could not be converted`. Measured 2026-08-27
+across the whole universe:
+
+| endpoint | field | fractional rows |
+|---|---|---|
+| `batch-crypto-quotes` | `volume` | 496 of 4,778 — e.g. `0X1USD` at `10.492659228892249` |
+| `batch-etf-quotes` | `volume` | 17 of 14,537 |
+| `batch-exchange-quote` (NASDAQ) | `volume` | 6 of 14,352 |
+| `batch-index-quotes` | `volume` | 1 of 425 — `^STOXX50E` at `479570.1` |
+| `batch-exchange-quote` (NASDAQ) | `marketCap` | 1 — `GOOG` at `4115284521472.9995` |
+| `batch-mutualfund-quotes` | `marketCap` | 1 — at `3658640886852.9995` |
+
+The `marketCap` values share a `.9995` tail: a double that could not represent the integer behind it, not real
+precision. Nothing exceeded `long.MaxValue`, so range was never the issue.
+
+`Quote.Volume`, `Quote.MarketCap`, `ShortQuote.Volume`, `AftermarketQuote.Volume` and `IntradayBar.Volume` are
+therefore `decimal?`. The daily bars stay `long?`, and that is checked rather than assumed: 87 sessions of
+`BTCUSD` — the asset most likely to trade fractionally — carried no fractional daily volume at all. The size
+fields (`bidSize`, `askSize`, `tradeSize`) stay `long?` for the same reason.
+
+### One percentage overflows `decimal` entirely
+
+With the types fixed, one endpoint still failed. `batch-etf-quotes` answered
+`{"symbol":"BMJJF","price":177.34,"changePercentage":6.3878959205932735e+35,"change":177.34,"previousClose":0}` —
+a 6.4×10³⁵ percent move, which is what a 177.34 change against a zero previous close computes to. `decimal` tops
+out near 7.9×10²⁸, so that single row cost all 14,537.
+
+`TolerantDecimalJsonConverter` reads an unrepresentable number as `null` instead of throwing, matching what every
+converter in `NodaConverters.cs` already does for unparseable dates. It is applied to the computed percentages —
+`Quote.ChangePercentage`, `EndOfDayBar.ChangePercent`, and all eleven `PriceChange` windows — and deliberately not
+to prices, volumes or market caps: those are not divisions, none has been observed out of range, and silently
+nulling a price is a far worse failure than silently nulling a ratio.
+
+The cost is real and accepted: `null` now means both "FMP sent nothing" and "FMP sent something unrepresentable",
+and the value alone cannot separate them.
+
+### The aftermarket endpoints are not one snapshot
+
+The design recorded that `aftermarket-trade` and `aftermarket-quote` carried the same timestamp to the
+millisecond, from one probe, and inferred they were two views of a single snapshot. They are not: the captured
+fixtures are 25 seconds apart and a later read was 8. The lag is real and variable. One observation of equality
+was a coincidence, and it had already been written down as a property of the API.
+
+### The coverage generator was undercounting
+
+`GetIntradayAsync` is one method over six paths, and the generator drove each method once — recording
+`historical-chart/1min` and leaving the other five intervals out of the table. `EndpointCoverageTests` now drives
+the cross product of a method's enum parameters, so an enum that selects a path produces a row per path. The
+count went from a wrong 60 to the correct **65 of 230**.
+
+## Measured cost of the weekly sweep
+
+The ordinary tier went from 21 endpoints in 5 s to **49 endpoints in 13 s**, about 20 MB of it whole-universe
+quote downloads. `smoke.yml` and `Probe.StreamSample` carry the figures.

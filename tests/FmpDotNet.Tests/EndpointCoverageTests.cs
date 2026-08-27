@@ -161,7 +161,15 @@ public partial class EndpointCoverageTests
             {
                 // A fresh stub per method, so `Requests` holds only what this method asked for.
                 var (endpoints, handler) = Build(type);
-                Drive(method, endpoints);
+
+                // Driven once per combination of enum arguments, not once per method, because an enum can select
+                // the PATH rather than a query value. ChartEndpoints.GetIntradayAsync is one method over six
+                // paths: driving it once recorded `historical-chart/1min` and left the other five intervals out
+                // of the table entirely — reachable code the generated coverage claimed was not there, which is
+                // exactly the drift this file exists to prevent. Enums that only select a query value, such as
+                // FiscalPeriod, produce the same path each time and are deduplicated below.
+                foreach (var arguments in ArgumentSets(method))
+                    Drive(method, endpoints, arguments);
 
                 foreach (var path in handler.Requests
                              .Select(uri => uri.AbsolutePath.TrimStart('/'))
@@ -205,12 +213,35 @@ public partial class EndpointCoverageTests
         return (constructor.Invoke([transport]), handler);
     }
 
-    private static void Drive(MethodInfo method, object endpoints)
+    /// <summary>Every argument list this method should be driven with — the cross product of its enum parameters,
+    /// with every other parameter fixed by <see cref="Argument"/>.
+    ///
+    /// <para>One list for a method with no enum parameters, which is nearly all of them. Six for
+    /// <c>GetIntradayAsync</c>, whose <see cref="ChartInterval"/> chooses the path segment.</para></summary>
+    private static IEnumerable<object[]> ArgumentSets(MethodInfo method)
+    {
+        var parameters = method.GetParameters();
+        IEnumerable<object[]> sets = [[]];
+
+        foreach (var parameter in parameters)
+        {
+            var type = Nullable.GetUnderlyingType(parameter.ParameterType) ?? parameter.ParameterType;
+            var choices = type.IsEnum
+                ? Enum.GetValues(type).Cast<object>().ToArray()
+                : [Argument(parameter)];
+
+            sets = sets.SelectMany(_ => choices, (set, choice) => (object[])[.. set, choice]);
+        }
+
+        return sets;
+    }
+
+    private static void Drive(MethodInfo method, object endpoints, object[] arguments)
     {
         object? result;
         try
         {
-            result = method.Invoke(endpoints, [.. method.GetParameters().Select(Argument)]);
+            result = method.Invoke(endpoints, arguments);
         }
         catch (TargetInvocationException)
         {
@@ -261,6 +292,9 @@ public partial class EndpointCoverageTests
 
         if (type == typeof(CancellationToken)) return CancellationToken.None;
         if (type == typeof(string)) return "AAPL";
+        // The batch-quote endpoints. Two symbols rather than one, and non-blank: the methods reject a list that
+        // would reach FMP empty, and a rejected call requests nothing and so records no path.
+        if (type == typeof(IEnumerable<string>)) return new[] { "AAPL", "MSFT" };
         if (type == typeof(bool)) return false;
         if (type == typeof(LocalDate)) return new LocalDate(2026, 1, 2);
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria();

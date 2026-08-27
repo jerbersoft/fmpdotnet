@@ -9,7 +9,7 @@ namespace FmpDotNet;
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
-    SearchEndpoints search, BulkEndpoints bulk)
+    SearchEndpoints search, QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -41,6 +41,20 @@ public sealed class FmpClient(
     /// <para>The complement to <see cref="Directory"/>: that answers "everything FMP knows" as a multi-megabyte
     /// download, this answers a question about the universe and returns only the matches.</para></summary>
     public SearchEndpoints Search { get; } = search;
+
+    /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
+    /// changes.
+    ///
+    /// <para>Sixteen of FMP's endpoints returning five row shapes. One <see cref="QuoteEndpoints.GetQuoteAsync"/>
+    /// covers equities, ETFs, indices, commodities, forex and crypto alike, which is why there are no per-asset-class
+    /// facades here.</para></summary>
+    public QuoteEndpoints Quote { get; } = quote;
+
+    /// <summary>Price history for one symbol — daily bars in four adjustments, and intraday bars at six sizes.
+    ///
+    /// <para>The counterpart to <see cref="Quote"/>: that answers "now", this answers "before". Everything in it
+    /// truncates silently, in two different ways — see <see cref="ChartEndpoints"/>.</para></summary>
+    public ChartEndpoints Chart { get; } = chart;
 
     /// <summary>Whole-universe CSV downloads. Streamed, and throttled separately — see
     /// <see cref="BulkEndpoints"/>.</summary>

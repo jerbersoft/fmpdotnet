@@ -43,7 +43,12 @@ jobs:
     runs-on: ubuntu-latest
     # Generous, because the bulk tier is deliberately slow: the SDK's bulk token bucket refills at two calls a
     # minute, so twenty probes are about eight minutes of mostly waiting (measured 2026-08-26: 8 m 4 s). The
-    # ordinary tier is not throttled that way and takes seconds — 21 endpoints in 5 s, measured 2026-08-27.
+    # ordinary tier is not throttled that way and takes seconds — 49 endpoints in 13 s, measured 2026-08-27.
+    #
+    # That tier grew from 21 endpoints to 49 when Quote and Chart landed (#24), and from 5 s to 13. Most of the
+    # added time is bytes rather than requests: seven of the new endpoints download a whole asset class, and the
+    # full-shape ETF quote alone is 6.6 MB. Probing them anyway is deliberate — an endpoint the sweep skips is an
+    # endpoint whose renamed field goes unnoticed until a consumer hits it.
     #
     # The margin is not padding. A 200-row bulk sample, tried once, took 2 h 39 m; the sample is back down to 25
     # for exactly that reason (see Probe.StreamSample). If a run ever approaches this ceiling, the sample size or

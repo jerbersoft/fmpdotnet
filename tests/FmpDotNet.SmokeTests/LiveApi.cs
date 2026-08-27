@@ -91,4 +91,22 @@ internal static class LiveApi
     /// symbol with sparse fundamentals would record half the model as null and detect nothing when the other
     /// half stopped arriving.</summary>
     public const string Symbol = "AAPL";
+
+    /// <summary>The second symbol the batch-quote probes use, so that a multi-symbol endpoint is actually probed
+    /// with more than one.
+    ///
+    /// <para>A one-element list would still exercise the path and the shape, but it would not distinguish
+    /// <c>batch-quote</c> from <c>quote</c> — and the failure worth catching here is FMP quietly narrowing a batch
+    /// endpoint to a single row. MSFT for the same reason AAPL was chosen: it carries every field.</para></summary>
+    public const string SecondSymbol = "MSFT";
+
+    /// <summary>The exchange the whole-exchange probe asks for.
+    ///
+    /// <para><b>Named rather than falling out of the default string case, because the default is silently
+    /// wrong.</b> <c>Probe.Argument</c> maps any string to <see cref="Symbol"/>, which would send
+    /// <c>exchange=AAPL</c> — and <c>stable/batch-exchange-quote</c> answers an unknown exchange with an empty
+    /// array and HTTP 200, not an error (measured 2026-08-27). The endpoint would have recorded `rows 0` as its
+    /// baseline and agreed with itself every week thereafter, which is the same silent-green failure the
+    /// baseline-recording guard exists to prevent — arriving through the argument synthesiser instead.</para></summary>
+    public const string Exchange = "NASDAQ";
 }

@@ -1,0 +1,20 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-26",
+    "price": 313.45,
+    "volume": 34024486
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-25",
+    "price": 309.9,
+    "volume": 25869807
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-24",
+    "price": 310.34,
+    "volume": 34673600
+  }
+]

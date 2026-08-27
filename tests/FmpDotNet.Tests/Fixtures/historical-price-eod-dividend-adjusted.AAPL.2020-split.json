@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2020-09-02",
+    "adjOpen": 133.34,
+    "adjHigh": 133.72,
+    "adjLow": 123.08,
+    "adjClose": 127.34,
+    "volume": 200119000
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2020-09-01",
+    "adjOpen": 128.66,
+    "adjHigh": 130.64,
+    "adjLow": 126.5,
+    "adjClose": 130.04,
+    "volume": 152470142
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2020-08-31",
+    "adjOpen": 123.65,
+    "adjHigh": 126.96,
+    "adjLow": 122.11,
+    "adjClose": 125.06,
+    "volume": 225702700
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2020-08-28",
+    "adjOpen": 122.12,
+    "adjHigh": 122.54,
+    "adjLow": 120.74,
+    "adjClose": 120.96,
+    "volume": 187630000
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2020-08-27",
+    "adjOpen": 123.21,
+    "adjHigh": 123.55,
+    "adjLow": 120.01,
+    "adjClose": 121.15,
+    "volume": 155552400
+  }
+]

@@ -110,7 +110,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**39 of FMP's 230 endpoint paths are modelled.**
+**65 of FMP's 230 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -148,6 +148,21 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/earnings` | `GetEarningsAsync` |
 | `stable/earnings-calendar` | `GetEarningsCalendarAsync` |
 
+`fmp.Chart`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/historical-chart/15min` | `GetIntradayAsync` |
+| `stable/historical-chart/1hour` | `GetIntradayAsync` |
+| `stable/historical-chart/1min` | `GetIntradayAsync` |
+| `stable/historical-chart/30min` | `GetIntradayAsync` |
+| `stable/historical-chart/4hour` | `GetIntradayAsync` |
+| `stable/historical-chart/5min` | `GetIntradayAsync` |
+| `stable/historical-price-eod/dividend-adjusted` | `GetDividendAdjustedAsync` |
+| `stable/historical-price-eod/full` | `GetEndOfDayFullAsync` |
+| `stable/historical-price-eod/light` | `GetEndOfDayAsync` |
+| `stable/historical-price-eod/non-split-adjusted` | `GetUnadjustedAsync` |
+
 `fmp.Company`
 
 | FMP endpoint | Method |
@@ -172,6 +187,27 @@ without a table entry fails the build rather than leaving a page that reads as c
 |---|---|
 | `stable/economic-calendar` | `GetEconomicCalendarAsync` |
 
+`fmp.Quote`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/aftermarket-quote` | `GetAftermarketQuoteAsync` |
+| `stable/aftermarket-trade` | `GetAftermarketTradeAsync` |
+| `stable/batch-aftermarket-quote` | `GetAftermarketQuotesAsync` |
+| `stable/batch-aftermarket-trade` | `GetAftermarketTradesAsync` |
+| `stable/batch-commodity-quotes` | `GetCommodityQuotesAsync`, `GetCommodityQuotesFullAsync` |
+| `stable/batch-crypto-quotes` | `GetCryptoQuotesAsync`, `GetCryptoQuotesFullAsync` |
+| `stable/batch-etf-quotes` | `GetEtfQuotesAsync`, `GetEtfQuotesFullAsync` |
+| `stable/batch-exchange-quote` | `GetExchangeQuotesAsync`, `GetExchangeQuotesFullAsync` |
+| `stable/batch-forex-quotes` | `GetForexQuotesAsync`, `GetForexQuotesFullAsync` |
+| `stable/batch-index-quotes` | `GetIndexQuotesAsync`, `GetIndexQuotesFullAsync` |
+| `stable/batch-mutualfund-quotes` | `GetMutualFundQuotesAsync`, `GetMutualFundQuotesFullAsync` |
+| `stable/batch-quote` | `GetQuotesAsync` |
+| `stable/batch-quote-short` | `GetShortQuotesAsync` |
+| `stable/quote` | `GetQuoteAsync` |
+| `stable/quote-short` | `GetShortQuoteAsync` |
+| `stable/stock-price-change` | `GetPriceChangeAsync` |
+
 `fmp.Search`
 
 | FMP endpoint | Method |
@@ -195,11 +231,16 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. Closest to
-the surface are FMP's Quote (16 endpoints) and Chart (10), deprioritised for a specific reason rather than by
-oversight — trader sources bars and quotes from Alpaca. Behind those sit roughly 160 more across News, SEC
-Filings, Form 13F, Insider Trades, ETF & Mutual Funds, Earnings Transcripts, Senate/House, ESG, COT, Fundraisers,
-Commodity, Forex, Crypto, Technical Indicators, Market Performance, Indexes, Market Hours and DCF.
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. Roughly 165
+paths remain, across News, SEC Filings, Form 13F, Insider Trades, ETF & Mutual Funds, Earnings Transcripts,
+Senate/House, ESG, COT, Fundraisers, Technical Indicators, Market Performance, Market Hours and DCF.
+
+Indexes, Commodity, Forex and Crypto are **not** among them, despite having their own sections in FMP's
+documentation: they re-document `stable/quote` and `stable/historical-price-eod` rather than adding endpoints, and
+`fmp.Quote` and `fmp.Chart` already reach them. `GetQuoteAsync("BTCUSD")`, `GetQuoteAsync("EURUSD")`,
+`GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were each measured returning the ordinary seventeen-field
+quote. That is why 230 unique paths back FMP's 263 documented APIs, and why the denominator here is the smaller
+number.
 
 **`FmpTransport` is public precisely so none of that blocks you.** Reach an unmodelled endpoint through it rather
 than building a second `HttpClient`: the transport carries the throttle, the timeout, the 429 handling and the
@@ -527,9 +568,10 @@ set NetIncome
 
 `set NetIncome` becoming `null NetIncome` is the alarm.
 
-Measured 2026-08-26: **21 ordinary endpoints, 447 properties recorded as populated**, and exactly one recorded
+Measured 2026-08-27: **49 ordinary endpoints, 702 properties recorded as populated**, and exactly three recorded
 empty — `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no EDGAR
-filing URL. There is no blind spot on any wire field the SDK models: of the models' public properties 752 are
+filing URL, plus `MarketCap` on the commodity and forex quote batches, where a market capitalisation is not a
+meaningful thing to ask for. There is no blind spot on any wire field the SDK models: of the models' public properties 752 are
 nullable, 20 are strings defaulting to `""` and one is a collection defaulting to empty, all of which read
 correctly, and the only four non-nullable value types are three on a list wrapper that is never inspected plus
 one `[JsonIgnore]` property the SDK sets from the request rather than from the response.
