@@ -22,6 +22,19 @@ name: CI
 # fall out of the weekly run, and that a failed sweep cannot record itself as the baseline, which would leave
 # the weekly run green precisely because an endpoint had broken. Both fail on the commit that caused them
 # rather than on the next Monday.
+#
+# THE JOB NAME BELOW IS LOAD-BEARING. `master` carries a repository ruleset (#22) that requires the check
+# `.NET — build + test` to pass before a pull request can merge, and a required check is matched by NAME. Rename
+# the job and the rule stops matching: GitHub does not report an error, it reports a check that is "expected" and
+# never arrives, so every PR waits forever on something that already passed under a different name. If this job
+# is ever renamed, update the ruleset in the same change —
+# `gh api repos/jerbersoft/fmpdotnet/rulesets` lists it.
+#
+# The ruleset also blocks force-push and deletion on master, and requires a pull request with zero approvals, so
+# the normal path is branch -> PR -> green -> merge. The repository admin role is on the bypass list, so a direct
+# push to master is still possible deliberately; it is an escape hatch rather than the route. Verified on
+# 2026-08-27 by removing the bypass and pushing: the push was rejected with GH013, naming both the pull-request
+# rule and this check.
 
 on:
   push:
