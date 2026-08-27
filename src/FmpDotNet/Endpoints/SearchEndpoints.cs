@@ -48,4 +48,127 @@ public sealed class SearchEndpoints(FmpTransport transport)
         if (criteria.Limit is { } limit) ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit, nameof(criteria));
         return transport.GetListAsync(criteria.ToRequest(), FmpJsonContext.Default.ListScreenerResult, ct);
     }
+
+    /// <summary>Finds listings whose <b>ticker</b> matches <paramref name="query"/> — 7 rows for <c>AAPL</c>,
+    /// measured 2026-08-27.
+    ///
+    /// <para><b>A prefix match across every exchange, not an exact lookup.</b> <c>query=AA</c> answered 50 rows.
+    /// Fifty is also the undocumented default cap — pass <paramref name="limit"/> to change it.</para>
+    ///
+    /// <para><b>Returns listings, not companies.</b> Apple appears once per exchange, each with its own symbol
+    /// and currency, so taking the first row picks one arbitrarily. Narrow with
+    /// <paramref name="exchange"/> instead.</para></summary>
+    /// <param name="query">The ticker or ticker prefix. Required and non-blank.</param>
+    /// <param name="limit">Rows to return. Omitted by default, which asks FMP for its own default of 50.</param>
+    /// <param name="exchange">Restricts to one exchange by short code — <c>NASDAQ</c>. Undocumented by FMP and
+    /// measured working: <c>AAPL</c> narrowed from 7 rows to 1. Validate against
+    /// <see cref="DirectoryEndpoints.GetExchangesAsync"/>; an unknown code answers an empty list, not an
+    /// error.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matches in FMP's order. Empty when nothing matched — and also empty when the query was not
+    /// understood, which this endpoint does not distinguish. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<SymbolSearchResult>> FindBySymbolAsync(
+        string query, int? limit = null, string? exchange = null, CancellationToken ct = default) =>
+        QueryAsync("stable/search-symbol", query, limit, exchange, ct);
+
+    /// <summary>Finds listings whose <b>company name</b> matches <paramref name="query"/> — 37 rows for
+    /// <c>Apple</c>, measured 2026-08-27.
+    ///
+    /// <para>The same row shape and the same behaviour as
+    /// <see cref="FindBySymbolAsync(string, int?, string?, CancellationToken)"/>, searching the other
+    /// field.</para></summary>
+    /// <param name="query">The company name or a fragment of it. Required and non-blank.</param>
+    /// <param name="limit">Rows to return. Omitted by default.</param>
+    /// <param name="exchange">Restricts to one exchange by short code. See the sibling method.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matches in FMP's order. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="query"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<SymbolSearchResult>> FindByNameAsync(
+        string query, int? limit = null, string? exchange = null, CancellationToken ct = default) =>
+        QueryAsync("stable/search-name", query, limit, exchange, ct);
+
+    /// <summary>Resolves an SEC Central Index Key to the listings it covers.
+    ///
+    /// <para><b>Accepts the padded and the bare form alike</b> — <c>0000320193</c> and <c>320193</c> both answered
+    /// the same single row on 2026-08-27 — and always answers with the ten-character padded form, matching
+    /// <see cref="CikEntry.Cik"/>.</para>
+    ///
+    /// <para>This is the useful direction for CIK: <c>search-exchange-variants</c> returns one only for a
+    /// symbol's primary listing, and <see cref="DirectoryEndpoints.StreamCikListAsync"/> is a 52-request walk of
+    /// the whole registry.</para></summary>
+    /// <param name="cik">The Central Index Key, padded or bare. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matching listings. Empty for an unknown CIK. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<CikSearchResult>> FindByCikAsync(string cik, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        return transport.GetListAsync(
+            new FmpRequest("stable/search-cik").With("cik", cik),
+            FmpJsonContext.Default.ListCikSearchResult, ct);
+    }
+
+    /// <summary>Resolves a CUSIP to the listings that carry it — 4 rows for <c>037833100</c>, measured
+    /// 2026-08-27.
+    ///
+    /// <para><b>The rows carry a market capitalisation in an unstated currency</b>, and the first is not the US
+    /// listing. See <see cref="CusipSearchResult.MarketCap"/> before ordering or comparing them.</para>
+    ///
+    /// <para>Takes no <c>limit</c>: the endpoint ignores it — 4 rows asked down to 1 still answered 4.</para></summary>
+    /// <param name="cusip">The nine-character CUSIP. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matching listings. Empty for an unknown CUSIP. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="cusip"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<CusipSearchResult>> FindByCusipAsync(string cusip, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cusip);
+        return transport.GetListAsync(
+            new FmpRequest("stable/search-cusip").With("cusip", cusip),
+            FmpJsonContext.Default.ListCusipSearchResult, ct);
+    }
+
+    /// <summary>Resolves an ISIN to the listings that carry it — 5 rows for <c>US0378331005</c>, measured
+    /// 2026-08-27.
+    ///
+    /// <para>Same caveats as <see cref="FindByCusipAsync(string, CancellationToken)"/>: an unstated market-cap
+    /// currency, and no <c>limit</c> because the endpoint ignores it. One of the five measured rows reported a
+    /// market capitalisation of zero.</para></summary>
+    /// <param name="isin">The twelve-character ISIN. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matching listings. Empty for an unknown ISIN. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="isin"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<IsinSearchResult>> FindByIsinAsync(string isin, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(isin);
+        return transport.GetListAsync(
+            new FmpRequest("stable/search-isin").With("isin", isin),
+            FmpJsonContext.Default.ListIsinSearchResult, ct);
+    }
+
+    /// <summary>The shared body of the two query-shaped searches, which differ only in path.</summary>
+    private Task<IReadOnlyList<SymbolSearchResult>> QueryAsync(
+        string path, string query, int? limit, string? exchange, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(query);
+        if (limit is not null) ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit.Value);
+        return transport.GetListAsync(
+            new FmpRequest(path).With("query", query).With("limit", limit).With("exchange", exchange),
+            FmpJsonContext.Default.ListSymbolSearchResult, ct);
+    }
 }

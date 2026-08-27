@@ -99,7 +99,7 @@ public sealed record CikEntry
     /// <para><b>A <see cref="string"/> rather than an integer, deliberately.</b> The padding is part of the
     /// identifier as SEC systems and FMP's own <c>search-cik</c> spell it, and parsing to a number discards it —
     /// after which every consumer has to remember to re-pad, and the one that forgets fails a lookup silently.
-    /// <c>SearchEndpoints.FindByCikAsync</c> accepts either form and always echoes this
+    /// <see cref="Endpoints.SearchEndpoints.FindByCikAsync"/> accepts either form and always echoes this
     /// one.</para></summary>
     [JsonPropertyName("cik")] public string? Cik { get; init; }
 

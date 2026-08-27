@@ -5,7 +5,7 @@ namespace FmpDotNet.Models;
 /// <summary>One exchange from <c>stable/available-exchanges</c> — 63 measured 2026-08-27, the whole set.
 ///
 /// <para>This is the authoritative spelling of the exchange codes that appear on
-/// <see cref="CompanyProfile.Exchange"/>, on <c>SymbolSearchResult.Exchange</c> and as the
+/// <see cref="CompanyProfile.Exchange"/>, on <see cref="SymbolSearchResult.Exchange"/> and as the
 /// <c>exchange</c> argument to <see cref="Endpoints.QuoteEndpoints.GetExchangeQuotesAsync"/> — which answers an
 /// unknown exchange with an empty array and HTTP 200 rather than an error, so validating against this list is
 /// cheaper than debugging an empty result.</para></summary>
