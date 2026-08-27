@@ -182,6 +182,67 @@ outcome rows
 set Name
 set Symbol
 
+[Directory.GetCikListAsync]
+outcome rows
+set Cik
+set CompanyName
+
+[Directory.GetCommodityListAsync]
+outcome rows
+set Currency
+set Name
+set Symbol
+set TradeMonth
+null Exchange
+
+[Directory.GetCountriesAsync]
+outcome rows
+
+[Directory.GetCryptocurrencyListAsync]
+outcome rows
+set CirculatingSupply
+set Exchange
+set IcoDate
+set Name
+set Symbol
+set TotalSupply
+
+[Directory.GetEtfListAsync]
+outcome rows
+set Name
+set Symbol
+
+[Directory.GetExchangesAsync]
+outcome rows
+set CountryCode
+set CountryName
+set Delay
+set Exchange
+set Name
+set SymbolSuffix
+
+[Directory.GetFinancialStatementSymbolsAsync]
+outcome rows
+set CompanyName
+set ReportingCurrency
+set Symbol
+set TradingCurrency
+
+[Directory.GetForexListAsync]
+outcome rows
+set FromCurrency
+set FromName
+set Symbol
+set ToCurrency
+set ToName
+
+[Directory.GetIndexListAsync]
+outcome rows
+set Currency
+set Exchange
+set Name
+set Symbol
+
 [Directory.GetIndustriesAsync]
 outcome rows
 
@@ -192,6 +253,24 @@ outcome rows
 outcome rows
 set Name
 set Symbol
+
+[Directory.GetSymbolChangesAsync]
+outcome rows
+set CompanyName
+set Date
+set NewSymbol
+set OldSymbol
+
+[Directory.GetTranscriptSymbolsAsync]
+outcome rows
+set CompanyName
+set Symbol
+set TranscriptCount
+
+[Directory.StreamCikListAsync]
+outcome rows
+set Cik
+set CompanyName
 
 [Economics.GetEconomicCalendarAsync]
 outcome rows
@@ -498,6 +577,84 @@ set Change
 set Price
 set Symbol
 set Volume
+
+[Search.FindByCikAsync]
+outcome rows
+set Cik
+set CompanyName
+set Currency
+set Exchange
+set ExchangeFullName
+set Symbol
+
+[Search.FindByCusipAsync]
+outcome rows
+set CompanyName
+set Cusip
+set MarketCap
+set Symbol
+
+[Search.FindByIsinAsync]
+outcome rows
+set CompanyName
+set Isin
+set MarketCap
+set Symbol
+
+[Search.FindByNameAsync]
+outcome rows
+set Currency
+set Exchange
+set ExchangeFullName
+set Name
+set Symbol
+
+[Search.FindBySymbolAsync]
+outcome rows
+set Currency
+set Exchange
+set ExchangeFullName
+set Name
+set Symbol
+
+[Search.GetExchangeVariantsAsync]
+outcome rows
+set Address
+set Beta
+set Ceo
+set Changes
+set Cik
+set City
+set CompanyName
+set Country
+set Currency
+set Cusip
+set Dcf
+set DcfDiff
+set DefaultImage
+set Description
+set Exchange
+set ExchangeShortName
+set FullTimeEmployees
+set Image
+set Industry
+set IpoDate
+set IsActivelyTrading
+set IsAdr
+set IsEtf
+set IsFund
+set Isin
+set LastDiv
+set MktCap
+set Phone
+set Price
+set Range
+set Sector
+set State
+set Symbol
+set VolAvg
+set Website
+set Zip
 
 [Search.ScreenAsync]
 outcome rows
