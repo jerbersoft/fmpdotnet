@@ -33,6 +33,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<TranscriptSymbol>))]
 [JsonSerializable(typeof(List<SymbolChange>))]
 [JsonSerializable(typeof(List<CikEntry>))]
+[JsonSerializable(typeof(List<CompanyNote>))]
 [JsonSerializable(typeof(List<DelistedCompany>))]
 [JsonSerializable(typeof(List<EmployeeCount>))]
 [JsonSerializable(typeof(List<ExecutiveCompensation>))]

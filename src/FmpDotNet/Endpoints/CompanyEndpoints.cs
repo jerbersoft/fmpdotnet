@@ -409,6 +409,29 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             new FmpRequest("stable/executive-compensation-benchmark").With("year", year),
             FmpJsonContext.Default.ListExecutiveCompensationBenchmark, ct);
 
+    /// <summary>An issuer's registered notes and preferred shares — <c>stable/company-notes</c>.
+    ///
+    /// <para><b>Read <see cref="CompanyNote.Symbol"/>'s documentation before using this.</b> The symbols on the
+    /// rows name the individual securities, not the issuer, and they contain spaces — 19 of <c>T</c>'s 20 rows
+    /// differ from the requested ticker, measured 2026-08-27.</para>
+    ///
+    /// <para><b>The dataset is sparse and an empty answer is normal.</b> <c>AAPL</c> answered 7 rows, <c>T</c>
+    /// 20, <c>F</c> 16; <c>JPM</c>, <c>BAC</c>, <c>VZ</c>, <c>GS</c>, <c>MS</c>, <c>PG</c> and <c>JNJ</c> all
+    /// answered <c>[]</c>.</para></summary>
+    /// <param name="symbol">The <b>issuer's</b> ticker. What comes back is keyed by the notes' own symbols.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The issuer's registered securities. Empty for most issuers. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<CompanyNote>> GetNotesAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/company-notes").With("symbol", symbol),
+            FmpJsonContext.Default.ListCompanyNote, ct);
+    }
+
     /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
     /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
     /// the only difference, and each caller passes a literal.</summary>
