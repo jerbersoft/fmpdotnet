@@ -40,9 +40,10 @@ public sealed record OwnerEarnings
     /// despite the name reading like a balance. AAPL measured 0.13466 for Q3 2026.</summary>
     [JsonPropertyName("averagePPE")] public decimal? AveragePpe { get; init; }
 
-    /// <summary>Estimated capital spending needed to maintain the business. <b>Negative</b> — it is an outflow as
-    /// the cash flow statement signs it, measured −383,794,540 for AAPL Q3 2026. Adding it to net income is the
-    /// arithmetic; subtracting its absolute value double-counts.</summary>
+    /// <summary>Estimated capital spending needed to maintain the business, signed the way the cash flow
+    /// statement signs capex outflows. <b>Usually negative but not guaranteed to be</b>: measured 2026-08-27,
+    /// AAPL's Q3 2026 row is −383,794,540 and its Q2 2026 row is +159,994,500. Add it to net income exactly as
+    /// FMP signs it; do not flip the sign first, on this row or any other.</summary>
     [JsonPropertyName("maintenanceCapex")] public decimal? MaintenanceCapex { get; init; }
 
     /// <summary>Owner earnings for the quarter. Note the spelling: FMP writes <c>ownersEarnings</c>, plural

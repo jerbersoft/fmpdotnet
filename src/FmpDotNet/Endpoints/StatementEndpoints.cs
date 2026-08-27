@@ -511,7 +511,8 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para>
     ///
     /// <para>The figures are FMP's estimates rather than filed values — see <see cref="OwnerEarnings"/>, which
-    /// also explains why two of the ten fields are negative.</para></summary>
+    /// also covers how the two capex fields are signed, including the one whose sign is not
+    /// guaranteed.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/> — which this endpoint still caps at

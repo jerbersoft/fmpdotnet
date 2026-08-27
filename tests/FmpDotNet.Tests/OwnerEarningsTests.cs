@@ -40,14 +40,19 @@ public class OwnerEarningsTests
 
         Assert.Equal(2, rows.Count);
         Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Empty(Binding.Unbound(rows[1]));
         Assert.Equal("AAPL", rows[0].Symbol);
         Assert.Equal(2026, rows[0].FiscalYear);        // arrives as the STRING "2026"
         Assert.Equal("Q3", rows[0].Period);
         Assert.Equal(new NodaTime.LocalDate(2026, 6, 27), rows[0].Date);
-        // Two of the ten are routinely negative — they are capital SPENDING, and reading them as positive
-        // outflows double-counts the sign.
-        Assert.True(rows[0].MaintenanceCapex < 0);
+        // growthCapex is capital SPENDING and negative on both measured rows, reading as an outflow.
+        // maintenanceCapex is the same kind of figure but its sign is NOT guaranteed: AAPL's own two rows
+        // disagree — Q3 2026 (rows[0]) is negative, Q2 2026 (rows[1]) is positive. That disagreement is the
+        // whole reason the model documents the sign as unreliable instead of promising it either way.
+        Assert.True(rows[0].MaintenanceCapex < 0);   // Q3 2026: -383,794,540
+        Assert.True(rows[1].MaintenanceCapex > 0);   // Q2 2026: +159,994,500
         Assert.True(rows[0].GrowthCapex < 0);
+        Assert.True(rows[1].GrowthCapex < 0);
     }
 
     [Fact]
