@@ -263,6 +263,10 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
+That remainder is tracked as thirteen actionable issues under the epic, each 9 to 19 paths and each carrying the
+measured path list for its group. Statements and Company are the largest and the two a trading consumer needs, so
+they are the natural next slices rather than long-tail work.
+
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
 `stable/quote` and `stable/historical-price-eod` re-documented, which `fmp.Quote` and `fmp.Chart` already reach.

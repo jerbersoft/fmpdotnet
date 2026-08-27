@@ -116,6 +116,33 @@ Quote 16, Chart 10, Bulk 18, all complete — and one `GetQuoteAsync` serves equ
 forex and crypto alike, so **asset-class breadth came free while equity depth never got built**. Commodity, Forex
 and Crypto are one path each and all three are done.
 
+## Where the remaining work is tracked
+
+#25 is the tracking epic. The remainder was split into these on 2026-08-27, sized from the table above — every
+child carries the exact path list for its group, so nobody re-derives it.
+
+| issue | group | paths |
+|---|---|---|
+| #28 | Statements | 19 |
+| #29 | Company | 13 |
+| #36 | Form 13F and Insider Trades | 14 |
+| #37 | Analyst and Calendar | 14 |
+| #30 | SEC Filings | 12 |
+| #31 | Senate and House trading | 12 |
+| #40 | Economics, Earnings Transcripts, ESG and COT | 12 |
+| #32 | Market Performance | 11 |
+| #33 | News | 10 |
+| #39 | Fundraisers and DCF | 10 |
+| #34 | ETF and Mutual Funds | 9 |
+| #35 | Technical Indicators | 9 |
+| #38 | Indexes and Market Hours | 9 |
+| | **actionable subtotal** | **154** |
+| #41 | TipRanks — blocked on a paid add-on | 7 |
+| | **total** | **161** |
+
+#28 and #29 carry `tier: 3 adjacent` rather than `tier: 4 later`: they are the two largest groups left and the
+two a trading consumer needs, so they are the natural next slices rather than long-tail work.
+
 ## Method, repeatable
 
 ```
