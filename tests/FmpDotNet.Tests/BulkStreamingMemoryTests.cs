@@ -8,6 +8,12 @@ using NodaTime;
 
 namespace FmpDotNet.Tests;
 
+/// <summary>Marks <see cref="BulkStreamingMemoryTests"/> as its own xUnit collection so it never runs concurrently
+/// with any other collection. <c>GC.GetTotalMemory</c> is process-wide, so parallel allocation from an unrelated
+/// test would be charged against this one's 8 MB budget.</summary>
+[CollectionDefinition("Bulk streaming memory", DisableParallelization = true)]
+public sealed class BulkStreamingMemoryCollection;
+
 /// <summary>The bulk pipeline must stay flat in memory however large the response is (#13).
 ///
 /// <para><b>Why this is a test rather than a design note.</b> The two largest responses on the API are
@@ -15,6 +21,7 @@ namespace FmpDotNet.Tests;
 /// arrive without a <c>Content-Length</c>. Any single <c>ReadAsStringAsync</c>, <c>ToList()</c> or accidental
 /// buffering anywhere in the chain is invisible on a three-row fixture and fatal here — a 69 MB body read as a
 /// string is ~139 MB of UTF-16 before a single row is mapped, and on the large object heap.</para></summary>
+[Collection("Bulk streaming memory")]
 public class BulkStreamingMemoryTests
 {
     /// <summary>A stream that produces CSV rows only as they are read, so the TEST never materialises the payload
