@@ -145,14 +145,32 @@ public class SearchEndpointsTests
         Assert.Equal(path, handler.Requests.Single().AbsolutePath);
     }
 
+    public static TheoryData<string, Func<SearchEndpoints, string, Task>> BlankRejectingCalls => new()
+    {
+        // All five guard their identifier the same way — ArgumentException.ThrowIfNullOrWhiteSpace, thrown
+        // before any request is built — but FindByCikAsync, FindByCusipAsync and FindByIsinAsync are separate
+        // implementations from FindBySymbolAsync and FindByNameAsync (which share QueryAsync), so each is
+        // proven rather than assumed from the one already covered.
+        { "", (e, q) => e.FindBySymbolAsync(q) },
+        { "   ", (e, q) => e.FindBySymbolAsync(q) },
+        { "", (e, q) => e.FindByNameAsync(q) },
+        { "   ", (e, q) => e.FindByNameAsync(q) },
+        { "", (e, q) => e.FindByCikAsync(q) },
+        { "   ", (e, q) => e.FindByCikAsync(q) },
+        { "", (e, q) => e.FindByCusipAsync(q) },
+        { "   ", (e, q) => e.FindByCusipAsync(q) },
+        { "", (e, q) => e.FindByIsinAsync(q) },
+        { "   ", (e, q) => e.FindByIsinAsync(q) },
+    };
+
     [Theory]
-    [InlineData("")]
-    [InlineData("   ")]
-    public async Task A_blank_query_is_rejected_before_it_costs_a_call(string query)
+    [MemberData(nameof(BlankRejectingCalls))]
+    public async Task A_blank_query_is_rejected_before_it_costs_a_call(
+        string query, Func<SearchEndpoints, string, Task> call)
     {
         var (endpoints, handler) = Build("[]");
 
-        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.FindBySymbolAsync(query));
+        await Assert.ThrowsAsync<ArgumentException>(() => call(endpoints, query));
 
         Assert.Empty(handler.Requests);
     }

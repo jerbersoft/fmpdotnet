@@ -132,10 +132,11 @@ public sealed record ExchangeVariant
     /// <summary>The gap between <see cref="Dcf"/> and a price.
     ///
     /// <para><b>Not a gap against <see cref="Price"/> on this row.</b> Measured 2026-08-27, <c>dcf + dcfDiff</c>
-    /// implies 312.96 for AAPL while <see cref="Price"/> reads 313.45; for the Mexican listing it implies 5300.01
-    /// against 5330. Every row disagreed, and not in a consistent direction, so the two fields are computed
-    /// against different snapshots and the row does not say which. Do not reconstruct a price from this
-    /// pair.</para>
+    /// implies 312.96 for AAPL while <see cref="Price"/> reads 313.45 — 0.49 below; for the Mexican listing it
+    /// implies 5300.01 against 5330, also below. For the Frankfurt listing, <c>APC.DE</c>, it implies 267.95
+    /// against a price of 266.25 — 1.70 <b>above</b>. Every row disagreed, and not in a consistent direction, so
+    /// the two fields are computed against different snapshots and the row does not say which. Do not
+    /// reconstruct a price from this pair.</para>
     ///
     /// <para>Null on one of the six measured rows.</para></summary>
     [JsonPropertyName("dcfDiff")] public decimal? DcfDiff { get; init; }
