@@ -22,8 +22,10 @@ public sealed class FmpBuckets
 
     /// <summary>Burst allowance for ordinary traffic. Comfortably above a typical parallel worker count, so every
     /// worker can take a token at startup without stalling, yet small enough that the worst-case rolling-minute
-    /// throughput (burst + cap) stays under FMP Premium's 750/min hard limit. Setting capacity to the whole
-    /// per-minute budget would let concurrent callers burst to ~2x the cap and trip 429s.</summary>
+    /// throughput (burst + cap) stays under the 750/min hard limit of Premium, the lowest paid tier this SDK
+    /// targets — higher tiers allow more (Ultimate 3,000/min), so sizing to the lowest is what keeps this safe for
+    /// every key. Setting capacity to the whole per-minute budget would let concurrent callers burst to ~2x the cap
+    /// and trip 429s.</summary>
     internal const int StandardBurst = 30;
 
     /// <summary>Burst allowance for bulk. One: bulk responses run to tens of megabytes and FMP refreshes them only

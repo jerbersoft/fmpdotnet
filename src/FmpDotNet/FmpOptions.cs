@@ -20,9 +20,17 @@ public sealed class FmpOptions
     /// future <c>/v4/</c> endpoint can sit on the same client.</summary>
     public string BaseUrl { get; set; } = "https://financialmodelingprep.com";
 
-    /// <summary>Self-throttle ceiling for ordinary endpoints, in requests per minute. FMP Premium allows 750;
-    /// the default 660 leaves headroom because the measured emitted rate runs ~10% above target under real
-    /// concurrency. The bucket paces the aggregate across every client in the process.</summary>
+    /// <summary>Self-throttle ceiling for ordinary endpoints, in requests per minute. The bucket paces the
+    /// aggregate across every client in the process.
+    ///
+    /// <para>The default 660 is calibrated to <b>Premium's 750/min</b>, the lowest paid tier this SDK targets,
+    /// leaving headroom because the measured emitted rate runs ~10% above target under real concurrency. It is
+    /// deliberately not calibrated to the key you happen to hold: a default that suited a higher tier would trip
+    /// 429s for everyone below it.</para>
+    ///
+    /// <para><b>On a higher tier, raise this.</b> Ultimate allows 3,000/min, so a caller on that plan is leaving
+    /// roughly four-fifths of their budget unused at the default. Set it to about 88% of your tier's published
+    /// limit to keep the same headroom — 2,640 for Ultimate.</para></summary>
     public int PerMinuteCap { get; set; } = 660;
 
     /// <summary>How long one ordinary HTTP attempt may take before <see cref="Http.FmpTimeoutHandler"/> abandons it.
