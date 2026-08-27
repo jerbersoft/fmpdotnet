@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Options;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
+using NodaTime;
 
 namespace FmpDotNet.Tests;
 
@@ -241,5 +242,45 @@ public class DirectoryListsTests
         await call(endpoints);
 
         Assert.Equal(path, handler.Requests.Single().AbsolutePath);
+    }
+
+    [Fact]
+    public async Task A_symbol_change_request_asks_for_more_than_the_hidden_default()
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await endpoints.GetSymbolChangesAsync();
+
+        // THE POINT OF THIS TEST IS THE URL, NOT THE RESPONSE. Measured 2026-08-27: with no `limit` the endpoint
+        // answers 100 rows and holds 5,456. Both responses are HTTP 200 arrays of well-formed rows, so nothing
+        // downstream can tell a complete history from a 1.8% sample — the only place the bug is visible is here.
+        var query = handler.Requests.Single().Query;
+        Assert.Contains($"limit={DirectoryEndpoints.SymbolChangeRequestLimit}", query, StringComparison.Ordinal);
+        Assert.Equal(10000, DirectoryEndpoints.SymbolChangeRequestLimit);
+    }
+
+    [Fact]
+    public async Task A_symbol_change_request_does_not_offer_a_page_that_does_nothing()
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await endpoints.GetSymbolChangesAsync();
+
+        // `page` is accepted and silently ignored — page=0 and page=1 returned identical rows on 2026-08-27.
+        // Sending it would imply it works.
+        Assert.DoesNotContain("page=", handler.Requests.Single().Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_symbol_change_reads_both_tickers_and_the_date()
+    {
+        var (endpoints, _) = Build(Fixture("symbol-change.head.json"));
+
+        var changes = await endpoints.GetSymbolChangesAsync();
+
+        Assert.Equal(3, changes.Count);
+        Assert.Equal(new LocalDate(2026, 8, 26), changes[0].Date);
+        Assert.Equal("SIC", changes[0].OldSymbol);
+        Assert.Equal("PSOX", changes[0].NewSymbol);
     }
 }

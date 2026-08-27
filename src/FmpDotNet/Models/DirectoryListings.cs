@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using FmpDotNet.Serialization;
+using NodaTime;
 
 namespace FmpDotNet.Models;
 
@@ -48,9 +50,37 @@ public sealed record TranscriptSymbol
     /// <para><b>The wire sends this as a quoted string on all 11,178 rows</b> — <c>"noOfTranscripts": "6"</c>, not
     /// <c>6</c>. It binds to an <see cref="int"/> only because <c>FmpJsonContext</c> sets
     /// <c>NumberHandling = AllowReadingFromString</c>; that option is load-bearing for this property rather than
-    /// incidental, and removing it would break this endpoint alone.</para>
+    /// incidental, and removing it alone would break this endpoint.</para>
     ///
     /// <para>The C# name drops FMP's <c>noOf</c> prefix, which is Hungarian for the type the property already
     /// declares.</para></summary>
     [JsonPropertyName("noOfTranscripts")] public int? TranscriptCount { get; init; }
+}
+
+/// <summary>One ticker rename from <c>stable/symbol-change</c> — 5,456 measured 2026-08-27, back to the start of
+/// FMP's record.
+///
+/// <para>This is the endpoint that explains a symbol vanishing from
+/// <see cref="Endpoints.DirectoryEndpoints.GetActivelyTradingAsync"/> without being delisted. A caller
+/// reconciling historical positions against current tickers needs the whole set, which is why
+/// <see cref="Endpoints.DirectoryEndpoints.GetSymbolChangesAsync"/> takes no paging arguments and asks for all of
+/// it — see that method for what the default would otherwise cost.</para></summary>
+public sealed record SymbolChange
+{
+    /// <summary>The date the change took effect. ISO <c>uuuu-MM-dd</c> on all 5,456 measured rows, none null.
+    ///
+    /// <para>A <see cref="LocalDate"/> rather than an <see cref="Instant"/>: a rename belongs to a trading day,
+    /// and the payload carries no time of day.</para></summary>
+    [JsonPropertyName("date")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? Date { get; init; }
+
+    /// <summary>The company's name at the time of the change. Populated on all 5,456 rows.</summary>
+    [JsonPropertyName("companyName")] public string? CompanyName { get; init; }
+
+    /// <summary>The ticker before the change — the one to look up in historical data.</summary>
+    [JsonPropertyName("oldSymbol")] public string? OldSymbol { get; init; }
+
+    /// <summary>The ticker after the change — the one FMP's current endpoints answer to.</summary>
+    [JsonPropertyName("newSymbol")] public string? NewSymbol { get; init; }
 }

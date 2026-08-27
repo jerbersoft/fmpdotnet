@@ -31,6 +31,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<ExchangeInfo>))]
 [JsonSerializable(typeof(List<FinancialStatementSymbol>))]
 [JsonSerializable(typeof(List<TranscriptSymbol>))]
+[JsonSerializable(typeof(List<SymbolChange>))]
 [JsonSerializable(typeof(List<DelistedCompany>))]
 [JsonSerializable(typeof(List<ScreenerResult>))]
 [JsonSerializable(typeof(List<EconomicRelease>))]

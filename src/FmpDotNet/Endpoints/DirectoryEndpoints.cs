@@ -272,6 +272,40 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         transport.GetListAsync(
             new FmpRequest("stable/earnings-transcript-list"), FmpJsonContext.Default.ListTranscriptSymbol, ct);
 
+    /// <summary>The <c>limit</c> the SDK sends to <c>stable/symbol-change</c>, and the reason it sends one at all.
+    ///
+    /// <para><b>Without it the endpoint answers 100 rows and holds 5,456</b>, measured 2026-08-27 — 1.8% of the
+    /// history, returned as a well-formed HTTP 200 array indistinguishable from a complete one. FMP documents no
+    /// parameters for this path whatsoever; <c>limit</c> works regardless, and <c>page</c> is accepted and
+    /// silently ignored, so this is the only lever there is.</para>
+    ///
+    /// <para>10,000 rather than 5,456 is headroom against growth, not a guess: the ceiling was probed to
+    /// <c>limit=100000</c> and the answer stayed 5,456, so there is no server-side cap between the two and asking
+    /// for more costs nothing.</para></summary>
+    public const int SymbolChangeRequestLimit = 10_000;
+
+    /// <summary>Every ticker rename FMP has recorded — 5,456 measured 2026-08-27, newest first.
+    ///
+    /// <para>This is what explains a symbol disappearing from
+    /// <see cref="GetActivelyTradingAsync(CancellationToken)"/> without appearing in
+    /// <see cref="CompanyEndpoints.GetDelistedAsync"/>: it was renamed, not delisted. A caller reconciling
+    /// historical positions against current tickers wants all of it.</para>
+    ///
+    /// <para><b>Takes no paging arguments, deliberately.</b> The endpoint's undocumented default returns 100 rows
+    /// of 5,456 and its <c>page</c> parameter does nothing — see
+    /// <see cref="SymbolChangeRequestLimit"/>. Offering a <c>page</c> the SDK knows is ignored would be worse than
+    /// offering nothing, and there is no correct partial answer to "what has been renamed": a reconciliation
+    /// against 1.8% of the history is silently wrong rather than incomplete.</para></summary>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every recorded rename in FMP's order, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<SymbolChange>> GetSymbolChangesAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/symbol-change").With("limit", SymbolChangeRequestLimit),
+            FmpJsonContext.Default.ListSymbolChange, ct);
+
     /// <summary>Unwraps the two directory row shapes into <see cref="CompanySymbol"/>. Written once so the pair
     /// cannot drift apart on the judgement calls below, the same way <see cref="Labels{T}"/> serves the
     /// vocabularies.

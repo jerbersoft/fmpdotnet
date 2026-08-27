@@ -1,0 +1,7 @@
+[
+  { "date": "2026-08-26", "companyName": "Tema MLCC & PowerSemi ETF", "oldSymbol": "SIC", "newSymbol": "PSOX" },
+  { "date": "2026-08-24", "companyName": "Endovia Health Sciences, Inc. Common Stock",
+    "oldSymbol": "SBEV", "newSymbol": "EDVA" },
+  { "date": "2026-08-21", "companyName": "Corgi U.S. Mega-Cap Growth 2x Daily ETF",
+    "oldSymbol": "MGKX", "newSymbol": "MEGX" }
+]
