@@ -40,6 +40,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<ExecutiveCompensationBenchmark>))]
 [JsonSerializable(typeof(List<KeyExecutive>))]
 [JsonSerializable(typeof(List<MarketCapitalization>))]
+[JsonSerializable(typeof(List<MergerAcquisition>))]
 [JsonSerializable(typeof(List<StockPeer>))]
 [JsonSerializable(typeof(List<ScreenerResult>))]
 [JsonSerializable(typeof(List<SymbolSearchResult>))]

@@ -1,0 +1,57 @@
+[
+  {
+    "symbol": "RGEN",
+    "companyName": "REPLIGEN CORP",
+    "cik": "0000730272",
+    "targetedCompanyName": "BioLife Solutions, Inc.",
+    "targetedCik": "0000834365",
+    "targetedSymbol": "BLFS",
+    "transactionDate": "2026-08-24",
+    "acceptedDate": "2026-08-24 21:50:52",
+    "link": "https://www.sec.gov/Archives/edgar/data/730272/000119312526363970/d127719ds4.htm"
+  },
+  {
+    "symbol": "NRIM",
+    "companyName": "NORTHRIM BANCORP INC",
+    "cik": "0001163370",
+    "targetedCompanyName": "PBCO Financial Corporation",
+    "targetedCik": "0000000000",
+    "targetedSymbol": "PBCO",
+    "transactionDate": "2026-08-25",
+    "acceptedDate": "2026-08-25 17:38:53",
+    "link": "https://www.sec.gov/Archives/edgar/data/1163370/000114036126034343/ny20080288x1_s4.htm"
+  },
+  {
+    "symbol": "RC-PE",
+    "companyName": "Ready Capital Corp",
+    "cik": "0001527590",
+    "targetedCompanyName": "United Development Funding IV",
+    "targetedCik": null,
+    "targetedSymbol": "UDFI",
+    "transactionDate": "2024-12-26",
+    "acceptedDate": "2024-12-26 09:08:20",
+    "link": "https://www.sec.gov/Archives/edgar/data/1527590/000110465924131559/tm2431241-1_s4.htm"
+  },
+  {
+    "symbol": "BY",
+    "companyName": "BYLINE BANCORP, INC.",
+    "cik": "0001702750",
+    "targetedCompanyName": "D.A. Davidson",
+    "targetedCik": null,
+    "targetedSymbol": null,
+    "transactionDate": "2024-11-15",
+    "acceptedDate": "2024-11-15 17:01:03",
+    "link": "https://www.sec.gov/Archives/edgar/data/1702750/000095017024127675/by-20241115.htm"
+  },
+  {
+    "symbol": "QCRH",
+    "companyName": "QCR HOLDINGS INC",
+    "cik": "0000906465",
+    "targetedCompanyName": null,
+    "targetedCik": null,
+    "targetedSymbol": null,
+    "transactionDate": "2022-10-28",
+    "acceptedDate": "2022-10-28 14:38:59",
+    "link": "https://www.sec.gov/Archives/edgar/data/906465/000110465922112380/tm2228811-1_s4.htm"
+  }
+]

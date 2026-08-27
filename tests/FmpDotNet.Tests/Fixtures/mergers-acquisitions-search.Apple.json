@@ -1,0 +1,35 @@
+[
+  {
+    "symbol": "PEGY",
+    "companyName": "Pineapple Energy Inc.",
+    "cik": "0000022701",
+    "targetedCompanyName": "Communications Systems, Inc.",
+    "targetedCik": "0000022701",
+    "targetedSymbol": "JCS",
+    "transactionDate": "2021-11-12",
+    "acceptedDate": "2021-11-12 09:54:22",
+    "link": "https://www.sec.gov/Archives/edgar/data/22701/000089710121000932/a211292_s-4.htm"
+  },
+  {
+    "symbol": "APLE",
+    "companyName": "Apple Hospitality REIT, Inc.",
+    "cik": "0001418121",
+    "targetedCompanyName": "Citi",
+    "targetedCik": null,
+    "targetedSymbol": null,
+    "transactionDate": "2016-05-24",
+    "acceptedDate": "2016-05-24 17:26:44",
+    "link": "https://www.sec.gov/Archives/edgar/data/1418121/000118518516004709/applehospt_s4-051616.htm"
+  },
+  {
+    "symbol": "APLE",
+    "companyName": "Apple Hospitality REIT, Inc.",
+    "cik": "0001418121",
+    "targetedCompanyName": "A7A",
+    "targetedCik": null,
+    "targetedSymbol": null,
+    "transactionDate": "2013-09-10",
+    "acceptedDate": "2013-09-10 19:39:06",
+    "link": "https://www.sec.gov/Archives/edgar/data/1418121/000118518513002005/applereitnine-s4_090413.htm"
+  }
+]

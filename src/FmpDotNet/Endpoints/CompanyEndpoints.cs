@@ -432,6 +432,82 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListCompanyNote, ct);
     }
 
+    /// <summary>The largest page <c>stable/mergers-acquisitions-latest</c> will serve, measured rather than
+    /// documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, for the same reason as <see cref="MaxDelistedPageSize"/>: measured
+    /// 2026-08-27, <c>limit=1000</c> answered 1,000 rows and <c>limit=5000</c> answered 1,000 as well —
+    /// silently clamped, with no error and nothing in the response to say so. A caller who asks for 5,000 and
+    /// walks pages assuming they got them skips four fifths of the archive.
+    /// <see cref="GetLatestMergersAcquisitionsAsync(int, int, CancellationToken)"/> therefore rejects a larger
+    /// <c>limit</c> rather than passing it on to be clamped.</para></summary>
+    public const int MaxMergerAcquisitionPageSize = 1000;
+
+    /// <summary>One page of <c>stable/mergers-acquisitions-latest</c> — the whole M&amp;A archive, newest
+    /// filing first.
+    ///
+    /// <para><b>"Latest" names the ordering, not the contents.</b> Measured 2026-08-27, page 0 at
+    /// <c>limit=1000</c> already reaches back to <c>2021-09-13</c>, and the full archive is <b>4,704 rows
+    /// across pages 0–4</b> spanning <c>1994-01-10 → 2026-08-25</c>. Page 4 carries 704; page 5 and beyond
+    /// answer <c>[]</c> with HTTP 200. Pages 0 and 1 share no rows, so the walk is disjoint and terminates on
+    /// the first short page — one request cheaper than waiting for the empty one, exactly as
+    /// <see cref="GetDelistedAsync(int, int, CancellationToken)"/> does.</para>
+    ///
+    /// <para><b>Recorded 402 on free by an independent client on 2026-08-23</b>, needing Starter or higher.
+    /// Not measurable here: every path in this group answered 200 on the Ultimate key this SDK was measured
+    /// with.</para></summary>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxMergerAcquisitionPageSize"/>. Required rather
+    /// than defaulted, matching <see cref="GetDelistedAsync(int, int, CancellationToken)"/>: the page size and
+    /// the page index have to agree for a walk to be complete, and a default would let them disagree
+    /// invisibly.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's rows, newest first. Empty past the end of the archive. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative, or
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxMergerAcquisitionPageSize"/>.</exception>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403 — see the plan note above.</exception>
+    public Task<IReadOnlyList<MergerAcquisition>> GetLatestMergersAcquisitionsAsync(
+        int page, int limit, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxMergerAcquisitionPageSize);
+        return transport.GetListAsync(
+            new FmpRequest("stable/mergers-acquisitions-latest").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListMergerAcquisition, ct);
+    }
+
+    /// <summary>Deals whose acquirer or target matches a name — <c>stable/mergers-acquisitions-search</c>.
+    ///
+    /// <para><b>There is no <c>page</c> and no <c>limit</c>, and that is deliberate.</b> FMP documents both and
+    /// ignores both: measured 2026-08-27, <c>name=Bank</c> answered 233 rows bare and <b>233 rows with
+    /// <c>page=0&amp;limit=5</c></b>. The endpoint returns its entire result set every time. A signature that
+    /// accepted those parameters would let a caller believe they had asked for five rows while holding 233 —
+    /// and nothing in the response would tell them otherwise. Take what comes back and page it yourself if you
+    /// need to.</para>
+    ///
+    /// <para>Matching is substring-ish rather than exact: <c>name=Apple</c> answered 3 rows on 2026-08-27,
+    /// including <c>Pineapple Energy Inc.</c>. <c>name=zzzznope</c> answered <c>[]</c>; omitting the name
+    /// entirely answers <b>400</b>, which is why a blank one is rejected here.</para>
+    ///
+    /// <para><b>Recorded 402 on free and on Starter by an independent client on 2026-08-23</b>, and working on
+    /// Premium.</para></summary>
+    /// <param name="name">The company name to match. Matched loosely — see above.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every matching deal, unpaged. Empty when nothing matches. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403 — see the plan note above.</exception>
+    public Task<IReadOnlyList<MergerAcquisition>> SearchMergersAcquisitionsAsync(
+        string name, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return transport.GetListAsync(
+            new FmpRequest("stable/mergers-acquisitions-search").With("name", name),
+            FmpJsonContext.Default.ListMergerAcquisition, ct);
+    }
+
     /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
     /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
     /// the only difference, and each caller passes a literal.</summary>
