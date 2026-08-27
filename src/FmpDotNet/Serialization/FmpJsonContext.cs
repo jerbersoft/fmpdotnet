@@ -62,6 +62,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<IncomeStatementGrowth>))]
 [JsonSerializable(typeof(List<BalanceSheetGrowth>))]
 [JsonSerializable(typeof(List<CashFlowGrowth>))]
+[JsonSerializable(typeof(List<AsReportedStatement>))]
+[JsonSerializable(typeof(List<RevenueSegmentation>))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and
 // BulkPriceTargetSummary parses it — through the source generator like everything else, because this assembly
 // declares IsAotCompatible and a reflection-based Deserialize would fail the build on IL2026/IL3050.

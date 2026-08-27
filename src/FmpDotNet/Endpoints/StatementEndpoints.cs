@@ -351,6 +351,142 @@ public sealed class StatementEndpoints(FmpTransport transport)
         return rows.Count > 0 ? rows[0] : null;
     }
 
+    /// <summary>One symbol's income statements exactly as filed, newest first. From
+    /// <c>stable/income-statement-as-reported</c>.
+    ///
+    /// <para><b>The issuer's XBRL tags, not FMP's normalised fields.</b> Use this to see what a company actually
+    /// reported; use <see cref="GetIncomeStatementAsync"/> to compare companies. The two do not have the same
+    /// field names and are not meant to. See <see cref="AsReportedStatement"/> for why the payload is an open
+    /// dictionary whose values are not all numbers.</para>
+    ///
+    /// <para>Measured 2026-08-27: 24 tagged facts for AAPL and 39 for JPM on the same path and the same
+    /// cadence.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<AsReportedStatement>> GetIncomeStatementAsReportedAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/income-statement-as-reported", symbol, period, limit),
+            FmpJsonContext.Default.ListAsReportedStatement, ct);
+
+    /// <summary>One symbol's balance sheets exactly as filed, newest first. From
+    /// <c>stable/balance-sheet-statement-as-reported</c>.
+    ///
+    /// <para><b>The as-filed counterpart of <see cref="GetBalanceSheetAsync"/>.</b> The issuer's own XBRL tags,
+    /// not FMP's normalised fields — the two do not share field names and are not meant to. See
+    /// <see cref="AsReportedStatement"/> for why the payload is an open dictionary whose values are not all
+    /// numbers.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<AsReportedStatement>> GetBalanceSheetAsReportedAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/balance-sheet-statement-as-reported", symbol, period, limit),
+            FmpJsonContext.Default.ListAsReportedStatement, ct);
+
+    /// <summary>One symbol's cash flow statements exactly as filed, newest first. From
+    /// <c>stable/cash-flow-statement-as-reported</c>.
+    ///
+    /// <para><b>The as-filed counterpart of <see cref="GetCashFlowAsync"/>.</b> The issuer's own XBRL tags, not
+    /// FMP's normalised fields — the two do not share field names and are not meant to. See
+    /// <see cref="AsReportedStatement"/> for why the payload is an open dictionary whose values are not all
+    /// numbers.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<AsReportedStatement>> GetCashFlowAsReportedAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/cash-flow-statement-as-reported", symbol, period, limit),
+            FmpJsonContext.Default.ListAsReportedStatement, ct);
+
+    /// <summary>One symbol's full financial statement exactly as filed, newest first. From
+    /// <c>stable/financial-statement-full-as-reported</c>.
+    ///
+    /// <para><b>All three statements plus the cover page in one object</b> — 300 keys for AAPL and 923 for JPM,
+    /// measured 2026-08-27, and the payload where the 47 strings and the postal code live. See
+    /// <see cref="AsReportedStatement"/> for why the payload is an open dictionary whose values are not all
+    /// numbers.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<AsReportedStatement>> GetFullStatementAsReportedAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/financial-statement-full-as-reported", symbol, period, limit),
+            FmpJsonContext.Default.ListAsReportedStatement, ct);
+
+    /// <summary>One symbol's revenue split by product line, newest period first. From
+    /// <c>stable/revenue-product-segmentation</c>.
+    ///
+    /// <para><b>Takes no <c>limit</c>.</b> Measured 2026-08-27, the endpoint transfers the full set regardless of
+    /// what is sent, so offering the parameter would be offering a lever that does nothing.</para>
+    ///
+    /// <para><b>The <c>structure</c> parameter FMP documents is not sent either.</b> Measured on AAPL and on JPM —
+    /// a filer with genuinely nested segments — <c>structure=flat</c> and <c>structure=hierarchical</c> returned
+    /// payloads identical to sending nothing at all. It is inert.</para>
+    ///
+    /// <para>Segment names are the company's own and change when it reorganises; see
+    /// <see cref="RevenueSegmentation"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<RevenueSegmentation>> GetRevenueByProductAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, CancellationToken ct = default) =>
+        transport.GetListAsync(Envelope("stable/revenue-product-segmentation", symbol, period),
+            FmpJsonContext.Default.ListRevenueSegmentation, ct);
+
+    /// <summary>One symbol's revenue split by geography, newest period first. From
+    /// <c>stable/revenue-geographic-segmentation</c>.
+    ///
+    /// <para><b>Keys are country and region names, not product lines</b> — the same shape as
+    /// <see cref="GetRevenueByProductAsync"/> but split along a different axis.</para>
+    ///
+    /// <para><b>Takes no <c>limit</c>.</b> Measured 2026-08-27, the endpoint transfers the full set regardless of
+    /// what is sent, so offering the parameter would be offering a lever that does nothing.</para>
+    ///
+    /// <para><b>The <c>structure</c> parameter FMP documents is not sent either.</b> Measured on AAPL and on JPM —
+    /// a filer with genuinely nested segments — <c>structure=flat</c> and <c>structure=hierarchical</c> returned
+    /// payloads identical to sending nothing at all. It is inert.</para>
+    ///
+    /// <para>Segment names are the company's own and change when it reorganises; see
+    /// <see cref="RevenueSegmentation"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<RevenueSegmentation>> GetRevenueByGeographyAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, CancellationToken ct = default) =>
+        transport.GetListAsync(Envelope("stable/revenue-geographic-segmentation", symbol, period),
+            FmpJsonContext.Default.ListRevenueSegmentation, ct);
+
     /// <summary>The <c>limit</c> the SDK sends when the caller asks for no limit, and the reason it sends one.
     ///
     /// <para><b>Without it FMP returns five rows.</b> Measured 2026-08-27, every per-symbol paged path in this
@@ -397,5 +533,17 @@ public sealed class StatementEndpoints(FmpTransport transport)
         return new FmpRequest(path)
             .With("symbol", symbol)
             .With("limit", limit ?? FullHistoryLimit);
+    }
+
+    /// <summary>The query shape for the paths that take a <c>period</c> and ignore <c>limit</c>.
+    ///
+    /// <para>Measured 2026-08-27, both segmentation paths transfer the full set whatever limit is sent, so no
+    /// limit is offered rather than one that does nothing.</para></summary>
+    private static FmpRequest Envelope(string path, string symbol, FiscalPeriod period)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return new FmpRequest(path)
+            .With("symbol", symbol)
+            .With("period", period.ToQueryValue());
     }
 }
