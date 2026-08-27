@@ -115,6 +115,24 @@ public class AsReportedTests
         Assert.DoesNotContain("structure", handler.Requests.Single().Query);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Segmentation_rejects_a_blank_symbol_before_spending_a_request(bool byProduct)
+    {
+        // Envelope() is a separate helper from Periodic() and does not inherit Periodic()'s guard coverage —
+        // this proves Envelope()'s own ArgumentException.ThrowIfNullOrWhiteSpace(symbol) actually runs, and runs
+        // before a request goes out.
+        var (endpoints, handler) = Build();
+
+        Func<Task> call = byProduct
+            ? () => endpoints.GetRevenueByProductAsync("  ")
+            : () => endpoints.GetRevenueByGeographyAsync("  ");
+
+        await Assert.ThrowsAsync<ArgumentException>(call);
+        Assert.Empty(handler.Requests);
+    }
+
     [Fact]
     public async Task A_segmentation_row_reads_its_segments_as_numbers()
     {
