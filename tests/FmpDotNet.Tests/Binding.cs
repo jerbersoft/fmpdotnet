@@ -17,7 +17,7 @@ internal static class Binding
         File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 
     /// <summary>The names of every wire-bound property on <paramref name="row"/> that came back with nothing in
-    /// it — null, blank, or an empty dictionary.
+    /// it — null, blank, or an empty collection.
     ///
     /// <para>Only properties carrying <c>[JsonPropertyName]</c> are considered, which is what makes this precise:
     /// a computed or <c>[JsonIgnore]</c>d property is not something FMP sends and has no business failing a

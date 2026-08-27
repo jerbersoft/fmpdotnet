@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Models;
@@ -14,94 +15,94 @@ namespace FmpDotNet.Models;
 public sealed record KeyMetricsTtm
 {
     /// <summary>Ticker as FMP spells it.</summary>
-    public string Symbol { get; init; } = "";
+    [JsonPropertyName("symbol")] public string Symbol { get; init; } = "";
     /// <summary>Trailing-twelve-month <c>marketCap</c>.</summary>
-    public decimal? MarketCap { get; init; }
+    [JsonPropertyName("marketCap")] public decimal? MarketCap { get; init; }
     /// <summary>Trailing-twelve-month <c>enterpriseValue</c>.</summary>
-    public decimal? EnterpriseValue { get; init; }
+    [JsonPropertyName("enterpriseValueTTM")] public decimal? EnterpriseValue { get; init; }
     /// <summary>Trailing-twelve-month <c>evToSales</c>.</summary>
-    public decimal? EvToSales { get; init; }
+    [JsonPropertyName("evToSalesTTM")] public decimal? EvToSales { get; init; }
     /// <summary>Trailing-twelve-month <c>evToOperatingCashFlow</c>.</summary>
-    public decimal? EvToOperatingCashFlow { get; init; }
+    [JsonPropertyName("evToOperatingCashFlowTTM")] public decimal? EvToOperatingCashFlow { get; init; }
     /// <summary>Trailing-twelve-month <c>evToFreeCashFlow</c>.</summary>
-    public decimal? EvToFreeCashFlow { get; init; }
+    [JsonPropertyName("evToFreeCashFlowTTM")] public decimal? EvToFreeCashFlow { get; init; }
     /// <summary>Trailing-twelve-month <c>evToEBITDA</c>.</summary>
     /// <remarks>FMP spells the column <c>evToEBITDATTM</c>.</remarks>
-    public decimal? EvToEbitda { get; init; }
+    [JsonPropertyName("evToEBITDATTM")] public decimal? EvToEbitda { get; init; }
     /// <summary>Trailing-twelve-month <c>netDebtToEBITDA</c>.</summary>
     /// <remarks>FMP spells the column <c>netDebtToEBITDATTM</c>.</remarks>
-    public decimal? NetDebtToEbitda { get; init; }
+    [JsonPropertyName("netDebtToEBITDATTM")] public decimal? NetDebtToEbitda { get; init; }
     /// <summary>Trailing-twelve-month <c>currentRatio</c>.</summary>
-    public decimal? CurrentRatio { get; init; }
+    [JsonPropertyName("currentRatioTTM")] public decimal? CurrentRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>incomeQuality</c>.</summary>
-    public decimal? IncomeQuality { get; init; }
+    [JsonPropertyName("incomeQualityTTM")] public decimal? IncomeQuality { get; init; }
     /// <summary>Trailing-twelve-month <c>grahamNumber</c>.</summary>
-    public decimal? GrahamNumber { get; init; }
+    [JsonPropertyName("grahamNumberTTM")] public decimal? GrahamNumber { get; init; }
     /// <summary>Trailing-twelve-month <c>grahamNetNet</c>.</summary>
-    public decimal? GrahamNetNet { get; init; }
+    [JsonPropertyName("grahamNetNetTTM")] public decimal? GrahamNetNet { get; init; }
     /// <summary>Trailing-twelve-month <c>taxBurden</c>.</summary>
-    public decimal? TaxBurden { get; init; }
+    [JsonPropertyName("taxBurdenTTM")] public decimal? TaxBurden { get; init; }
     /// <summary>Trailing-twelve-month <c>interestBurden</c>.</summary>
-    public decimal? InterestBurden { get; init; }
+    [JsonPropertyName("interestBurdenTTM")] public decimal? InterestBurden { get; init; }
     /// <summary>Trailing-twelve-month <c>workingCapital</c>.</summary>
-    public decimal? WorkingCapital { get; init; }
+    [JsonPropertyName("workingCapitalTTM")] public decimal? WorkingCapital { get; init; }
     /// <summary>Trailing-twelve-month <c>investedCapital</c>.</summary>
-    public decimal? InvestedCapital { get; init; }
+    [JsonPropertyName("investedCapitalTTM")] public decimal? InvestedCapital { get; init; }
     /// <summary>Trailing-twelve-month <c>returnOnAssets</c>.</summary>
-    public decimal? ReturnOnAssets { get; init; }
+    [JsonPropertyName("returnOnAssetsTTM")] public decimal? ReturnOnAssets { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingReturnOnAssets</c>.</summary>
-    public decimal? OperatingReturnOnAssets { get; init; }
+    [JsonPropertyName("operatingReturnOnAssetsTTM")] public decimal? OperatingReturnOnAssets { get; init; }
     /// <summary>Trailing-twelve-month <c>returnOnTangibleAssets</c>.</summary>
-    public decimal? ReturnOnTangibleAssets { get; init; }
+    [JsonPropertyName("returnOnTangibleAssetsTTM")] public decimal? ReturnOnTangibleAssets { get; init; }
     /// <summary>Trailing-twelve-month <c>returnOnEquity</c>.</summary>
-    public decimal? ReturnOnEquity { get; init; }
+    [JsonPropertyName("returnOnEquityTTM")] public decimal? ReturnOnEquity { get; init; }
     /// <summary>Trailing-twelve-month <c>returnOnInvestedCapital</c>.</summary>
-    public decimal? ReturnOnInvestedCapital { get; init; }
+    [JsonPropertyName("returnOnInvestedCapitalTTM")] public decimal? ReturnOnInvestedCapital { get; init; }
     /// <summary>Trailing-twelve-month <c>returnOnCapitalEmployed</c>.</summary>
-    public decimal? ReturnOnCapitalEmployed { get; init; }
+    [JsonPropertyName("returnOnCapitalEmployedTTM")] public decimal? ReturnOnCapitalEmployed { get; init; }
     /// <summary>Trailing-twelve-month <c>earningsYield</c>.</summary>
-    public decimal? EarningsYield { get; init; }
+    [JsonPropertyName("earningsYieldTTM")] public decimal? EarningsYield { get; init; }
     /// <summary>Trailing-twelve-month <c>freeCashFlowYield</c>.</summary>
-    public decimal? FreeCashFlowYield { get; init; }
+    [JsonPropertyName("freeCashFlowYieldTTM")] public decimal? FreeCashFlowYield { get; init; }
     /// <summary>Trailing-twelve-month <c>capexToOperatingCashFlow</c>.</summary>
-    public decimal? CapexToOperatingCashFlow { get; init; }
+    [JsonPropertyName("capexToOperatingCashFlowTTM")] public decimal? CapexToOperatingCashFlow { get; init; }
     /// <summary>Trailing-twelve-month <c>capexToDepreciation</c>.</summary>
-    public decimal? CapexToDepreciation { get; init; }
+    [JsonPropertyName("capexToDepreciationTTM")] public decimal? CapexToDepreciation { get; init; }
     /// <summary>Trailing-twelve-month <c>capexToRevenue</c>.</summary>
-    public decimal? CapexToRevenue { get; init; }
+    [JsonPropertyName("capexToRevenueTTM")] public decimal? CapexToRevenue { get; init; }
     /// <summary>Trailing-twelve-month <c>salesGeneralAndAdministrativeToRevenue</c>.</summary>
-    public decimal? SalesGeneralAndAdministrativeToRevenue { get; init; }
+    [JsonPropertyName("salesGeneralAndAdministrativeToRevenueTTM")] public decimal? SalesGeneralAndAdministrativeToRevenue { get; init; }
     /// <summary>Trailing-twelve-month <c>researchAndDevelopementToRevenue</c>.</summary>
     /// <remarks>FMP spells the column <c>researchAndDevelopementToRevenueTTM</c>.</remarks>
-    public decimal? ResearchAndDevelopmentToRevenue { get; init; }
+    [JsonPropertyName("researchAndDevelopementToRevenueTTM")] public decimal? ResearchAndDevelopmentToRevenue { get; init; }
     /// <summary>Trailing-twelve-month <c>stockBasedCompensationToRevenue</c>.</summary>
-    public decimal? StockBasedCompensationToRevenue { get; init; }
+    [JsonPropertyName("stockBasedCompensationToRevenueTTM")] public decimal? StockBasedCompensationToRevenue { get; init; }
     /// <summary>Trailing-twelve-month <c>intangiblesToTotalAssets</c>.</summary>
-    public decimal? IntangiblesToTotalAssets { get; init; }
+    [JsonPropertyName("intangiblesToTotalAssetsTTM")] public decimal? IntangiblesToTotalAssets { get; init; }
     /// <summary>Trailing-twelve-month <c>averageReceivables</c>.</summary>
-    public decimal? AverageReceivables { get; init; }
+    [JsonPropertyName("averageReceivablesTTM")] public decimal? AverageReceivables { get; init; }
     /// <summary>Trailing-twelve-month <c>averagePayables</c>.</summary>
-    public decimal? AveragePayables { get; init; }
+    [JsonPropertyName("averagePayablesTTM")] public decimal? AveragePayables { get; init; }
     /// <summary>Trailing-twelve-month <c>averageInventory</c>.</summary>
-    public decimal? AverageInventory { get; init; }
+    [JsonPropertyName("averageInventoryTTM")] public decimal? AverageInventory { get; init; }
     /// <summary>Trailing-twelve-month <c>daysOfSalesOutstanding</c>.</summary>
-    public decimal? DaysOfSalesOutstanding { get; init; }
+    [JsonPropertyName("daysOfSalesOutstandingTTM")] public decimal? DaysOfSalesOutstanding { get; init; }
     /// <summary>Trailing-twelve-month <c>daysOfPayablesOutstanding</c>.</summary>
-    public decimal? DaysOfPayablesOutstanding { get; init; }
+    [JsonPropertyName("daysOfPayablesOutstandingTTM")] public decimal? DaysOfPayablesOutstanding { get; init; }
     /// <summary>Trailing-twelve-month <c>daysOfInventoryOutstanding</c>.</summary>
-    public decimal? DaysOfInventoryOutstanding { get; init; }
+    [JsonPropertyName("daysOfInventoryOutstandingTTM")] public decimal? DaysOfInventoryOutstanding { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingCycle</c>.</summary>
-    public decimal? OperatingCycle { get; init; }
+    [JsonPropertyName("operatingCycleTTM")] public decimal? OperatingCycle { get; init; }
     /// <summary>Trailing-twelve-month <c>cashConversionCycle</c>.</summary>
-    public decimal? CashConversionCycle { get; init; }
+    [JsonPropertyName("cashConversionCycleTTM")] public decimal? CashConversionCycle { get; init; }
     /// <summary>Trailing-twelve-month <c>freeCashFlowToEquity</c>.</summary>
-    public decimal? FreeCashFlowToEquity { get; init; }
+    [JsonPropertyName("freeCashFlowToEquityTTM")] public decimal? FreeCashFlowToEquity { get; init; }
     /// <summary>Trailing-twelve-month <c>freeCashFlowToFirm</c>.</summary>
-    public decimal? FreeCashFlowToFirm { get; init; }
+    [JsonPropertyName("freeCashFlowToFirmTTM")] public decimal? FreeCashFlowToFirm { get; init; }
     /// <summary>Trailing-twelve-month <c>tangibleAssetValue</c>.</summary>
-    public decimal? TangibleAssetValue { get; init; }
+    [JsonPropertyName("tangibleAssetValueTTM")] public decimal? TangibleAssetValue { get; init; }
     /// <summary>Trailing-twelve-month <c>netCurrentAssetValue</c>.</summary>
-    public decimal? NetCurrentAssetValue { get; init; }
+    [JsonPropertyName("netCurrentAssetValueTTM")] public decimal? NetCurrentAssetValue { get; init; }
 
     internal static KeyMetricsTtm FromCsv(CsvRow row) => new()
     {

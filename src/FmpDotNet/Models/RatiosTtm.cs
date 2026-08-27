@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Models;
@@ -14,130 +15,130 @@ namespace FmpDotNet.Models;
 public sealed record RatiosTtm
 {
     /// <summary>Ticker as FMP spells it.</summary>
-    public string Symbol { get; init; } = "";
+    [JsonPropertyName("symbol")] public string Symbol { get; init; } = "";
     /// <summary>Trailing-twelve-month <c>grossProfitMargin</c>.</summary>
-    public decimal? GrossProfitMargin { get; init; }
+    [JsonPropertyName("grossProfitMarginTTM")] public decimal? GrossProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>ebitMargin</c>.</summary>
-    public decimal? EbitMargin { get; init; }
+    [JsonPropertyName("ebitMarginTTM")] public decimal? EbitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>ebitdaMargin</c>.</summary>
-    public decimal? EbitdaMargin { get; init; }
+    [JsonPropertyName("ebitdaMarginTTM")] public decimal? EbitdaMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingProfitMargin</c>.</summary>
-    public decimal? OperatingProfitMargin { get; init; }
+    [JsonPropertyName("operatingProfitMarginTTM")] public decimal? OperatingProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>pretaxProfitMargin</c>.</summary>
-    public decimal? PretaxProfitMargin { get; init; }
+    [JsonPropertyName("pretaxProfitMarginTTM")] public decimal? PretaxProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>continuousOperationsProfitMargin</c>.</summary>
-    public decimal? ContinuousOperationsProfitMargin { get; init; }
+    [JsonPropertyName("continuousOperationsProfitMarginTTM")] public decimal? ContinuousOperationsProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>netProfitMargin</c>.</summary>
-    public decimal? NetProfitMargin { get; init; }
+    [JsonPropertyName("netProfitMarginTTM")] public decimal? NetProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>bottomLineProfitMargin</c>.</summary>
-    public decimal? BottomLineProfitMargin { get; init; }
+    [JsonPropertyName("bottomLineProfitMarginTTM")] public decimal? BottomLineProfitMargin { get; init; }
     /// <summary>Trailing-twelve-month <c>receivablesTurnover</c>.</summary>
-    public decimal? ReceivablesTurnover { get; init; }
+    [JsonPropertyName("receivablesTurnoverTTM")] public decimal? ReceivablesTurnover { get; init; }
     /// <summary>Trailing-twelve-month <c>payablesTurnover</c>.</summary>
-    public decimal? PayablesTurnover { get; init; }
+    [JsonPropertyName("payablesTurnoverTTM")] public decimal? PayablesTurnover { get; init; }
     /// <summary>Trailing-twelve-month <c>inventoryTurnover</c>.</summary>
-    public decimal? InventoryTurnover { get; init; }
+    [JsonPropertyName("inventoryTurnoverTTM")] public decimal? InventoryTurnover { get; init; }
     /// <summary>Trailing-twelve-month <c>fixedAssetTurnover</c>.</summary>
-    public decimal? FixedAssetTurnover { get; init; }
+    [JsonPropertyName("fixedAssetTurnoverTTM")] public decimal? FixedAssetTurnover { get; init; }
     /// <summary>Trailing-twelve-month <c>assetTurnover</c>.</summary>
-    public decimal? AssetTurnover { get; init; }
+    [JsonPropertyName("assetTurnoverTTM")] public decimal? AssetTurnover { get; init; }
     /// <summary>Trailing-twelve-month <c>currentRatio</c>.</summary>
-    public decimal? CurrentRatio { get; init; }
+    [JsonPropertyName("currentRatioTTM")] public decimal? CurrentRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>quickRatio</c>.</summary>
-    public decimal? QuickRatio { get; init; }
+    [JsonPropertyName("quickRatioTTM")] public decimal? QuickRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>solvencyRatio</c>.</summary>
-    public decimal? SolvencyRatio { get; init; }
+    [JsonPropertyName("solvencyRatioTTM")] public decimal? SolvencyRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>cashRatio</c>.</summary>
-    public decimal? CashRatio { get; init; }
+    [JsonPropertyName("cashRatioTTM")] public decimal? CashRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToEarningsRatio</c>.</summary>
-    public decimal? PriceToEarningsRatio { get; init; }
+    [JsonPropertyName("priceToEarningsRatioTTM")] public decimal? PriceToEarningsRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToEarningsGrowthRatio</c>.</summary>
-    public decimal? PriceToEarningsGrowthRatio { get; init; }
+    [JsonPropertyName("priceToEarningsGrowthRatioTTM")] public decimal? PriceToEarningsGrowthRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>forwardPriceToEarningsGrowthRatio</c>.</summary>
-    public decimal? ForwardPriceToEarningsGrowthRatio { get; init; }
+    [JsonPropertyName("forwardPriceToEarningsGrowthRatioTTM")] public decimal? ForwardPriceToEarningsGrowthRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToEarningsDilutedRatio</c>.</summary>
-    public decimal? PriceToEarningsDilutedRatio { get; init; }
+    [JsonPropertyName("priceToEarningsDilutedRatioTTM")] public decimal? PriceToEarningsDilutedRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToEarningsDilutedGrowthRatio</c>.</summary>
-    public decimal? PriceToEarningsDilutedGrowthRatio { get; init; }
+    [JsonPropertyName("priceToEarningsDilutedGrowthRatioTTM")] public decimal? PriceToEarningsDilutedGrowthRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToBookRatio</c>.</summary>
-    public decimal? PriceToBookRatio { get; init; }
+    [JsonPropertyName("priceToBookRatioTTM")] public decimal? PriceToBookRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToSalesRatio</c>.</summary>
-    public decimal? PriceToSalesRatio { get; init; }
+    [JsonPropertyName("priceToSalesRatioTTM")] public decimal? PriceToSalesRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToFreeCashFlowRatio</c>.</summary>
-    public decimal? PriceToFreeCashFlowRatio { get; init; }
+    [JsonPropertyName("priceToFreeCashFlowRatioTTM")] public decimal? PriceToFreeCashFlowRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToOperatingCashFlowRatio</c>.</summary>
-    public decimal? PriceToOperatingCashFlowRatio { get; init; }
+    [JsonPropertyName("priceToOperatingCashFlowRatioTTM")] public decimal? PriceToOperatingCashFlowRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>debtToAssetsRatio</c>.</summary>
-    public decimal? DebtToAssetsRatio { get; init; }
+    [JsonPropertyName("debtToAssetsRatioTTM")] public decimal? DebtToAssetsRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>debtToEquityRatio</c>.</summary>
-    public decimal? DebtToEquityRatio { get; init; }
+    [JsonPropertyName("debtToEquityRatioTTM")] public decimal? DebtToEquityRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>debtToCapitalRatio</c>.</summary>
-    public decimal? DebtToCapitalRatio { get; init; }
+    [JsonPropertyName("debtToCapitalRatioTTM")] public decimal? DebtToCapitalRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>longTermDebtToCapitalRatio</c>.</summary>
-    public decimal? LongTermDebtToCapitalRatio { get; init; }
+    [JsonPropertyName("longTermDebtToCapitalRatioTTM")] public decimal? LongTermDebtToCapitalRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>financialLeverageRatio</c>.</summary>
-    public decimal? FinancialLeverageRatio { get; init; }
+    [JsonPropertyName("financialLeverageRatioTTM")] public decimal? FinancialLeverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>workingCapitalTurnoverRatio</c>.</summary>
-    public decimal? WorkingCapitalTurnoverRatio { get; init; }
+    [JsonPropertyName("workingCapitalTurnoverRatioTTM")] public decimal? WorkingCapitalTurnoverRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingCashFlowRatio</c>.</summary>
-    public decimal? OperatingCashFlowRatio { get; init; }
+    [JsonPropertyName("operatingCashFlowRatioTTM")] public decimal? OperatingCashFlowRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingCashFlowSalesRatio</c>.</summary>
-    public decimal? OperatingCashFlowSalesRatio { get; init; }
+    [JsonPropertyName("operatingCashFlowSalesRatioTTM")] public decimal? OperatingCashFlowSalesRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>freeCashFlowOperatingCashFlowRatio</c>.</summary>
-    public decimal? FreeCashFlowOperatingCashFlowRatio { get; init; }
+    [JsonPropertyName("freeCashFlowOperatingCashFlowRatioTTM")] public decimal? FreeCashFlowOperatingCashFlowRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>debtServiceCoverageRatio</c>.</summary>
-    public decimal? DebtServiceCoverageRatio { get; init; }
+    [JsonPropertyName("debtServiceCoverageRatioTTM")] public decimal? DebtServiceCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>interestCoverageRatio</c>.</summary>
-    public decimal? InterestCoverageRatio { get; init; }
+    [JsonPropertyName("interestCoverageRatioTTM")] public decimal? InterestCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>shortTermOperatingCashFlowCoverageRatio</c>.</summary>
-    public decimal? ShortTermOperatingCashFlowCoverageRatio { get; init; }
+    [JsonPropertyName("shortTermOperatingCashFlowCoverageRatioTTM")] public decimal? ShortTermOperatingCashFlowCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingCashFlowCoverageRatio</c>.</summary>
-    public decimal? OperatingCashFlowCoverageRatio { get; init; }
+    [JsonPropertyName("operatingCashFlowCoverageRatioTTM")] public decimal? OperatingCashFlowCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>capitalExpenditureCoverageRatio</c>.</summary>
-    public decimal? CapitalExpenditureCoverageRatio { get; init; }
+    [JsonPropertyName("capitalExpenditureCoverageRatioTTM")] public decimal? CapitalExpenditureCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>dividendPaidAndCapexCoverageRatio</c>.</summary>
-    public decimal? DividendPaidAndCapexCoverageRatio { get; init; }
+    [JsonPropertyName("dividendPaidAndCapexCoverageRatioTTM")] public decimal? DividendPaidAndCapexCoverageRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>dividendPayoutRatio</c>.</summary>
-    public decimal? DividendPayoutRatio { get; init; }
+    [JsonPropertyName("dividendPayoutRatioTTM")] public decimal? DividendPayoutRatio { get; init; }
     /// <summary>Trailing-twelve-month <c>dividendYield</c>.</summary>
-    public decimal? DividendYield { get; init; }
+    [JsonPropertyName("dividendYieldTTM")] public decimal? DividendYield { get; init; }
     /// <summary>Trailing-twelve-month <c>enterpriseValue</c>.</summary>
-    public decimal? EnterpriseValue { get; init; }
+    [JsonPropertyName("enterpriseValueTTM")] public decimal? EnterpriseValue { get; init; }
     /// <summary>Trailing-twelve-month <c>revenuePerShare</c>.</summary>
-    public decimal? RevenuePerShare { get; init; }
+    [JsonPropertyName("revenuePerShareTTM")] public decimal? RevenuePerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>netIncomePerShare</c>.</summary>
-    public decimal? NetIncomePerShare { get; init; }
+    [JsonPropertyName("netIncomePerShareTTM")] public decimal? NetIncomePerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>interestDebtPerShare</c>.</summary>
-    public decimal? InterestDebtPerShare { get; init; }
+    [JsonPropertyName("interestDebtPerShareTTM")] public decimal? InterestDebtPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>cashPerShare</c>.</summary>
-    public decimal? CashPerShare { get; init; }
+    [JsonPropertyName("cashPerShareTTM")] public decimal? CashPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>bookValuePerShare</c>.</summary>
-    public decimal? BookValuePerShare { get; init; }
+    [JsonPropertyName("bookValuePerShareTTM")] public decimal? BookValuePerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>tangibleBookValuePerShare</c>.</summary>
-    public decimal? TangibleBookValuePerShare { get; init; }
+    [JsonPropertyName("tangibleBookValuePerShareTTM")] public decimal? TangibleBookValuePerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>shareholdersEquityPerShare</c>.</summary>
-    public decimal? ShareholdersEquityPerShare { get; init; }
+    [JsonPropertyName("shareholdersEquityPerShareTTM")] public decimal? ShareholdersEquityPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>operatingCashFlowPerShare</c>.</summary>
-    public decimal? OperatingCashFlowPerShare { get; init; }
+    [JsonPropertyName("operatingCashFlowPerShareTTM")] public decimal? OperatingCashFlowPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>capexPerShare</c>.</summary>
-    public decimal? CapexPerShare { get; init; }
+    [JsonPropertyName("capexPerShareTTM")] public decimal? CapexPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>freeCashFlowPerShare</c>.</summary>
-    public decimal? FreeCashFlowPerShare { get; init; }
+    [JsonPropertyName("freeCashFlowPerShareTTM")] public decimal? FreeCashFlowPerShare { get; init; }
     /// <summary>Trailing-twelve-month <c>netIncomePerEBT</c>.</summary>
     /// <remarks>FMP spells the column <c>netIncomePerEBTTTM</c>.</remarks>
-    public decimal? NetIncomePerEbt { get; init; }
+    [JsonPropertyName("netIncomePerEBTTTM")] public decimal? NetIncomePerEbt { get; init; }
     /// <summary>Trailing-twelve-month <c>ebtPerEbit</c>.</summary>
-    public decimal? EbtPerEbit { get; init; }
+    [JsonPropertyName("ebtPerEbitTTM")] public decimal? EbtPerEbit { get; init; }
     /// <summary>Trailing-twelve-month <c>priceToFairValue</c>.</summary>
-    public decimal? PriceToFairValue { get; init; }
+    [JsonPropertyName("priceToFairValueTTM")] public decimal? PriceToFairValue { get; init; }
     /// <summary>Trailing-twelve-month <c>debtToMarketCap</c>.</summary>
-    public decimal? DebtToMarketCap { get; init; }
+    [JsonPropertyName("debtToMarketCapTTM")] public decimal? DebtToMarketCap { get; init; }
     /// <summary>Trailing-twelve-month <c>effectiveTaxRate</c>.</summary>
-    public decimal? EffectiveTaxRate { get; init; }
+    [JsonPropertyName("effectiveTaxRateTTM")] public decimal? EffectiveTaxRate { get; init; }
     /// <summary>Trailing-twelve-month <c>enterpriseValueMultiple</c>.</summary>
-    public decimal? EnterpriseValueMultiple { get; init; }
+    [JsonPropertyName("enterpriseValueMultipleTTM")] public decimal? EnterpriseValueMultiple { get; init; }
     /// <summary>Trailing-twelve-month <c>dividendPerShare</c>.</summary>
-    public decimal? DividendPerShare { get; init; }
+    [JsonPropertyName("dividendPerShareTTM")] public decimal? DividendPerShare { get; init; }
 
     internal static RatiosTtm FromCsv(CsvRow row) => new()
     {

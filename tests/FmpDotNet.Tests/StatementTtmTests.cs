@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Models;

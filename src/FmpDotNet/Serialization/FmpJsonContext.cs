@@ -54,6 +54,14 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<EndOfDayBar>))]
 [JsonSerializable(typeof(List<AdjustedEndOfDayBar>))]
 [JsonSerializable(typeof(List<IntradayBar>))]
+// The five below were built for the *-bulk CSV surface and are registered here because their per-symbol JSON
+// twins carry the identical field set, measured 2026-08-27. They bind by [JsonPropertyName] rather than by
+// property name — see StatementReuseBindingTests for why that is not optional.
+[JsonSerializable(typeof(List<RatiosTtm>))]
+[JsonSerializable(typeof(List<KeyMetricsTtm>))]
+[JsonSerializable(typeof(List<IncomeStatementGrowth>))]
+[JsonSerializable(typeof(List<BalanceSheetGrowth>))]
+[JsonSerializable(typeof(List<CashFlowGrowth>))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and
 // BulkPriceTargetSummary parses it — through the source generator like everything else, because this assembly
 // declares IsAotCompatible and a reflection-based Deserialize would fail the build on IL2026/IL3050.
