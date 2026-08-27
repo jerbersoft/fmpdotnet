@@ -339,6 +339,12 @@ FMP keeps them apart, so the SDK does too.
 | Timeout | `RequestTimeout` (30 s) | `BulkRequestTimeout` (10 min) |
 | Errors | status codes | **also HTTP 200 with a JSON error body** |
 
+`PerMinuteCap` defaults to 660 because that is ~88% of **Premium's 750/min**, the lowest paid tier this SDK
+targets, and the emitted rate runs about 10% above target under real concurrency. The default is deliberately not
+tuned to the key you hold — one sized for a higher tier would trip 429s for everyone below it. **On a higher tier,
+raise it:** Ultimate allows 3,000/min, so leaving the default in place spends roughly a fifth of the budget you are
+paying for. `2640` keeps the same headroom on Ultimate.
+
 ## Upstream behaviour the SDK handles for you
 
 Measured against the live API on 2026-08-26 unless noted.
