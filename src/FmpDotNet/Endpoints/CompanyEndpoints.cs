@@ -334,18 +334,6 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         string symbol, int? limit = null, CancellationToken ct = default)
         => EmployeeCounts("stable/historical-employee-count", symbol, limit, ct);
 
-    /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
-    /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
-    /// the only difference, and each caller passes a literal.</summary>
-    private Task<IReadOnlyList<EmployeeCount>> EmployeeCounts(
-        string path, string symbol, int? limit, CancellationToken ct)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        return transport.GetListAsync(
-            new FmpRequest(path).With("symbol", symbol).With("limit", limit),
-            FmpJsonContext.Default.ListEmployeeCount, ct);
-    }
-
     /// <summary>Named officers for one issuer — <c>stable/key-executives</c>.
     ///
     /// <para>Measured 2026-08-27 across 18 symbols: <c>AAPL</c> answered 8 rows, <c>TSM</c> 10, <c>SPY</c>
@@ -366,6 +354,18 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         return transport.GetListAsync(
             new FmpRequest("stable/key-executives").With("symbol", symbol),
             FmpJsonContext.Default.ListKeyExecutive, ct);
+    }
+
+    /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
+    /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
+    /// the only difference, and each caller passes a literal.</summary>
+    private Task<IReadOnlyList<EmployeeCount>> EmployeeCounts(
+        string path, string symbol, int? limit, CancellationToken ct)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest(path).With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListEmployeeCount, ct);
     }
 
     /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
