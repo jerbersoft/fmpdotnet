@@ -34,6 +34,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<SymbolChange>))]
 [JsonSerializable(typeof(List<CikEntry>))]
 [JsonSerializable(typeof(List<DelistedCompany>))]
+[JsonSerializable(typeof(List<MarketCapitalization>))]
 [JsonSerializable(typeof(List<ScreenerResult>))]
 [JsonSerializable(typeof(List<SymbolSearchResult>))]
 [JsonSerializable(typeof(List<CikSearchResult>))]

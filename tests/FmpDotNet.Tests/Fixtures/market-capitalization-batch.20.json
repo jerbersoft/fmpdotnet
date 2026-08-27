@@ -1,0 +1,22 @@
+[
+  { "symbol": "AAPL",  "date": "2026-08-27", "marketCap": 4620348450480 },
+  { "symbol": "MSFT",  "date": "2026-08-27", "marketCap": 3750348283000 },
+  { "symbol": "GOOG",  "date": "2026-08-27", "marketCap": 4098415617064.9995 },
+  { "symbol": "GOOGL", "date": "2026-08-27", "marketCap": 4122584209576 },
+  { "symbol": "AMZN",  "date": "2026-08-27", "marketCap": 2756614446000 },
+  { "symbol": "META",  "date": "2026-08-27", "marketCap": 1454869580127 },
+  { "symbol": "NVDA",  "date": "2026-08-27", "marketCap": 5520208110000 },
+  { "symbol": "TSLA",  "date": "2026-08-27", "marketCap": 1401338910865 },
+  { "symbol": "BRK-B", "date": "2026-08-27", "marketCap": 1086407155802 },
+  { "symbol": "JPM",   "date": "2026-08-27", "marketCap": 949136032200 },
+  { "symbol": "XOM",   "date": "2026-08-27", "marketCap": 648400767000 },
+  { "symbol": "O",     "date": "2026-08-27", "marketCap": 57628067400 },
+  { "symbol": "TSM",   "date": "2026-08-27", "marketCap": 2216182904000 },
+  { "symbol": "SHOP",  "date": "2026-08-27", "marketCap": 200267047227 },
+  { "symbol": "KO",    "date": "2026-08-27", "marketCap": 383185008062 },
+  { "symbol": "T",     "date": "2026-08-27", "marketCap": 174324801600 },
+  { "symbol": "F",     "date": "2026-08-27", "marketCap": 55706713228 },
+  { "symbol": "SPY",   "date": "2026-08-27", "marketCap": 821383891304 },
+  { "symbol": "QQQ",   "date": "2026-08-27", "marketCap": 513816352537 },
+  { "symbol": "V",     "date": "2026-08-27", "marketCap": 708843144128 }
+]

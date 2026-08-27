@@ -1,5 +1,6 @@
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using NodaTime;
 
 namespace FmpDotNet.Endpoints;
 
@@ -147,5 +148,113 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         return transport.GetListAsync(
             new FmpRequest("stable/delisted-companies").With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListDelistedCompany, ct);
+    }
+
+    /// <summary>Latest market capitalisation for one symbol — <c>stable/market-capitalization</c>. Returns
+    /// <see langword="null"/> when FMP knows no such symbol.
+    ///
+    /// <para>A single-element array rather than an object, and an unknown symbol answers <c>[]</c> with HTTP 200
+    /// rather than a 404 — measured on <c>ZZZZNOPE</c>, 2026-08-27. "Not found" is a shape here, exactly as it is
+    /// for <see cref="GetProfileAsync"/>.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The row, or <see langword="null"/> when FMP has none.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public async Task<MarketCapitalization?> GetMarketCapAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/market-capitalization").With("symbol", symbol),
+            FmpJsonContext.Default.ListMarketCapitalization, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Latest market capitalisation for several symbols in one call —
+    /// <c>stable/market-capitalization-batch</c>.
+    ///
+    /// <para><b>The response is not positionally aligned with the request, and the endpoint gives no indication
+    /// of that.</b> Measured 2026-08-27 against the first 100 plain tickers of <c>stable/stock-list</c>: 100
+    /// requested, <b>99 returned</b>. The missing row is <c>WDSP</c> — a symbol FMP's own directory lists and
+    /// its market-cap endpoint has nothing for. <c>AAPL,ZZZZNOPE</c> behaves the same way, answering one row.
+    /// A caller that zips the request list against the response list corrupts every row after the first gap.
+    /// <b>Match rows by <see cref="MarketCapitalization.Symbol"/>.</b></para>
+    ///
+    /// <para><b>No upper bound on the batch size was found up to 500 symbols</b>, and the endpoint neither
+    /// errors nor truncates — 500 requested answered 499. That is why this method does not chunk and does not
+    /// enforce a cap: a chunk size would be invented rather than measured. An empty <c>symbols</c> answers
+    /// <b>400</b>, which is why the empty case is rejected here rather than sent.</para></summary>
+    /// <param name="symbols">The tickers. Blank entries are dropped; the rest are joined with commas as FMP
+    /// expects.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per symbol FMP had one for — possibly fewer than were asked for. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="symbols"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="symbols"/> contains no non-blank symbol.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<MarketCapitalization>> GetMarketCapBatchAsync(
+        IEnumerable<string> symbols, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(symbols);
+        var joined = string.Join(',', symbols.Where(s => !string.IsNullOrWhiteSpace(s)));
+        if (joined.Length == 0)
+            throw new ArgumentException("At least one non-blank symbol is required.", nameof(symbols));
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/market-capitalization-batch").With("symbols", joined),
+            FmpJsonContext.Default.ListMarketCapitalization, ct);
+    }
+
+    /// <summary>Market capitalisation over time for one symbol —
+    /// <c>stable/historical-market-capitalization</c>, newest first.
+    ///
+    /// <para><b>Called bare, this answers about three months rather than history.</b> Measured 2026-08-27 on
+    /// <c>AAPL</c>: 65 rows spanning <c>2026-05-27 → 2026-08-27</c>. A caller expecting "historical" to mean the
+    /// whole series gets a quarter of it and no error.</para>
+    ///
+    /// <para><b><paramref name="limit"/> cannot widen that window.</b> It clamps downward — <c>limit=5</c>
+    /// answers 5 — and is ignored upward: <c>limit=5000</c> and <c>limit=100000</c> both answered the same 65
+    /// rows. Only <paramref name="from"/> and <paramref name="to"/> reach further back.</para>
+    ///
+    /// <para><b>A range is capped at exactly 5,000 rows, and the cap keeps the newest.</b>
+    /// <c>from=2000-01-01</c> and <c>from=1990-01-01</c> both answered 5,000 rows starting <c>2006-10-11</c> —
+    /// the identical span, six years short of the earlier request. A caller asking for all history gets the most
+    /// recent 5,000 sessions with nothing to say anything was dropped. Reaching further means walking backwards
+    /// with <paramref name="to"/>; there is deliberately no helper for that here, because the walk is its own
+    /// decision rather than a rider on this method.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="from">Start of the range, inclusive. Optional — see the window note above.</param>
+    /// <param name="to">End of the range, inclusive. Optional.</param>
+    /// <param name="limit">Row cap. Clamps downward only.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The rows, newest first. Empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">Both ends of the range were supplied and
+    /// <paramref name="to"/> is earlier than <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<MarketCapitalization>> GetHistoricalMarketCapAsync(
+        string symbol, LocalDate? from = null, LocalDate? to = null, int? limit = null,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/historical-market-capitalization")
+                .With("symbol", symbol).With("from", from).With("to", to).With("limit", limit),
+            FmpJsonContext.Default.ListMarketCapitalization, ct);
+    }
+
+    /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
+    ///
+    /// <para>Nullable on both ends because the range is optional here, unlike on the chart endpoints: one end
+    /// alone cannot be backwards, so the guard fires only when both are supplied.</para></summary>
+    private static void ThrowIfBackwards(LocalDate? from, LocalDate? to)
+    {
+        if (from is { } start && to is { } end && end < start)
+            throw new ArgumentOutOfRangeException(
+                nameof(to), to, $"'to' must not be earlier than 'from' ({start:uuuu-MM-dd}).");
     }
 }

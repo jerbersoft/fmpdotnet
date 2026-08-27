@@ -1,0 +1,27 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-27",
+    "marketCap": 4625850192660
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-26",
+    "marketCap": 4605368826750
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-25",
+    "marketCap": 4553210398500
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-24",
+    "marketCap": 4559675105100
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-08-21",
+    "marketCap": 4545129515250
+  }
+]
