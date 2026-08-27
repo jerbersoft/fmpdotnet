@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Options;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 
@@ -64,6 +66,7 @@ public class StatementReuseBindingTests
             Binding.Fixture("balance-sheet-statement-growth.AAPL.json"), FmpJsonContext.Default.ListBalanceSheetGrowth)![0];
 
         Assert.Empty(Binding.Unbound(row));
+        Assert.NotNull(row.GrowthTotalAssets);
     }
 
     [Fact]
@@ -91,5 +94,102 @@ public class StatementReuseBindingTests
             JsonSerializer.Deserialize(quoted, FmpJsonContext.Default.ListIncomeStatementGrowth)![0].FiscalYear);
         Assert.Equal(2025,
             JsonSerializer.Deserialize(bare, FmpJsonContext.Default.ListIncomeStatementGrowth)![0].FiscalYear);
+    }
+
+    private static (StatementEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new StatementEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))), handler);
+    }
+
+    public static TheoryData<string, Func<StatementEndpoints, Task>> GrowthCalls => new()
+    {
+        { "stable/income-statement-growth", e => e.GetIncomeStatementGrowthAsync("AAPL") },
+        { "stable/balance-sheet-statement-growth", e => e.GetBalanceSheetGrowthAsync("AAPL") },
+        { "stable/cash-flow-statement-growth", e => e.GetCashFlowGrowthAsync("AAPL") },
+    };
+
+    [Theory]
+    [MemberData(nameof(GrowthCalls))]
+    public async Task Each_growth_path_goes_through_the_shared_periodic_shape(
+        string path, Func<StatementEndpoints, Task> call)
+    {
+        var (endpoints, handler) = Build();
+
+        await call(endpoints);
+
+        var uri = handler.Requests.Single();
+        Assert.Equal($"/{path}", uri.AbsolutePath);
+        Assert.Contains("symbol=AAPL", uri.Query);
+        Assert.Contains("period=annual", uri.Query);
+        Assert.Contains($"limit={StatementEndpoints.FullHistoryLimit}", uri.Query);
+    }
+
+    [Fact]
+    public async Task A_growth_row_arrives_through_the_endpoint_fully_bound()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("income-statement-growth.AAPL.json"));
+
+        var row = Assert.Single(await endpoints.GetIncomeStatementGrowthAsync("AAPL"));
+
+        Assert.Empty(Binding.Unbound(row));
+    }
+
+    [Theory]
+    [InlineData("stable/key-metrics-ttm")]
+    [InlineData("stable/ratios-ttm")]
+    public async Task The_ttm_snapshots_send_neither_period_nor_limit(string path)
+    {
+        // Measured 2026-08-27: each answers a single row and ignores both parameters. GetScoresAsync set the
+        // precedent — an endpoint that discards a parameter should not be sent one.
+        var (endpoints, handler) = Build();
+
+        if (path.EndsWith("key-metrics-ttm", StringComparison.Ordinal))
+            await endpoints.GetKeyMetricsTtmAsync("AAPL");
+        else
+            await endpoints.GetRatiosTtmAsync("AAPL");
+
+        var uri = handler.Requests.Single();
+        Assert.Equal($"/{path}", uri.AbsolutePath);
+        Assert.Contains("symbol=AAPL", uri.Query);
+        Assert.DoesNotContain("period=", uri.Query);
+        Assert.DoesNotContain("limit=", uri.Query);
+    }
+
+    [Fact]
+    public async Task A_ratios_ttm_snapshot_comes_back_as_one_record_not_a_list()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("ratios-ttm.AAPL.json"));
+
+        var row = await endpoints.GetRatiosTtmAsync("AAPL");
+
+        Assert.NotNull(row);
+        Assert.Empty(Binding.Unbound(row));
+    }
+
+    [Fact]
+    public async Task A_key_metrics_ttm_snapshot_comes_back_as_one_record_not_a_list()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("key-metrics-ttm.AAPL.json"));
+
+        var row = await endpoints.GetKeyMetricsTtmAsync("AAPL");
+
+        Assert.NotNull(row);
+        Assert.Empty(Binding.Unbound(row));
+    }
+
+    [Fact]
+    public async Task An_unknown_symbol_is_null_rather_than_an_exception_on_the_ttm_snapshots()
+    {
+        // FMP answers `[]` at HTTP 200 for an unknown symbol on all eleven list-shaped paths in this group,
+        // measured 2026-08-27 — "not found" is a shape here, not a status code. Same rule as GetScoresAsync.
+        var (endpoints, _) = Build("[]");
+
+        Assert.Null(await endpoints.GetRatiosTtmAsync("NOSUCHSYM"));
     }
 }

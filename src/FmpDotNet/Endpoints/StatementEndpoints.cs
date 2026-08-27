@@ -234,6 +234,123 @@ public sealed class StatementEndpoints(FmpTransport transport)
         return rows.Count > 0 ? rows[0] : null;
     }
 
+    /// <summary>Period-over-period growth of one income statement, newest first. From
+    /// <c>stable/income-statement-growth</c>.
+    ///
+    /// <para><b>Not the same fields as <see cref="GetFinancialGrowthAsync"/>.</b> That path answers FMP's own
+    /// summary growth set; this one answers a growth rate for every line of the income statement, 34 fields
+    /// whose names are the upstream's own — typos included. See <see cref="IncomeStatementGrowth"/>.</para>
+    ///
+    /// <para>Every figure is a <b>fraction, not a percentage</b>: 0.12 is twelve percent. FMP sends 0 where the
+    /// prior period was zero or absent, so a zero cannot be told apart from "no prior period to grow
+    /// from".</para>
+    ///
+    /// <para>The model is shared with <c>stable/income-statement-growth-bulk</c>: the JSON and CSV field sets
+    /// were compared name by name on 2026-08-27 and are identical.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work, including
+    /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IncomeStatementGrowth>> GetIncomeStatementGrowthAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/income-statement-growth", symbol, period, limit),
+            FmpJsonContext.Default.ListIncomeStatementGrowth, ct);
+
+    /// <summary>Period-over-period growth of one balance sheet, newest first — 56 fields. From
+    /// <c>stable/balance-sheet-statement-growth</c>.
+    ///
+    /// <para>Fractions, not percentages, with the same zero-means-two-things caveat as
+    /// <see cref="GetIncomeStatementGrowthAsync"/>. Model shared with the bulk CSV form; field sets compared name
+    /// by name on 2026-08-27 and identical.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<BalanceSheetGrowth>> GetBalanceSheetGrowthAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/balance-sheet-statement-growth", symbol, period, limit),
+            FmpJsonContext.Default.ListBalanceSheetGrowth, ct);
+
+    /// <summary>Period-over-period growth of one cash flow statement, newest first — 42 fields. From
+    /// <c>stable/cash-flow-statement-growth</c>.
+    ///
+    /// <para>Fractions, not percentages. Model shared with the bulk CSV form; field sets compared name by name on
+    /// 2026-08-27 and identical, <b>including FMP's spelling of
+    /// <c>growthNetCashProvidedByOperatingActivites</c></b> — one letter short of <c>Activities</c>. The C#
+    /// property corrects it; the wire name does not.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<CashFlowGrowth>> GetCashFlowGrowthAsync(
+        string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Periodic("stable/cash-flow-statement-growth", symbol, period, limit),
+            FmpJsonContext.Default.ListCashFlowGrowth, ct);
+
+    /// <summary>Trailing-twelve-month key metrics for one symbol, or null when FMP has none. From
+    /// <c>stable/key-metrics-ttm</c>.
+    ///
+    /// <para><b>One row, and <paramref name="symbol"/> is the only parameter.</b> Measured 2026-08-27, this path
+    /// answers a single-element array and ignores both <c>period</c> and <c>limit</c>, so neither is sent — the
+    /// same reasoning <see cref="GetScoresAsync"/> follows.</para>
+    ///
+    /// <para><b>There is no date on this response of any kind.</b> It describes the twelve months ending whenever
+    /// FMP last recomputed it, which the payload does not say. Two calls days apart are not comparable as a time
+    /// series and nothing in the data will tell you they differ — whoever stores this has to stamp it at fetch
+    /// time. See <see cref="KeyMetricsTtm"/>.</para>
+    ///
+    /// <para>Null means FMP answered <c>[]</c> at HTTP 200, which covers both "no such symbol" and "not
+    /// applicable to this security" and cannot distinguish them.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The snapshot, or <see langword="null"/> when FMP answered an empty array.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<KeyMetricsTtm?> GetKeyMetricsTtmAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/key-metrics-ttm").With("symbol", symbol),
+            FmpJsonContext.Default.ListKeyMetricsTtm, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Trailing-twelve-month financial ratios for one symbol, or null when FMP has none. From
+    /// <c>stable/ratios-ttm</c>.
+    ///
+    /// <para>The twin of <see cref="GetKeyMetricsTtmAsync"/> and carries the same three caveats: one row, no
+    /// <c>period</c> or <c>limit</c> (both accepted and ignored, measured 2026-08-27), and <b>no date field</b>,
+    /// so two calls days apart are not a series. See <see cref="RatiosTtm"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The snapshot, or <see langword="null"/> when FMP answered an empty array.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<RatiosTtm?> GetRatiosTtmAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/ratios-ttm").With("symbol", symbol),
+            FmpJsonContext.Default.ListRatiosTtm, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
     /// <summary>The <c>limit</c> the SDK sends when the caller asks for no limit, and the reason it sends one.
     ///
     /// <para><b>Without it FMP returns five rows.</b> Measured 2026-08-27, every per-symbol paged path in this
