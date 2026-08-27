@@ -27,10 +27,17 @@ namespace FmpDotNet.Tests;
 /// failure this file exists to prevent.</para></summary>
 public partial class EndpointCoverageTests
 {
-    /// <summary>FMP documents 263 APIs over 230 distinct paths — the asset-class sections (Indexes, Commodity,
-    /// Forex, Crypto) re-document <c>/stable/quote</c> and <c>/stable/historical-price-eod</c> rather than adding
-    /// endpoints. The denominator is the unique-path count, because that is what a client implements.</summary>
-    private const int DocumentedPaths = 230;
+    /// <summary>FMP documents 243 distinct <c>stable/</c> paths across 29 sections — the asset-class sections
+    /// (Indexes, Commodity, Forex, Crypto) re-document <c>/stable/quote</c> and <c>/stable/historical-price-eod</c>
+    /// rather than adding endpoints. The denominator is the unique-path count, because that is what a client
+    /// implements.
+    ///
+    /// <para>Enumerated 2026-08-27 from FMP's own documentation and cross-checked against an independent
+    /// third-party client, which reconcile exactly; see
+    /// <c>docs/superpowers/specs/2026-08-27-endpoint-inventory.md</c> for the per-section table, the provenance and
+    /// the method. This number was <c>230</c> from the project's start, carried on a prose comment and no evidence,
+    /// and it was an undercount by 13.</para></summary>
+    private const int DocumentedPaths = 243;
 
     private const string BeginMarker = "<!-- BEGIN GENERATED: endpoint coverage -->";
     private const string EndMarker = "<!-- END GENERATED: endpoint coverage -->";

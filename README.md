@@ -8,9 +8,11 @@ client. Types keep the `Fmp` prefix (`FmpClient`, `FmpOptions`, `FmpTransport`) 
 being spoken to, not the publisher.
 
 Built to be adopted by the `trader` repository, so build order follows what trader calls rather than what FMP
-documents first: FMP publishes 263 endpoints across 28 categories (230 unique paths — the asset-class sections
-re-document `/stable/quote` and friends). See [endpoint coverage](#endpoint-coverage) for exactly which of them
-are modelled, and how to reach the rest.
+documents first: FMP documents 243 unique `stable/` paths across 29 sections — the asset-class sections
+re-document `/stable/quote` and friends rather than adding endpoints. That count was
+[enumerated and cross-checked](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) against two independent
+sources on 2026-08-27. See [endpoint coverage](#endpoint-coverage) for exactly which of them are modelled, and how
+to reach the rest.
 
 ## Status
 
@@ -110,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**82 of FMP's 230 endpoint paths are modelled.**
+**82 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -248,22 +250,25 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **148 paths
-remain**, and they are not spread the way FMP's own section headings suggest. The largest groups are Statements
-(19), Company (13), SEC Filings (12), Market Performance (11) and News (10); Analyst, Calendar and the Indexes
-constituent lists carry 7 apiece.
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **161 paths
+remain**, of which **154 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
+spread the way FMP's own section headings suggest: the largest groups are Statements (19), Company (13), SEC
+Filings (12), Senate (12), Market Performance (11) and News (10); ETF & Mutual Funds and Technical Indicators carry
+9 apiece, Form 13F 8, and Analyst and Calendar 7 each.
 
-Split by asset class the balance is lopsided. **106 of the 148 are equity-only** — statements, filings, ownership,
-analyst opinion, corporate actions — against 42 that are shared or belong to another asset class. That is because
-what has been built so far is price plumbing, and one `GetQuoteAsync` serves equities, ETFs, indices, commodities,
-forex and crypto alike: the breadth came free, and the equity depth is the part still to build.
+The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
+— Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
+and crypto alike, so the asset-class breadth came free while the equity depth never got built. The
+[endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
+section and marks which side of that line each falls on.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
 `stable/quote` and `stable/historical-price-eod` re-documented, which `fmp.Quote` and `fmp.Chart` already reach.
 `GetQuoteAsync("BTCUSD")`, `GetQuoteAsync("EURUSD")`, `GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were
-each measured returning the ordinary seventeen-field quote. That is why 230 unique paths back FMP's 263 documented
-APIs, and why the denominator here is the smaller number.
+each measured returning the ordinary seventeen-field quote. That re-documentation is why the denominator here is
+the unique-path count rather than the larger number of documented API pages.
 
 **`FmpTransport` is public precisely so none of that blocks you.** Reach an unmodelled endpoint through it rather
 than building a second `HttpClient`: the transport carries the throttle, the timeout, the 429 handling and the
