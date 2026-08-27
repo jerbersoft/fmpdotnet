@@ -209,7 +209,7 @@ Then append these three tests to the class:
     [InlineData(FiscalPeriod.Q2, "period=Q2")]
     [InlineData(FiscalPeriod.Q3, "period=Q3")]
     [InlineData(FiscalPeriod.Q4, "period=Q4")]
-    public async Task All_five_period_values_reach_the_wire(FiscalPeriod period, string expected)
+    public async Task All_six_period_values_reach_the_wire(FiscalPeriod period, string expected)
     {
         var (endpoints, handler) = Build();
 
