@@ -274,6 +274,26 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListMarketCapitalization, ct);
     }
 
+    /// <summary>Comparable companies for one symbol — <c>stable/stock-peers</c>.
+    ///
+    /// <para>Measured 2026-08-27: <c>AAPL</c> answered 9 rows, <c>JPM</c> and <c>SPY</c> 10 each. ETFs get peers
+    /// too, so this is not equity-only. An unknown symbol answers <c>[]</c> with HTTP 200.</para>
+    ///
+    /// <para>FMP does not document how the peer set is chosen and the SDK does not guess — see
+    /// <see cref="StockPeer"/> for the field-level surprise this endpoint carries.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The peers, in FMP's order. Empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<StockPeer>> GetPeersAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/stock-peers").With("symbol", symbol),
+            FmpJsonContext.Default.ListStockPeer, ct);
+    }
+
     /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
     ///
     /// <para>Nullable on both ends because the range is optional here, unlike on the chart endpoints: one end

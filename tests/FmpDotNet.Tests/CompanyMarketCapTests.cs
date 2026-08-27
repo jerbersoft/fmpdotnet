@@ -163,4 +163,29 @@ public class CompanyMarketCapTests
         await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetHistoricalMarketCapAsync(symbol));
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task Peers_map_fmps_mktCap_spelling_onto_MarketCap()
+    {
+        // stock-peers is the only endpoint in the Company group that spells this `mktCap` rather than
+        // `marketCap`. Without the [JsonPropertyName] the property binds null and nothing throws.
+        var (endpoints, _) = Build(StubHandler.Json(Binding.Fixture("stock-peers.AAPL.json")));
+
+        var peers = await endpoints.GetPeersAsync("AAPL");
+
+        Assert.Equal(9, peers.Count);
+        var googl = Assert.Single(peers, p => p.Symbol == "GOOGL");
+        Assert.Equal("Alphabet Inc.", googl.CompanyName);
+        Assert.Equal(340.65m, googl.Price);
+        Assert.Equal(4122584209576m, googl.MarketCap);
+        Assert.All(peers, p => Assert.NotNull(p.MarketCap));
+    }
+
+    [Fact]
+    public async Task Peers_of_an_unknown_symbol_are_empty_not_an_error()
+    {
+        var (endpoints, _) = Build(StubHandler.Json("[]"));
+
+        Assert.Empty(await endpoints.GetPeersAsync("ZZZZNOPE"));
+    }
 }
