@@ -110,8 +110,34 @@ public class SearchEndpointsTests
         Assert.Contains("exchange=NASDAQ", handler.Requests[1].Query, StringComparison.Ordinal);
     }
 
+    public static TheoryData<int, Func<SearchEndpoints, int, Task>> NonPositiveLimitCalls => new()
+    {
+        // FindBySymbolAsync and FindByNameAsync share QueryAsync's limit guard, but both are proven rather than
+        // assumed from the one already covered — the same reasoning BlankRejectingCalls uses for query.
+        { 0, (e, l) => e.FindBySymbolAsync("AAPL", limit: l) },
+        { -1, (e, l) => e.FindBySymbolAsync("AAPL", limit: l) },
+        { 0, (e, l) => e.FindByNameAsync("AAPL", limit: l) },
+        { -1, (e, l) => e.FindByNameAsync("AAPL", limit: l) },
+    };
+
+    [Theory]
+    [MemberData(nameof(NonPositiveLimitCalls))]
+    public async Task A_non_positive_limit_is_rejected_before_it_costs_a_call(
+        int limit, Func<SearchEndpoints, int, Task> call)
+    {
+        var (endpoints, handler) = Build("[]");
+
+        var ex = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => call(endpoints, limit));
+
+        // ParamName must read "limit", not the CallerArgumentExpression-captured "limit.Value" a bare
+        // ThrowIfNegativeOrZero(limit.Value) would produce — a caller filtering on e.ParamName == "limit" would
+        // otherwise miss this exception silently.
+        Assert.Equal("limit", ex.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
     [Fact]
-    public async Task The_identifier_searches_do_not_offer_a_limit_that_does_nothing()
+    public void The_identifier_searches_do_not_offer_a_limit_that_does_nothing()
     {
         // search-cusip and search-isin ignore `limit` — measured 4 -> 4 and 5 -> 5 on 2026-08-27. The guarantee is
         // that no overload offers one, which is a compile-time fact: these calls take exactly (string, ct).
@@ -120,7 +146,6 @@ public class SearchEndpointsTests
 
         Assert.Equal(["cusip", "ct"], cusip.GetParameters().Select(p => p.Name));
         Assert.Equal(["isin", "ct"], isin.GetParameters().Select(p => p.Name));
-        await Task.CompletedTask;
     }
 
     public static TheoryData<string, Func<SearchEndpoints, Task<int>>> Lookups => new()
@@ -190,7 +215,7 @@ public class SearchEndpointsTests
     }
 
     [Fact]
-    public async Task An_exchange_variant_is_not_a_company_profile()
+    public void An_exchange_variant_is_not_a_company_profile()
     {
         // The two shapes have 36 fields each and 29 in common, so a reader comparing counts would conclude they
         // are interchangeable. These four wire keys are the ones that differ, and binding CompanyProfile to this
@@ -209,7 +234,6 @@ public class SearchEndpointsTests
         // And the field only this endpoint carries.
         Assert.Contains("dcf", variant);
         Assert.DoesNotContain("dcf", profile);
-        await Task.CompletedTask;
     }
 
     [Fact]

@@ -68,6 +68,7 @@ public sealed class SearchEndpoints(FmpTransport transport)
     /// <returns>The matches in FMP's order. Empty when nothing matched — and also empty when the query was not
     /// understood, which this endpoint does not distinguish. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="query"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -87,6 +88,7 @@ public sealed class SearchEndpoints(FmpTransport transport)
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The matches in FMP's order. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="query"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -200,7 +202,7 @@ public sealed class SearchEndpoints(FmpTransport transport)
         string path, string query, int? limit, string? exchange, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(query);
-        if (limit is not null) ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit.Value);
+        if (limit is not null) ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit.Value, nameof(limit));
         return transport.GetListAsync(
             new FmpRequest(path).With("query", query).With("limit", limit).With("exchange", exchange),
             FmpJsonContext.Default.ListSymbolSearchResult, ct);
