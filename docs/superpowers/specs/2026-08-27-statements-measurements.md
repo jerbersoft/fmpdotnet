@@ -73,6 +73,19 @@ segment-name-to-number, even though it arrives in the same envelope.
 five rows out of a history up to 164 deep. There is no server cap above that: `limit=1000`,
 `limit=10000` and `limit=100000` all return the same true total.
 
+**This already affects the eight paths the SDK ships.** `Periodic()` omits `limit` when the caller
+passes none, so `GetIncomeStatementAsync("AAPL")` sends no limit and FMP answers 5. Measured
+2026-08-27, AAPL annual, no limit versus `limit=100000`:
+
+```
+income-statement 5/41   balance-sheet-statement 5/41   cash-flow-statement 5/37   ratios 5/41
+key-metrics      5/41   financial-growth        5/41   enterprise-values   5/41
+```
+
+Nothing in those methods' XML documentation mentions it, and no `<param>` tag describes `limit` at
+all. A caller asking for a company's history gets the last five periods and no indication that the
+other thirty-six exist.
+
 **`revenue-*-segmentation` and `financial-reports-dates` ignore `limit` entirely** and always
 transfer the full set — the behaviour already recorded for `etf-list` and its siblings.
 
