@@ -1,0 +1,8 @@
+[
+  { "symbol": "TOELY", "companyName": "Tokyo Electron Limited",
+    "tradingCurrency": "USD", "reportingCurrency": "JPY" },
+  { "symbol": "AAPL", "companyName": "Apple Inc.",
+    "tradingCurrency": "USD", "reportingCurrency": "USD" },
+  { "symbol": "NOCUR", "companyName": "No Reporting Currency Corp.",
+    "tradingCurrency": "USD", "reportingCurrency": null }
+]

@@ -157,4 +157,89 @@ public class DirectoryListsTests
 
         Assert.Equal(path, handler.Requests.Single().AbsolutePath);
     }
+
+    [Fact]
+    public async Task An_exchange_delay_is_kept_as_the_prose_fmp_sends()
+    {
+        var (endpoints, _) = Build(Fixture("available-exchanges.json"));
+
+        var exchanges = await endpoints.GetExchangesAsync();
+
+        // Free text, not a duration. Four spellings measured across 63 rows — "Real-time", "20 min", "15 min",
+        // "10 min" — with no published mapping, so parsing to a Duration would mean inventing one.
+        Assert.Equal("Real-time", exchanges[0].Delay);
+        Assert.Equal("20 min", exchanges[1].Delay);
+    }
+
+    [Fact]
+    public async Task An_exchange_with_no_delay_reads_as_null()
+    {
+        var (endpoints, _) = Build(Fixture("available-exchanges.json"));
+
+        var exchanges = await endpoints.GetExchangesAsync();
+
+        // FSX was the only one of 63 with a null delay on 2026-08-27.
+        Assert.Equal("FSX", exchanges[3].Exchange);
+        Assert.Null(exchanges[3].Delay);
+    }
+
+    [Fact]
+    public async Task A_symbol_suffix_of_not_applicable_arrives_as_that_literal_string()
+    {
+        var (endpoints, _) = Build(Fixture("available-exchanges.json"));
+
+        var exchanges = await endpoints.GetExchangesAsync();
+
+        // 5 of 63 rows carry the literal "N/A" rather than null. The SDK does not normalise it — see the model —
+        // so this test exists to make the hazard visible rather than to assert a fix.
+        Assert.Equal("N/A", exchanges[0].SymbolSuffix);
+        Assert.Equal(".AX", exchanges[1].SymbolSuffix);
+    }
+
+    [Fact]
+    public async Task A_statement_symbol_distinguishes_trading_from_reporting_currency()
+    {
+        var (endpoints, _) = Build(Fixture("financial-statement-symbol-list.head.json"));
+
+        var symbols = await endpoints.GetFinancialStatementSymbolsAsync();
+
+        // TOELY trades in USD and reports in JPY. Reading either field as "the currency" is wrong for one of them.
+        Assert.Equal("USD", symbols[0].TradingCurrency);
+        Assert.Equal("JPY", symbols[0].ReportingCurrency);
+        // Null on 149 of 68,200 measured rows.
+        Assert.Null(symbols[2].ReportingCurrency);
+    }
+
+    [Fact]
+    public async Task A_transcript_count_arrives_as_a_string_and_reads_as_a_number()
+    {
+        var (endpoints, _) = Build(Fixture("earnings-transcript-list.head.json"));
+
+        var symbols = await endpoints.GetTranscriptSymbolsAsync();
+
+        // The wire sends "6", quoted, on all 11,178 rows. This passes only because FmpJsonContext sets
+        // NumberHandling = AllowReadingFromString — load-bearing here rather than incidental.
+        Assert.Equal(6, symbols[0].TranscriptCount);
+        Assert.Equal(16, symbols[1].TranscriptCount);
+    }
+
+    public static TheoryData<string, Func<DirectoryEndpoints, Task>> ReferenceCalls => new()
+    {
+        { "/stable/available-countries", e => e.GetCountriesAsync() },
+        { "/stable/available-exchanges", e => e.GetExchangesAsync() },
+        { "/stable/financial-statement-symbol-list", e => e.GetFinancialStatementSymbolsAsync() },
+        { "/stable/earnings-transcript-list", e => e.GetTranscriptSymbolsAsync() },
+    };
+
+    [Theory]
+    [MemberData(nameof(ReferenceCalls))]
+    public async Task Each_reference_list_asks_for_the_path_fmp_serves(
+        string path, Func<DirectoryEndpoints, Task> call)
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await call(endpoints);
+
+        Assert.Equal(path, handler.Requests.Single().AbsolutePath);
+    }
 }

@@ -66,7 +66,8 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     ///
     /// <para><b>Codes, not names.</b> The wire key is <c>country</c> and the values are <c>"FK"</c>, <c>"MT"</c>,
     /// <c>"SG"</c> — two characters on every measured row. A caller rendering these to a user needs a lookup;
-    /// <c>GetExchangesAsync</c> carries both spellings of the same fact and is the cheapest join for it.</para>
+    /// <see cref="GetExchangesAsync(CancellationToken)"/> carries both spellings of the same fact and is the
+    /// cheapest join for it.</para>
     ///
     /// <para>Ignores <c>limit</c>, like every list endpoint in this group except <c>cik-list</c> and
     /// <c>symbol-change</c>. Order is the wire order, unsorted — see <see cref="Labels{T}"/>.</para></summary>
@@ -218,6 +219,58 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListActivelyTradingRow, ct).ConfigureAwait(false);
         return Symbols(rows, static r => r.Symbol, static r => r.Name);
     }
+
+    /// <summary>Every exchange FMP carries, with its country, symbol suffix and quote delay — 63 measured
+    /// 2026-08-27, the whole set.
+    ///
+    /// <para><b>This is the vocabulary to validate an exchange code against.</b>
+    /// <see cref="QuoteEndpoints.GetExchangeQuotesAsync"/> answers an unrecognised exchange with an empty array
+    /// and HTTP 200, not an error, so a typo there is indistinguishable from an exchange that went dark.</para>
+    ///
+    /// <para><see cref="ExchangeInfo.Delay"/> is prose, not a duration, and
+    /// <see cref="ExchangeInfo.SymbolSuffix"/> is the literal <c>"N/A"</c> on five rows — see those properties.
+    /// Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<ExchangeInfo>> GetExchangesAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/available-exchanges"), FmpJsonContext.Default.ListExchangeInfo, ct);
+
+    /// <summary>Every symbol FMP holds financial statements for — 68,200 measured 2026-08-27, 5.6 MB of JSON.
+    ///
+    /// <para><b>A strict subset of <see cref="GetStockListAsync(CancellationToken)"/>.</b> None of the 68,200 fell
+    /// outside that endpoint's 91,845, so the 23,645-symbol difference is exactly the set FMP lists but has no
+    /// fundamentals for — the question to ask before calling
+    /// <see cref="StatementEndpoints.GetIncomeStatementAsync"/> across a universe and reading empty results as
+    /// "no data this period".</para>
+    ///
+    /// <para>Carries the reporting currency as well as the trading one, and they differ — see
+    /// <see cref="FinancialStatementSymbol.ReportingCurrency"/>. Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<FinancialStatementSymbol>> GetFinancialStatementSymbolsAsync(
+        CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/financial-statement-symbol-list"),
+            FmpJsonContext.Default.ListFinancialStatementSymbol, ct);
+
+    /// <summary>Every symbol FMP holds an earnings-call transcript for, with the count — 11,178 measured
+    /// 2026-08-27.
+    ///
+    /// <para>A directory rather than content: it says which symbols have transcripts and how many, not what any
+    /// of them says. <b>The transcripts themselves are not modelled</b> — three further paths in issue #25's long
+    /// tail.</para>
+    ///
+    /// <para>The count arrives as a quoted string on every row; see
+    /// <see cref="TranscriptSymbol.TranscriptCount"/>. Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<TranscriptSymbol>> GetTranscriptSymbolsAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/earnings-transcript-list"), FmpJsonContext.Default.ListTranscriptSymbol, ct);
 
     /// <summary>Unwraps the two directory row shapes into <see cref="CompanySymbol"/>. Written once so the pair
     /// cannot drift apart on the judgement calls below, the same way <see cref="Labels{T}"/> serves the

@@ -1,0 +1,10 @@
+[
+  { "exchange": "AMEX", "name": "New York Stock Exchange Arca", "countryName": "United States of America",
+    "countryCode": "US", "symbolSuffix": "N/A", "delay": "Real-time" },
+  { "exchange": "ASX", "name": "Australian Securities Exchange", "countryName": "Australia",
+    "countryCode": "AU", "symbolSuffix": ".AX", "delay": "20 min" },
+  { "exchange": "ATH", "name": "Athens Stock Exchange", "countryName": "Greece",
+    "countryCode": "GR", "symbolSuffix": ".AT", "delay": "15 min" },
+  { "exchange": "FSX", "name": "Frankfurt Stock Exchange", "countryName": "Germany",
+    "countryCode": "DE", "symbolSuffix": ".F", "delay": null }
+]

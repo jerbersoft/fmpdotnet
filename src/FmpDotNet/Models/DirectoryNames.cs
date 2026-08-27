@@ -73,8 +73,8 @@ internal sealed record ActivelyTradingRow
 ///
 /// <para><b>These are codes, not names.</b> The key is spelled <c>country</c>, which reads like a name, and every
 /// measured value is a two-letter code. <c>available-exchanges</c> carries both spellings for the same fact —
-/// <c>ExchangeInfo.CountryCode</c> and <c>ExchangeInfo.CountryName</c> — so a caller who needs display text can
-/// join against that rather than shipping its own table.</para></summary>
+/// <see cref="ExchangeInfo.CountryCode"/> and <see cref="ExchangeInfo.CountryName"/> — so a caller who needs
+/// display text can join against that rather than shipping its own table.</para></summary>
 internal sealed record CountryName
 {
     /// <summary>The ISO alpha-2 code. See <see cref="SectorName.Sector"/> for why it is nullable.</summary>
