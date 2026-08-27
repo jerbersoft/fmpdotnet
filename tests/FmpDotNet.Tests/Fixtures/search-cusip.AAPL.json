@@ -1,0 +1,6 @@
+[
+  { "symbol": "AAPL.MX", "companyName": "Apple Inc.", "cusip": "037833100",
+    "marketCap": 78694853448000 },
+  { "symbol": "AAPL", "companyName": "Apple Inc.", "cusip": "037833100",
+    "marketCap": 4537071141960 }
+]

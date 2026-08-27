@@ -43,17 +43,24 @@ jobs:
     runs-on: ubuntu-latest
     # Generous, because the bulk tier is deliberately slow: the SDK's bulk token bucket refills at two calls a
     # minute, so twenty probes are about eight minutes of mostly waiting (measured 2026-08-26: 8 m 4 s). The
-    # ordinary tier is not throttled that way and takes seconds — 49 endpoints in 13 s, measured 2026-08-27.
+    # ordinary tier is not throttled that way and takes seconds — 67 endpoints in 17 s, measured 2026-08-27.
     #
     # That tier grew from 21 endpoints to 49 when Quote and Chart landed (#24), and from 5 s to 13. Most of the
     # added time is bytes rather than requests: seven of the new endpoints download a whole asset class, and the
     # full-shape ETF quote alone is 6.6 MB. Probing them anyway is deliberate — an endpoint the sweep skips is an
     # endpoint whose renamed field goes unnoticed until a consumer hits it.
     #
+    # It grew again, from 49 to 67, when Directory and Search landed (#25) — 17 new paths, but 18 new methods:
+    # cik-list gets both a paged GetCikListAsync and a walking StreamCikListAsync — and from 13 s to 17. Four of
+    # the eighteen are whole-universe downloads too — financial-statement-symbol-list (68,200 rows), etf-list
+    # (14,567), earnings-transcript-list (11,178) and cryptocurrency-list (4,793) — so, as before, this growth is
+    # bytes rather than requests.
+    #
     # The margin is not padding. A 200-row bulk sample, tried once, took 2 h 39 m; the sample is back down to 25
     # for exactly that reason (see Probe.StreamSample). If a run ever approaches this ceiling, the sample size or
     # FMP's bulk throughput has changed, and killing the job is the right answer — a bulk sweep that runs for
-    # hours is spending the key's standing with FMP the whole time.
+    # hours is spending the key's standing with FMP the whole time. 17 s of ordinary work does not move that
+    # ceiling, so it stays at 25.
     timeout-minutes: 25
 
     env:

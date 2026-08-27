@@ -297,6 +297,10 @@ internal static class Probe
             return parameter.Name switch
             {
                 "exchange" => LiveApi.Exchange,
+                "cik" => LiveApi.Cik,
+                "cusip" => LiveApi.Cusip,
+                "isin" => LiveApi.Isin,
+                "query" => LiveApi.SearchQuery,
                 _ => LiveApi.Symbol,
             };
 

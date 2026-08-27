@@ -63,3 +63,20 @@ internal sealed record ActivelyTradingRow
     /// <see cref="StockListRow.CompanyName"/>.</summary>
     [JsonPropertyName("name")] public string? Name { get; init; }
 }
+
+/// <summary>One row of <c>stable/available-countries</c>: an ISO 3166-1 alpha-2 country code wrapped in a
+/// single-property object.
+///
+/// <para>The same packaging as <see cref="SectorName"/> and <see cref="IndustryName"/> under a third key —
+/// <c>[{"country":"FK"}, …]</c>, 117 rows measured 2026-08-27 — and unwrapped in the same place and for the same
+/// reason, so it is <see langword="internal"/> too.</para>
+///
+/// <para><b>These are codes, not names.</b> The key is spelled <c>country</c>, which reads like a name, and every
+/// measured value is a two-letter code. <c>available-exchanges</c> carries both spellings for the same fact —
+/// <see cref="ExchangeInfo.CountryCode"/> and <see cref="ExchangeInfo.CountryName"/> — so a caller who needs
+/// display text can join against that rather than shipping its own table.</para></summary>
+internal sealed record CountryName
+{
+    /// <summary>The ISO alpha-2 code. See <see cref="SectorName.Sector"/> for why it is nullable.</summary>
+    [JsonPropertyName("country")] public string? Country { get; init; }
+}

@@ -1,0 +1,6 @@
+[
+  { "symbol": "AAPL", "name": "Apple Inc.", "currency": "USD",
+    "exchangeFullName": "NASDAQ Global Select", "exchange": "NASDAQ" },
+  { "symbol": "APC.F", "name": "Apple Inc.", "currency": "EUR",
+    "exchangeFullName": "Frankfurt Stock Exchange", "exchange": "FSX" }
+]

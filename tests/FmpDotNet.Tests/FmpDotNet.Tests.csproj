@@ -16,8 +16,13 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
-  <!-- Real FMP responses, captured live on 2026-08-26 and trimmed to a few rows each. They are the
-       evidence behind the model shapes, so the tests read them rather than hand-written JSON.
+  <!-- Real FMP responses, captured live on 2026-08-26 (initial coverage) and 2026-08-27 (directory and
+       search) and trimmed to a few rows each. They are the evidence behind the model shapes, so the
+       tests read them rather than hand-written JSON. A small number of fixtures carry one constructed
+       row standing in for a measured edge case the head of the live response did not happen to contain
+       — e.g. financial-statement-symbol-list.head.json's NOCUR row for a null reportingCurrency, and
+       cryptocurrency-list.overflow.json's NULLSUPPLYUSD row for a null totalSupply — both counts are
+       measured and recorded in the model's XML doc, only the specific row is synthesised.
        The CSV glob is here because the bulk endpoints do not answer JSON: profile-bulk.part0.head.csv
        is the first rows of a 30.4 MB part, header intact, and it is the only record of the 36-column
        shape a caller would otherwise have to take on trust. -->
