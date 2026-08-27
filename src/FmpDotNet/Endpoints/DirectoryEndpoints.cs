@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 
@@ -305,6 +306,83 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         transport.GetListAsync(
             new FmpRequest("stable/symbol-change").With("limit", SymbolChangeRequestLimit),
             FmpJsonContext.Default.ListSymbolChange, ct);
+
+    /// <summary>The largest page <c>stable/cik-list</c> will serve, measured rather than documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>: on 2026-08-27 <c>limit=10000</c>, <c>limit=50000</c> and
+    /// <c>limit=200000</c> all answered exactly 10,000 rows. A caller who asks for 50,000 and advances the page
+    /// index by 50,000 skips four fifths of the registry and never sees an error, so
+    /// <see cref="GetCikListAsync(int, int, CancellationToken)"/> rejects a larger <c>limit</c> rather than
+    /// passing it on to be clamped — the same treatment
+    /// <see cref="CompanyEndpoints.MaxDelistedPageSize"/> gives the delisted archive.</para></summary>
+    public const int MaxCikListPageSize = 10_000;
+
+    /// <summary>One page of <c>stable/cik-list</c> — the SEC registrant index, about 512,665 entries measured
+    /// 2026-08-27 across 52 pages.
+    ///
+    /// <para><b>Not a symbol directory.</b> Most registrants have no ticker, and some are people — see
+    /// <see cref="CikEntry"/>. Ordered by CIK descending, so page 0 is the most recently assigned.</para>
+    ///
+    /// <para><b><c>page</c> works here, unlike on <see cref="GetSymbolChangesAsync(CancellationToken)"/>.</b> The
+    /// two endpoints sit in the same group and disagree: page 0 and page 1 of this one start at
+    /// <c>0002150676</c> and <c>0002150170</c> respectively, while <c>symbol-change</c> answers both with
+    /// identical rows. Nothing in either payload says which behaviour you are getting.</para>
+    ///
+    /// <para>The walk ends short rather than empty: page 51 carried 2,665 rows and page 52 answered <c>[]</c>.
+    /// Either terminator works; <see cref="StreamCikListAsync(CancellationToken)"/> stops at the first short page
+    /// and saves a request.</para></summary>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxCikListPageSize"/>. Required rather than defaulted,
+    /// matching <see cref="CompanyEndpoints.GetDelistedAsync"/>: the page size and the page index have to agree
+    /// for a walk to be complete, and a default would let them disagree invisibly.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's rows in FMP's order. Empty past the end. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative, or
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxCikListPageSize"/> — see that constant for why the
+    /// upper bound is enforced here rather than silently clamped upstream.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<CikEntry>> GetCikListAsync(int page, int limit, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxCikListPageSize);
+        return transport.GetListAsync(
+            new FmpRequest("stable/cik-list").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListCikEntry, ct);
+    }
+
+    /// <summary>Walks <c>stable/cik-list</c> from page 0 and streams every registrant as one sequence — about
+    /// 512,665 rows over 52 requests, measured 2026-08-27.
+    ///
+    /// <para><b>The termination rule is sound here, unlike the bulk walks.</b> This endpoint answers a page past
+    /// the end with an empty HTTP 200 array rather than an error, so the walk needs no heuristic about what a
+    /// status code means: a page that comes back shorter than
+    /// <see cref="MaxCikListPageSize"/> is the last one, and an empty page ends it too. Compare
+    /// <see cref="BulkEndpoints.StreamAllProfilesAsync"/>, which has to read an HTTP 400 as "past the end"
+    /// because that family offers nothing better.</para>
+    ///
+    /// <para><b>52 requests on the ordinary throttle.</b> Not free, and the whole registry is rarely what a caller
+    /// wants — <see cref="GetCikListAsync(int, int, CancellationToken)"/> is there for taking one page.</para></summary>
+    /// <param name="ct">Cancels the walk between pages as well as mid-page.</param>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429. Possible if 52 pages are walked flat out.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public async IAsyncEnumerable<CikEntry> StreamCikListAsync(
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        for (var page = 0; ; page++)
+        {
+            var rows = await GetCikListAsync(page, MaxCikListPageSize, ct).ConfigureAwait(false);
+            foreach (var row in rows) yield return row;
+
+            // A short page is the last page. An empty one ends it too, and is the same condition — nothing
+            // measured returned a short page followed by a full one.
+            if (rows.Count < MaxCikListPageSize) yield break;
+        }
+    }
 
     /// <summary>Unwraps the two directory row shapes into <see cref="CompanySymbol"/>. Written once so the pair
     /// cannot drift apart on the judgement calls below, the same way <see cref="Labels{T}"/> serves the

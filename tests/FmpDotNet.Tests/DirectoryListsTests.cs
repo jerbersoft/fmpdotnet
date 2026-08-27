@@ -283,4 +283,87 @@ public class DirectoryListsTests
         Assert.Equal("SIC", changes[0].OldSymbol);
         Assert.Equal("PSOX", changes[0].NewSymbol);
     }
+
+    [Fact]
+    public async Task A_cik_page_asks_for_the_page_and_limit_it_was_given()
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await endpoints.GetCikListAsync(page: 3, limit: 500);
+
+        var query = handler.Requests.Single().Query;
+        Assert.Contains("page=3", query, StringComparison.Ordinal);
+        Assert.Contains("limit=500", query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_cik_entry_keeps_the_zero_padding_fmp_sends()
+    {
+        var (endpoints, _) = Build(Fixture("cik-list.head.json"));
+
+        var entries = await endpoints.GetCikListAsync(page: 0, limit: 3);
+
+        // A string, not an int. Every measured CIK is 10 characters zero-padded, and search-cik echoes that form
+        // back — parsing to a number and reformatting is a round-trip that only ever loses.
+        Assert.Equal("0002150676", entries[0].Cik);
+        // Not all registrants are companies. This one is a person.
+        Assert.Equal("Thompson David Blair", entries[1].CompanyName);
+    }
+
+    [Theory]
+    [InlineData(-1, 100)]
+    [InlineData(0, 0)]
+    [InlineData(0, -5)]
+    [InlineData(0, 10001)]
+    public async Task A_cik_page_outside_what_fmp_serves_is_rejected_before_it_costs_a_call(int page, int limit)
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => endpoints.GetCikListAsync(page, limit));
+
+        // Rejected locally: no request went out.
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_cik_stream_walks_every_page_until_one_comes_back_short()
+    {
+        // Three pages: two full at the cap, then a short one that ends the walk. A fourth response is queued to
+        // prove it is never requested — StubHandler repeats its last response forever, so a walk that failed to
+        // stop would spin rather than fail, and the request count is what catches that.
+        var full = string.Join(",", Enumerable.Range(0, DirectoryEndpoints.MaxCikListPageSize)
+            .Select(i => $$"""{"cik":"{{i:D10}}","companyName":"Registrant {{i}}"}"""));
+        var handler = new StubHandler(
+            StubHandler.Json($"[{full}]"),
+            StubHandler.Json($"[{full}]"),
+            StubHandler.Json("""[{"cik":"0000000001","companyName":"Last Registrant"}]"""),
+            StubHandler.Json("[]"));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        var endpoints = new DirectoryEndpoints(
+            new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" })));
+
+        var count = 0;
+        await foreach (var _ in endpoints.StreamCikListAsync()) count++;
+
+        Assert.Equal(DirectoryEndpoints.MaxCikListPageSize * 2 + 1, count);
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.Contains("page=0", handler.Requests[0].Query, StringComparison.Ordinal);
+        Assert.Contains("page=2", handler.Requests[2].Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_cik_stream_stops_on_an_empty_first_page_without_a_second_request()
+    {
+        var (endpoints, handler) = Build("[]");
+
+        var count = 0;
+        await foreach (var _ in endpoints.StreamCikListAsync()) count++;
+
+        Assert.Equal(0, count);
+        Assert.Single(handler.Requests);
+    }
 }

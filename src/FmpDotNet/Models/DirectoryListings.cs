@@ -84,3 +84,26 @@ public sealed record SymbolChange
     /// <summary>The ticker after the change — the one FMP's current endpoints answer to.</summary>
     [JsonPropertyName("newSymbol")] public string? NewSymbol { get; init; }
 }
+
+/// <summary>One SEC registrant from <c>stable/cik-list</c> — about 512,665 measured 2026-08-27.
+///
+/// <para><b>This is not a symbol directory.</b> Against <c>stable/stock-list</c>'s 91,845 tickers, this endpoint
+/// carries every entity with an SEC Central Index Key, most of which have no ticker at all: investment advisers,
+/// funds, and <b>individuals</b> — <c>Thompson David Blair</c> is a measured row. A caller expecting a company
+/// list will find five and a half times more rows than there are listed securities.</para></summary>
+public sealed record CikEntry
+{
+    /// <summary>The Central Index Key, <b>zero-padded to ten characters</b> — <c>0002150676</c>. All 200 rows
+    /// sampled carried exactly ten.
+    ///
+    /// <para><b>A <see cref="string"/> rather than an integer, deliberately.</b> The padding is part of the
+    /// identifier as SEC systems and FMP's own <c>search-cik</c> spell it, and parsing to a number discards it —
+    /// after which every consumer has to remember to re-pad, and the one that forgets fails a lookup silently.
+    /// <c>SearchEndpoints.FindByCikAsync</c> accepts either form and always echoes this
+    /// one.</para></summary>
+    [JsonPropertyName("cik")] public string? Cik { get; init; }
+
+    /// <summary>The registrant's name as filed. Populated on every measured row. Not necessarily a company —
+    /// see the type's own remarks.</summary>
+    [JsonPropertyName("companyName")] public string? CompanyName { get; init; }
+}
