@@ -1,0 +1,101 @@
+name: Live smoke
+
+# Calls the REAL FMP API and checks that what comes back still matches what the SDK was built against (#26).
+#
+# WHY THIS IS A SEPARATE WORKFLOW. The unit suite runs entirely on stubs, and a stub keeps saying what it always
+# said. Nothing in ordinary CI can notice FMP renaming a field, moving a plan gate, or changing a media type —
+# and a renamed field does not even fail: almost every model property is nullable and not `required`, so
+# System.Text.Json quietly deserialises the missing name to null and the rows keep arriving looking correct.
+# That is the failure this workflow exists to catch, and it can only be caught against the live API.
+#
+# WHY IT IS NOT ON PUSH. It costs calls from a real key on every run, and the answer changes with the market
+# rather than with the commit — so a push-triggered run would report yesterday's earnings calendar as a
+# regression in today's diff. Weekly is the cadence the drift actually happens at.
+#
+# A FAILING SCHEDULED RUN IS EMAILED, NOT ISSUED. GitHub notifies the user whose commit last touched the cron on
+# a scheduled-workflow failure; there is deliberately no issue-opening step here, because a bot that files an
+# issue for a market holiday is a bot people learn to ignore.
+
+on:
+  schedule:
+    # Mondays, 06:17 UTC. Not on the hour: GitHub queues scheduled runs and the top of the hour is the most
+    # contended slot, where a run can be delayed by tens of minutes or dropped outright.
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+    inputs:
+      bulk:
+        description: 'Also probe the *-bulk endpoints (~8 minutes, and spends the key''s standing — see below)'
+        type: boolean
+        default: false
+
+# One live run at a time. Two concurrent runs would share the key but not the SDK's token bucket, which paces
+# itself per process — so they would emit at twice the rate the throttle was measured to be safe at.
+concurrency:
+  group: smoke
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Live API shapes
+    runs-on: ubuntu-latest
+    # Generous, because the bulk tier is deliberately slow: the SDK's bulk token bucket refills at two calls a
+    # minute, so twenty probes are about eight minutes of mostly waiting (measured 2026-08-26: 8 m 4 s). The
+    # ordinary tier is not throttled that way and takes seconds — 21 endpoints in 5 s, measured 2026-08-27.
+    #
+    # The margin is not padding. A 200-row bulk sample, tried once, took 2 h 39 m; the sample is back down to 25
+    # for exactly that reason (see Probe.StreamSample). If a run ever approaches this ceiling, the sample size or
+    # FMP's bulk throughput has changed, and killing the job is the right answer — a bulk sweep that runs for
+    # hours is spending the key's standing with FMP the whole time.
+    timeout-minutes: 25
+
+    env:
+      FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
+      # The bulk endpoints are excluded unless someone dispatching the workflow ticks the box. FMP's own throttle
+      # message warns that "frequent abuse on this API Endpoint may result in restrictions placed on this API
+      # Key", so the cost of running them weekly is the key itself, not the runner minutes. Empty string, not
+      # 'false': the suite tests for presence.
+      FMPDOTNET_SMOKE_BULK: ${{ inputs.bulk && '1' || '' }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # Without this the whole job passes by doing nothing. Every live test skips itself when FMP_API_KEY is
+      # unset — which is what makes a keyless checkout run green offline — so a missing or expired secret would
+      # turn this workflow into a weekly green tick that never called anything.
+      - name: Require the API key
+        run: |
+          if [ -z "$FMP_API_KEY" ]; then
+            echo "::error::FMP_API_KEY is not set for this repository. Every live test would skip and this job would pass without having called FMP at all. Add the secret, or disable this workflow."
+            exit 1
+          fi
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      # Only the smoke project. Building the solution would drag the stub suite along for no benefit; it already
+      # runs on every push in ci.yml.
+      - name: Test
+        run: >
+          dotnet test tests/FmpDotNet.SmokeTests/FmpDotNet.SmokeTests.csproj
+          --logger trx
+          -- RunConfiguration.TreatNoTestsAsError=true
+
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: smoke-test-results-${{ github.run_number }}
+          path: '**/TestResults/*.trx'
+          retention-days: 30

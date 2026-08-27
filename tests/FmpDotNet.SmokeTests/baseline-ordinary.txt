@@ -1,0 +1,525 @@
+# Live shapes of FMP's ordinary endpoints, as this SDK reads them.
+#
+# The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
+# them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
+#
+# Measured 2026-08-26. Regenerate — after checking the diff is drift and not
+# a break — with:
+#
+#     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
+#         dotnet test tests/FmpDotNet.SmokeTests
+#
+# `set` means the property carried a value on at least one row FMP returned.
+# `null` means it was null, blank or empty on every one of them.
+
+[Analyst.GetEstimatesAsync]
+outcome rows
+set Date
+set EbitAvg
+set EbitHigh
+set EbitLow
+set EbitdaAvg
+set EbitdaHigh
+set EbitdaLow
+set EpsAvg
+set EpsHigh
+set EpsLow
+set NetIncomeAvg
+set NetIncomeHigh
+set NetIncomeLow
+set NumAnalystsEps
+set NumAnalystsRevenue
+set Period
+set RevenueAvg
+set RevenueHigh
+set RevenueLow
+set SgaExpenseAvg
+set SgaExpenseHigh
+set SgaExpenseLow
+set Symbol
+
+[Calendar.GetEarningsAsync]
+outcome rows
+set Date
+set EpsActual
+set EpsEstimated
+set LastUpdated
+set RevenueActual
+set RevenueEstimated
+set Symbol
+
+[Calendar.GetEarningsCalendarAsync]
+outcome rows
+set Confirmed
+set Date
+set EpsActual
+set EpsEstimated
+set FiscalPeriod
+set FiscalYear
+set LastUpdated
+set PeriodEnding
+set ReportTime
+set RevenueActual
+set RevenueEstimated
+set Symbol
+
+[Company.GetAllSharesFloatAsync]
+outcome rows
+set AsOf
+set FloatShares
+set FreeFloat
+set OutstandingShares
+set Symbol
+null Source
+
+[Company.GetDelistedAsync]
+outcome rows
+set CompanyName
+set DelistedDate
+set Exchange
+set IpoDate
+set Symbol
+
+[Company.GetProfileAsync]
+outcome rows
+set Address
+set AverageVolume
+set Beta
+set Ceo
+set Change
+set ChangePercentage
+set Cik
+set City
+set CompanyName
+set Country
+set Currency
+set Cusip
+set DefaultImage
+set Description
+set Exchange
+set ExchangeFullName
+set FullTimeEmployees
+set Image
+set Industry
+set IpoDate
+set IsActivelyTrading
+set IsAdr
+set IsEtf
+set IsFund
+set Isin
+set LastDividend
+set MarketCap
+set Phone
+set Price
+set Range
+set Sector
+set State
+set Symbol
+set Volume
+set Website
+set Zip
+
+[Company.GetSharesFloatAsync]
+outcome rows
+set AsOf
+set FloatShares
+set FreeFloat
+set OutstandingShares
+set Source
+set Symbol
+
+[Directory.GetActivelyTradingAsync]
+outcome rows
+set Name
+set Symbol
+
+[Directory.GetIndustriesAsync]
+outcome rows
+
+[Directory.GetSectorsAsync]
+outcome rows
+
+[Directory.GetStockListAsync]
+outcome rows
+set Name
+set Symbol
+
+[Economics.GetEconomicCalendarAsync]
+outcome rows
+set Actual
+set Change
+set ChangePercentage
+set Country
+set Currency
+set Estimate
+set Event
+set Impact
+set Previous
+set Timestamp
+set Unit
+
+[Search.ScreenAsync]
+outcome rows
+set Beta
+set CompanyName
+set Country
+set Exchange
+set ExchangeShortName
+set Industry
+set IsActivelyTrading
+set IsEtf
+set IsFund
+set LastAnnualDividend
+set MarketCap
+set Price
+set Sector
+set Symbol
+set Volume
+
+[Statements.GetBalanceSheetAsync]
+outcome rows
+set AcceptedDate
+set AccountPayables
+set AccountsReceivables
+set AccruedExpenses
+set AccumulatedOtherComprehensiveIncomeLoss
+set AdditionalPaidInCapital
+set CapitalLeaseObligations
+set CapitalLeaseObligationsCurrent
+set CapitalLeaseObligationsNonCurrent
+set CashAndCashEquivalents
+set CashAndShortTermInvestments
+set Cik
+set CommonStock
+set Date
+set DeferredRevenue
+set DeferredRevenueNonCurrent
+set DeferredTaxLiabilitiesNonCurrent
+set FilingDate
+set FiscalYear
+set Goodwill
+set GoodwillAndIntangibleAssets
+set IntangibleAssets
+set Inventory
+set LongTermDebt
+set LongTermInvestments
+set MinorityInterest
+set NetDebt
+set NetReceivables
+set OtherAssets
+set OtherCurrentAssets
+set OtherCurrentLiabilities
+set OtherLiabilities
+set OtherNonCurrentAssets
+set OtherNonCurrentLiabilities
+set OtherPayables
+set OtherReceivables
+set OtherTotalStockholdersEquity
+set Period
+set PreferredStock
+set Prepaids
+set PropertyPlantEquipmentNet
+set ReportedCurrency
+set RetainedEarnings
+set ShortTermDebt
+set ShortTermInvestments
+set Symbol
+set TaxAssets
+set TaxPayables
+set TotalAssets
+set TotalCurrentAssets
+set TotalCurrentLiabilities
+set TotalDebt
+set TotalEquity
+set TotalInvestments
+set TotalLiabilities
+set TotalLiabilitiesAndTotalEquity
+set TotalNonCurrentAssets
+set TotalNonCurrentLiabilities
+set TotalPayables
+set TotalStockholdersEquity
+set TreasuryStock
+
+[Statements.GetCashFlowAsync]
+outcome rows
+set AcceptedDate
+set AccountsPayables
+set AccountsReceivables
+set AcquisitionsNet
+set CapitalExpenditure
+set CashAtBeginningOfPeriod
+set CashAtEndOfPeriod
+set ChangeInWorkingCapital
+set Cik
+set CommonDividendsPaid
+set CommonStockIssuance
+set CommonStockRepurchased
+set Date
+set DeferredIncomeTax
+set DepreciationAndAmortization
+set EffectOfForexChangesOnCash
+set FilingDate
+set FiscalYear
+set FreeCashFlow
+set IncomeTaxesPaid
+set InterestPaid
+set Inventory
+set InvestmentsInPropertyPlantAndEquipment
+set LongTermNetDebtIssuance
+set NetCashProvidedByFinancingActivities
+set NetCashProvidedByInvestingActivities
+set NetCashProvidedByOperatingActivities
+set NetChangeInCash
+set NetCommonStockIssuance
+set NetDebtIssuance
+set NetDividendsPaid
+set NetIncome
+set NetPreferredStockIssuance
+set NetStockIssuance
+set OperatingCashFlow
+set OtherFinancingActivities
+set OtherInvestingActivities
+set OtherNonCashItems
+set OtherWorkingCapital
+set Period
+set PreferredDividendsPaid
+set PurchasesOfInvestments
+set ReportedCurrency
+set SalesMaturitiesOfInvestments
+set ShortTermNetDebtIssuance
+set StockBasedCompensation
+set Symbol
+
+[Statements.GetEnterpriseValuesAsync]
+outcome rows
+set AddTotalDebt
+set Date
+set EnterpriseValue
+set MarketCapitalization
+set MinusCashAndCashEquivalents
+set NumberOfShares
+set StockPrice
+set Symbol
+
+[Statements.GetFinancialGrowthAsync]
+outcome rows
+set AssetGrowth
+set BookValuePerShareGrowth
+set Date
+set DebtGrowth
+set DividendsPerShareGrowth
+set EbitGrowth
+set EbitdaGrowth
+set EpsDilutedGrowth
+set EpsGrowth
+set FiscalYear
+set FiveYBottomLineNetIncomeGrowthPerShare
+set FiveYDividendPerShareGrowthPerShare
+set FiveYNetIncomeGrowthPerShare
+set FiveYOperatingCFGrowthPerShare
+set FiveYRevenueGrowthPerShare
+set FiveYShareholdersEquityGrowthPerShare
+set FreeCashFlowGrowth
+set GrossProfitGrowth
+set GrowthCapitalExpenditure
+set InventoryGrowth
+set NetIncomeGrowth
+set OperatingCashFlowGrowth
+set OperatingIncomeGrowth
+set Period
+set ReceivablesGrowth
+set ReportedCurrency
+set ResearchAndDevelopmentExpenseGrowth
+set RevenueGrowth
+set SellingGeneralAndAdministrativeExpensesGrowth
+set Symbol
+set TenYBottomLineNetIncomeGrowthPerShare
+set TenYDividendPerShareGrowthPerShare
+set TenYNetIncomeGrowthPerShare
+set TenYOperatingCFGrowthPerShare
+set TenYRevenueGrowthPerShare
+set TenYShareholdersEquityGrowthPerShare
+set ThreeYBottomLineNetIncomeGrowthPerShare
+set ThreeYDividendPerShareGrowthPerShare
+set ThreeYNetIncomeGrowthPerShare
+set ThreeYOperatingCFGrowthPerShare
+set ThreeYRevenueGrowthPerShare
+set ThreeYShareholdersEquityGrowthPerShare
+set WeightedAverageSharesDilutedGrowth
+set WeightedAverageSharesGrowth
+
+[Statements.GetIncomeStatementAsync]
+outcome rows
+set AcceptedDate
+set BottomLineNetIncome
+set Cik
+set CostAndExpenses
+set CostOfRevenue
+set Date
+set DepreciationAndAmortization
+set Ebit
+set Ebitda
+set Eps
+set EpsDiluted
+set FilingDate
+set FiscalYear
+set GeneralAndAdministrativeExpenses
+set GrossProfit
+set IncomeBeforeTax
+set IncomeTaxExpense
+set InterestExpense
+set InterestIncome
+set NetIncome
+set NetIncomeDeductions
+set NetIncomeFromContinuingOperations
+set NetIncomeFromDiscontinuedOperations
+set NetInterestIncome
+set NonOperatingIncomeExcludingInterest
+set OperatingExpenses
+set OperatingIncome
+set OtherAdjustmentsToNetIncome
+set OtherExpenses
+set Period
+set ReportedCurrency
+set ResearchAndDevelopmentExpenses
+set Revenue
+set SellingAndMarketingExpenses
+set SellingGeneralAndAdministrativeExpenses
+set Symbol
+set TotalOtherIncomeExpensesNet
+set WeightedAverageSharesOutstanding
+set WeightedAverageSharesOutstandingDiluted
+
+[Statements.GetKeyMetricsAsync]
+outcome rows
+set AverageInventory
+set AveragePayables
+set AverageReceivables
+set CapexToDepreciation
+set CapexToOperatingCashFlow
+set CapexToRevenue
+set CashConversionCycle
+set CurrentRatio
+set Date
+set DaysOfInventoryOutstanding
+set DaysOfPayablesOutstanding
+set DaysOfSalesOutstanding
+set EarningsYield
+set EnterpriseValue
+set EvToEbitda
+set EvToFreeCashFlow
+set EvToOperatingCashFlow
+set EvToSales
+set FiscalYear
+set FreeCashFlowToEquity
+set FreeCashFlowToFirm
+set FreeCashFlowYield
+set GrahamNetNet
+set GrahamNumber
+set IncomeQuality
+set IntangiblesToTotalAssets
+set InterestBurden
+set InvestedCapital
+set MarketCap
+set NetCurrentAssetValue
+set NetDebtToEbitda
+set OperatingCycle
+set OperatingReturnOnAssets
+set Period
+set ReportedCurrency
+set ResearchAndDevelopmentToRevenue
+set ReturnOnAssets
+set ReturnOnCapitalEmployed
+set ReturnOnEquity
+set ReturnOnInvestedCapital
+set ReturnOnTangibleAssets
+set SalesGeneralAndAdministrativeToRevenue
+set StockBasedCompensationToRevenue
+set Symbol
+set TangibleAssetValue
+set TaxBurden
+set WorkingCapital
+
+[Statements.GetRatiosAsync]
+outcome rows
+set AssetTurnover
+set BookValuePerShare
+set BottomLineProfitMargin
+set CapexPerShare
+set CapitalExpenditureCoverageRatio
+set CashPerShare
+set CashRatio
+set ContinuousOperationsProfitMargin
+set CurrentRatio
+set Date
+set DebtServiceCoverageRatio
+set DebtToAssetsRatio
+set DebtToCapitalRatio
+set DebtToEquityRatio
+set DebtToMarketCap
+set DividendPaidAndCapexCoverageRatio
+set DividendPayoutRatio
+set DividendPerShare
+set DividendYield
+set DividendYieldPercentage
+set EbitMargin
+set EbitdaMargin
+set EbtPerEbit
+set EffectiveTaxRate
+set EnterpriseValueMultiple
+set FinancialLeverageRatio
+set FiscalYear
+set FixedAssetTurnover
+set ForwardPriceToEarningsGrowthRatio
+set FreeCashFlowOperatingCashFlowRatio
+set FreeCashFlowPerShare
+set GrossProfitMargin
+set InterestCoverageRatio
+set InterestDebtPerShare
+set InventoryTurnover
+set LongTermDebtToCapitalRatio
+set NetIncomePerEbt
+set NetIncomePerShare
+set NetProfitMargin
+set OperatingCashFlowCoverageRatio
+set OperatingCashFlowPerShare
+set OperatingCashFlowRatio
+set OperatingCashFlowSalesRatio
+set OperatingProfitMargin
+set PayablesTurnover
+set Period
+set PretaxProfitMargin
+set PriceToBookRatio
+set PriceToEarningsDilutedGrowthRatio
+set PriceToEarningsDilutedRatio
+set PriceToEarningsGrowthRatio
+set PriceToEarningsRatio
+set PriceToFairValue
+set PriceToFreeCashFlowRatio
+set PriceToOperatingCashFlowRatio
+set PriceToSalesRatio
+set QuickRatio
+set ReceivablesTurnover
+set ReportedCurrency
+set RevenuePerShare
+set ShareholdersEquityPerShare
+set ShortTermOperatingCashFlowCoverageRatio
+set SolvencyRatio
+set Symbol
+set TangibleBookValuePerShare
+set WorkingCapitalTurnoverRatio
+
+[Statements.GetScoresAsync]
+outcome rows
+set AltmanZScore
+set Ebit
+set MarketCap
+set PiotroskiScore
+set ReportedCurrency
+set RetainedEarnings
+set Revenue
+set Symbol
+set TotalAssets
+set TotalLiabilities
+set WorkingCapital
+

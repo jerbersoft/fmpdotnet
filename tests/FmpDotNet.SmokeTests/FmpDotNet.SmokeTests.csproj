@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    The suite that calls the REAL FMP API (#26).
+
+    It is a separate project from FmpDotNet.Tests rather than a [Trait] on it, for one reason: a filter is a
+    thing you have to remember. `dotnet test tests/FmpDotNet.Tests` cannot accidentally reach the network, and
+    nothing in the unit suite can accidentally acquire a key. The two suites also want different settings — see
+    the parallelism note below, which would be wrong for the stub suite.
+
+    Every test here is gated on FMP_API_KEY being present and skips without it, so a checkout with no key runs
+    the whole solution green and offline.
+  -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="NodaTime" Version="3.2.2" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- The recorded measurements, listed so they show up as part of the project rather than as loose files
+       beside it. Deliberately NOT copied to the output directory: the tests locate them from the compile-time
+       path of the source that reads them, so a copy under bin/ would be a second, stale version of a file whose
+       whole job is to be the record — and `FMPDOTNET_UPDATE_SMOKE_BASELINE=1` would appear to have done nothing
+       to whichever one you happened to open. -->
+  <ItemGroup>
+    <None Include="baseline-ordinary.txt" />
+    <None Include="baseline-bulk.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\FmpDotNet\FmpDotNet.csproj" />
+  </ItemGroup>
+
+</Project>

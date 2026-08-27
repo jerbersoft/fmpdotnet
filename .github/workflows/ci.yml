@@ -11,13 +11,17 @@ name: CI
 # not months later in a consumer's trimmed publish. That is not a theoretical guard — those two errors are what
 # forced the source-generated JsonSerializerContext and the by-name options binding in the first place.
 #
-# Deliberately NOT here yet:
-#   * pack / publish to NuGet — the library has no package metadata (id, description, licence, repository URL)
-#     until #21. Packing before then would produce a package that restores but tells a consumer nothing, and a
-#     publish step with no metadata to publish is worse than no publish step.
-#   * a live smoke suite against the real API — #26. It needs a key, and its bulk calls would have to be
-#     excluded or heavily paced, because FMP warns that frequent bulk use can get a key restricted. That does
-#     not belong on every push.
+# Deliberately NOT here: the live API. That is smoke.yml, which runs weekly against a real key (#26). It is
+# separate because its answer changes with the market rather than with the commit, so running it on push would
+# report yesterday's earnings calendar as a regression in today's diff — and because its bulk tier spends the
+# key's standing, which FMP restricts keys for.
+#
+# The solution-wide `dotnet test` below DOES build and run FmpDotNet.SmokeTests, and that is intended. Its live
+# tests skip themselves when FMP_API_KEY is unset, which it is here, so no request goes out. What does run is
+# its handful of offline tests: that the sweep can still reach every endpoint, so a new one cannot silently
+# fall out of the weekly run, and that a failed sweep cannot record itself as the baseline, which would leave
+# the weekly run green precisely because an endpoint had broken. Both fail on the commit that caused them
+# rather than on the next Monday.
 
 on:
   push:

@@ -19,6 +19,9 @@ waiting on — along with the whole `*-bulk` surface and the universe and direct
 machinery is in place too: options and validation, `AddFmp`, the two throttle reservoirs, per-attempt timeouts,
 the JSON and CSV pipelines, and a developer disk cache for bulk responses.
 
+The upstream behaviour recorded throughout this README was measured rather than read from the documentation, and
+it is re-checked against the live API every week — see [the live smoke suite](#the-live-smoke-suite).
+
 ## Usage
 
 ```csharp
@@ -502,6 +505,85 @@ turn `RequestTimeout=45` into a timeout that never fires.
 
 The API key is not validated — an SDK cannot know whether its caller intends to make a request; assert it in the
 host that does.
+
+## The live smoke suite
+
+Everything under [upstream behaviour](#upstream-behaviour-the-sdk-handles-for-you) was measured against the real
+API on a particular day. A stub suite cannot tell you when one of those measurements stops being true, so a
+second suite does: `FmpDotNet.SmokeTests` calls every modelled endpoint against FMP once a week and compares what
+comes back with a record checked into the repository.
+
+**It records which fields carried a value, not merely that a call succeeded.** That is the whole design, and the
+reason is that a rename does not fail. Almost every property on these models is nullable and none are `required`,
+so when FMP renames a field `System.Text.Json` deserialises the missing name to null, hands back the same number
+of rows of the same type, and reports nothing at all. A smoke test asserting "a non-empty list came back" passes
+on the day the data stops arriving. The record is one line per property, so a rename is a one-line diff:
+
+```
+[Statements.GetIncomeStatementAsync]
+outcome rows
+set NetIncome
+```
+
+`set NetIncome` becoming `null NetIncome` is the alarm.
+
+Measured 2026-08-26: **21 ordinary endpoints, 447 properties recorded as populated**, and exactly one recorded
+empty — `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no EDGAR
+filing URL. There is no blind spot on any wire field the SDK models: of the models' public properties 752 are
+nullable, 20 are strings defaulting to `""` and one is a collection defaulting to empty, all of which read
+correctly, and the only four non-nullable value types are three on a list wrapper that is never inspected plus
+one `[JsonIgnore]` property the SDK sets from the request rather than from the response.
+
+Two assertions run against each record, with deliberately different meanings. One fails when something the record
+showed arriving has stopped — that is a defect in shipped code, and it is the one worth waking up for. The other
+fails on any difference at all, including a field FMP has *started* sending, and asks for the record to be
+regenerated. Folded together, a newly-populated field and a newly-missing one would produce the same red.
+
+**The `*-bulk` endpoints are excluded by default** and need a second, deliberate switch. FMP's own throttle text
+warns that "frequent abuse on this API Endpoint may result in restrictions placed on this API Key", so the cost
+of sweeping them weekly is the key rather than the runner minutes. When they do run, they are paced by the SDK's
+own bulk reservoir — `BulkPerMinuteCap`, defaulting to 2 a minute — and each probe reads the first 25 rows and
+then abandons the download rather than transferring a file that can reach 69 MB. The throttle is the SDK's, not
+the test suite's: there is no pacing code here, the probes simply queue behind the reservoir every caller shares.
+
+Measured 2026-08-27: **20 bulk endpoints, 527 properties populated**, three empty, in 9 m 30 s — nearly all of it
+waiting on the throttle. The same three were empty on 2026-08-26, and all three were checked rather than assumed:
+`cik` is present in the `profile-bulk` header and read correctly by a passing unit test, and
+`priceToEarningsDilutedGrowthRatioTTM` is blank for the sampled rows in the captured `ratios-ttm-bulk` fixture
+too. They are sparse data, not a broken mapper — see the caveat on bulk `null` below.
+
+```bash
+# Ordinary endpoints. Seconds.
+FMP_API_KEY=… dotnet test tests/FmpDotNet.SmokeTests
+
+# The bulk endpoints as well. About eight minutes, nearly all of it waiting on the throttle.
+FMP_API_KEY=… FMPDOTNET_SMOKE_BULK=1 dotnet test tests/FmpDotNet.SmokeTests
+
+# Re-record — after reading the diff and satisfying yourself nothing was lost.
+FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 dotnet test tests/FmpDotNet.SmokeTests
+```
+
+Without `FMP_API_KEY` every live test skips itself, so a clone with no key runs the whole solution green and
+offline.
+
+**What it does not tell you.** Three gaps, named rather than papered over.
+
+The sweep asks about one symbol over one recent window, so a property recorded as populated is populated *for a
+company that files everything*. It cannot distinguish a field FMP populates universally from one it populates
+only for large US issuers, and it is not checking that any value is correct.
+
+It watches shape, not volume. If `stock-list` fell from 91,844 rows to 500 with every field still populated,
+nothing here would notice. A row-count band would catch it, but the calendars swing across an order of magnitude
+between a quiet week and earnings season, and a band set today would either flap or be too loose to mean
+anything. Setting one honestly needs a few months of recorded runs — which this suite now produces.
+
+A `null` in the **bulk** record is weaker evidence than a `null` in the ordinary one. A bulk probe reads the
+first 25 rows of one part, and a part is an unordered shard FMP republishes every few hours, so a sparse column
+can read as absent one week and populated the next. That is a property of the data rather than a fault: it costs
+one regeneration when it happens, and no affordable sample size fixes it — reading 200 rows instead of 25 was
+measured at 2 h 39 m against 8 minutes, and would still be sampling one shard.
+
+It answers one question: is the SDK still reading the shape FMP is still sending.
 
 ## Working on a bulk mapper
 
