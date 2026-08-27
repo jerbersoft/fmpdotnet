@@ -4,26 +4,55 @@ using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Endpoints;
 
-/// <summary>FMP's <c>Directory</c> group — what exists: the securities the API knows about, and the reference
-/// vocabularies it classifies them against.
+/// <summary>FMP's <c>Directory</c> group — what exists: the securities the API knows about, the reference
+/// vocabularies it classifies them against, and the adjacent asset-class lists FMP files elsewhere in its own
+/// documentation but which answer the same "what exists" question.
 ///
 /// <para><b>The vocabularies.</b> <see cref="GetSectorsAsync(CancellationToken)"/> and
 /// <see cref="GetIndustriesAsync(CancellationToken)"/> answer a flat list of labels. They are the authoritative
 /// spelling of the <c>sector</c> and <c>industry</c> values that come back on
 /// <see cref="CompanyEndpoints.GetProfileAsync(string, CancellationToken)"/> and on the screener, so a caller
 /// building a lookup table or validating user input should take them from here rather than hard-coding a list that
-/// silently rots when FMP adds a category.</para>
+/// silently rots when FMP adds a category. <see cref="GetCountriesAsync(CancellationToken)"/> and
+/// <see cref="GetExchangesAsync(CancellationToken)"/> are the same idea applied to country and exchange codes —
+/// 117 countries and 63 exchanges, the whole set of each, measured 2026-08-27.</para>
 ///
 /// <para><b>The universe.</b> <see cref="GetStockListAsync(CancellationToken)"/> and
 /// <see cref="GetActivelyTradingAsync(CancellationToken)"/> answer the symbol directory itself. Measured
 /// 2026-08-26, the actively-trading list is a strict subset of the stock list — 68,869 of 91,844 symbols, with
 /// <b>zero</b> symbols on the trading list absent from the full list — so the difference between them, 22,975
-/// symbols, is exactly the set FMP knows but does not consider actively trading.</para>
+/// symbols, is exactly the set FMP knows but does not consider actively trading.
+/// <see cref="GetEtfListAsync(CancellationToken)"/> and <see cref="GetFinancialStatementSymbolsAsync"/> narrow
+/// that same universe further — funds, symbols with statements — and are each a measured, zero-exception subset
+/// of the stock list; see the two methods for the counts.
+/// <see cref="GetTranscriptSymbolsAsync(CancellationToken)"/> answers the equivalent question for transcripts,
+/// 11,178 symbols, but the sweep did not check it against the stock list the way it checked the other two, so no
+/// subset claim is made for it.</para>
 ///
-/// <para>All four take no arguments beyond the API key, and the two directories <b>ignore <c>limit</c></b>: asking
-/// for five symbols still transfers all 68,869 or 91,844 of them, 5.3 MB and 7.7 MB respectively. There is no
-/// sampling call and no paging on these; the alternative when a full download is too much is the screener, which
-/// does honour <c>limit</c>.</para></summary>
+/// <para><b>The other asset classes.</b> <see cref="GetCommodityListAsync(CancellationToken)"/>,
+/// <see cref="GetCryptocurrencyListAsync(CancellationToken)"/>, <see cref="GetForexListAsync(CancellationToken)"/>
+/// and <see cref="GetIndexListAsync(CancellationToken)"/> answer "what exists" for commodities, crypto, forex and
+/// indexes, and FMP files all four elsewhere in its own documentation — Commodity, Crypto, Forex, Indexes — not
+/// under Directory. They live here rather than behind their own <c>fmp.Commodity</c>, <c>fmp.Crypto</c>,
+/// <c>fmp.Forex</c> and <c>fmp.Index</c> facades because none would have anything else to hold: one
+/// <see cref="QuoteEndpoints.GetQuoteAsync"/> already serves quotes for every one of these asset classes alongside
+/// stocks, so there is no companion facade for a directory endpoint to join. See <see cref="CommodityInfo"/> for
+/// the fuller account, which applies equally to its three siblings.</para>
+///
+/// <para><b>Two endpoints are not plain full downloads, and disagree on how they are not.</b>
+/// <see cref="GetCikListAsync(int, int, CancellationToken)"/> honours <c>page</c> — 10,000 rows per page, 52
+/// pages, about 512,665 rows in total, all measured 2026-08-27 — while
+/// <see cref="GetSymbolChangesAsync(CancellationToken)"/> honours only <c>limit</c> and <b>silently ignores
+/// <c>page</c></b>: <c>page=0</c> and <c>page=1</c> at the same <c>limit</c> answer identical rows. Nothing in
+/// either payload says which behaviour a caller is getting; see the two methods for the measurement.</para>
+///
+/// <para>Every other endpoint in this group takes no argument beyond the API key and exposes no <c>limit</c> on
+/// its C# signature, because FMP does not act on one: the two symbol directories were measured ignoring it
+/// outright — asking for five symbols still transfers all 68,869 or 91,844 of them, 5.3 MB and 7.7 MB respectively
+/// — and nine of the eleven reference and asset-class lists swept on 2026-08-27 show the same, <c>cik-list</c> and
+/// <c>symbol-change</c> above being the only two that respond to it. There is no sampling call on these; the
+/// alternative when a full download is too much is the screener, which does honour <c>limit</c>, or — for renames
+/// and the SEC registrant index specifically — the two paging endpoints above.</para></summary>
 public sealed class DirectoryEndpoints(FmpTransport transport)
 {
     /// <summary>Every sector FMP classifies against, in the order the API returns them.
@@ -285,7 +314,7 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// for more costs nothing.</para></summary>
     public const int SymbolChangeRequestLimit = 10_000;
 
-    /// <summary>Every ticker rename FMP has recorded — 5,456 measured 2026-08-27, newest first.
+    /// <summary>Every ticker rename FMP has recorded — 5,456 measured 2026-08-27.
     ///
     /// <para>This is what explains a symbol disappearing from
     /// <see cref="GetActivelyTradingAsync(CancellationToken)"/> without appearing in
@@ -296,9 +325,16 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// of 5,456 and its <c>page</c> parameter does nothing — see
     /// <see cref="SymbolChangeRequestLimit"/>. Offering a <c>page</c> the SDK knows is ignored would be worse than
     /// offering nothing, and there is no correct partial answer to "what has been renamed": a reconciliation
-    /// against 1.8% of the history is silently wrong rather than incomplete.</para></summary>
+    /// against 1.8% of the history is silently wrong rather than incomplete.</para>
+    ///
+    /// <para><b>The order is FMP's own, and unmeasured.</b> Unlike
+    /// <see cref="GetCikListAsync(int, int, CancellationToken)"/>, whose "CIK descending" is read off two measured
+    /// page heads, nothing in the 2026-08-27 sweep pins this endpoint's row order — only its count, its four field
+    /// names, and that <c>date</c> is ISO on all 5,456 rows. The SDK preserves whatever order the wire
+    /// sends.</para></summary>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>Every recorded rename in FMP's order, newest first. Never <see langword="null"/>.</returns>
+    /// <returns>Every recorded rename in FMP's own order, which this SDK does not re-sort. Never
+    /// <see langword="null"/>.</returns>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>

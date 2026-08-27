@@ -48,7 +48,7 @@ public sealed record TranscriptSymbol
     /// <summary>How many transcripts FMP holds for this symbol.
     ///
     /// <para><b>The wire sends this as a quoted string on all 11,178 rows</b> — <c>"noOfTranscripts": "6"</c>, not
-    /// <c>6</c>. It binds to an <see cref="int"/> only because <c>FmpJsonContext</c> sets
+    /// <c>6</c>. It binds to a nullable <see cref="int"/> only because <c>FmpJsonContext</c> sets
     /// <c>NumberHandling = AllowReadingFromString</c>; that option is load-bearing for this property rather than
     /// incidental, and removing it alone would break this endpoint.</para>
     ///
