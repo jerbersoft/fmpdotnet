@@ -528,6 +528,114 @@ public sealed class StatementEndpoints(FmpTransport transport)
         transport.GetListAsync(Rolling("stable/owner-earnings", symbol, limit),
             FmpJsonContext.Default.ListOwnerEarnings, ct);
 
+    /// <summary>Every filing FMP holds a rendered report for, with the links it publishes for each. From
+    /// <c>stable/financial-reports-dates</c> — 65 rows for AAPL measured 2026-08-27, FY and Q1–Q4 back to 2013.
+    ///
+    /// <para>This is the index for <see cref="GetFinancialReportAsync"/> and
+    /// <see cref="GetFinancialReportWorkbookAsync"/>: it tells you which (year, period) pairs exist, so a caller
+    /// does not have to probe for them and read a 200 that means "no". The links on each row are NOT usable as
+    /// they arrive — see <see cref="FinancialReportLink"/>.</para>
+    ///
+    /// <para>Takes no <c>limit</c>: the endpoint ignores it and transfers the full set.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every available filing in FMP's order, or empty for an unknown symbol. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<FinancialReportLink>> GetFinancialReportDatesAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/financial-reports-dates").With("symbol", symbol),
+            FmpJsonContext.Default.ListFinancialReportLink, ct);
+    }
+
+    /// <summary>One filing rendered as report sections. From <c>stable/financial-reports-json</c>.
+    ///
+    /// <para><b><see cref="FiscalPeriod.Quarter"/> is rejected, and this is the one place in the SDK where a
+    /// legal <see cref="FiscalPeriod"/> is refused.</b> A report is one fiscal period, and "the 2025 quarterly
+    /// report" is not a document that exists. FMP accepts the value anyway and silently answers Q1 — measured
+    /// 2026-08-27, <c>period=quarter</c> echoed <c>"period": "Q1"</c> and returned 45 sections rather than the
+    /// 47 of the Q3 report a caller asking this way probably wanted. Name the quarter.</para>
+    ///
+    /// <para><b>A miss is an HTTP 200 carrying <c>{"Error Message": …}</c></b>, which surfaces as
+    /// <see cref="FmpApiException"/> rather than null — unlike
+    /// <see cref="GetFinancialReportWorkbookAsync"/>, whose miss carries no message to raise. Use
+    /// <see cref="GetFinancialReportDatesAsync"/> to find out which filings exist rather than probing.</para>
+    ///
+    /// <para><b>The response is buffered whole</b> — 558 KB measured for AAPL FY2025 — because the success shape
+    /// and the error shape are both JSON objects and no prefix separates them. See
+    /// <see cref="FmpTransport.GetObjectAsync"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="year">Fiscal year of the filing. Required by FMP — omitting it is an HTTP 400.</param>
+    /// <param name="period">Which filing: <see cref="FiscalPeriod.Annual"/> or a named quarter.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The rendered report, or <see langword="null"/> only if FMP sent a literal JSON null.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="period"/> is
+    /// <see cref="FiscalPeriod.Quarter"/> — see above.</exception>
+    /// <exception cref="FmpApiException">FMP has no report for that symbol, year and period.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<FinancialReport?> GetFinancialReportAsync(
+        string symbol, int year, FiscalPeriod period, CancellationToken ct = default) =>
+        transport.GetObjectAsync(Report("stable/financial-reports-json", symbol, year, period),
+            FmpJsonContext.Default.FinancialReport, ct);
+
+    /// <summary>One filing as an XLSX workbook, or null when FMP has no such filing. From
+    /// <c>stable/financial-reports-xlsx</c>.
+    ///
+    /// <para><b>Neither the status code nor the content type tells success from failure on this path.</b>
+    /// Measured 2026-08-27: a hit is HTTP 200 with <c>Content-Type: application/json; charset=utf-8</c> and a
+    /// 1,399,564-byte body beginning <c>PK\x03\x04</c>. A miss — unknown symbol, or a year with no filing — is
+    /// <b>also HTTP 200</b>, under the same content type, carrying 16 bytes of <c>Error with query</c>. The only
+    /// reliable test is the zip magic number, so that is what this uses: a body starting <c>PK\x03\x04</c> is the
+    /// workbook and anything else is null.</para>
+    ///
+    /// <para>Null rather than an exception because those same 16 bytes cover both "no such symbol" and "no filing
+    /// that year" and carry no message to raise — the same reasoning as <see cref="GetScoresAsync"/>. Use
+    /// <see cref="GetFinancialReportDatesAsync"/> to learn which filings exist.</para>
+    ///
+    /// <para><see cref="FiscalPeriod.Quarter"/> is rejected here for the same measured reason as on
+    /// <see cref="GetFinancialReportAsync"/>: it resolves to Q1 and the workbook comes back named
+    /// <c>AAPL_2025_Q1_.xlsx</c>.</para>
+    ///
+    /// <para>The whole workbook is buffered. It is megabytes.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="year">Fiscal year of the filing.</param>
+    /// <param name="period">Which filing: <see cref="FiscalPeriod.Annual"/> or a named quarter.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The workbook's bytes, or <see langword="null"/> when FMP has no such filing.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="period"/> is
+    /// <see cref="FiscalPeriod.Quarter"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<byte[]?> GetFinancialReportWorkbookAsync(
+        string symbol, int year, FiscalPeriod period, CancellationToken ct = default)
+    {
+        var bytes = await transport
+            .GetBytesAsync(Report("stable/financial-reports-xlsx", symbol, year, period), ct)
+            .ConfigureAwait(false);
+        return bytes is [0x50, 0x4B, 0x03, 0x04, ..] ? bytes : null;
+    }
+
+    /// <summary>The query shape the two report-document paths share, and the one place a legal
+    /// <see cref="FiscalPeriod"/> is refused. See <see cref="GetFinancialReportAsync"/> for the
+    /// measurement.</summary>
+    private static FmpRequest Report(string path, string symbol, int year, FiscalPeriod period)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (period == FiscalPeriod.Quarter)
+            throw new ArgumentOutOfRangeException(nameof(period), period,
+                "A report is one fiscal period. Ask for Annual, or name the quarter (Q1-Q4) — FMP accepts "
+                + "'quarter' here and silently answers Q1.");
+        return new FmpRequest(path)
+            .With("symbol", symbol)
+            .With("year", year)
+            .With("period", period.ToQueryValue());
+    }
+
     /// <summary>The <c>limit</c> the SDK sends when the caller asks for no limit, and the reason it sends one.
     ///
     /// <para><b>Without it FMP returns five rows.</b> Measured 2026-08-27, every per-symbol paged path in this

@@ -179,10 +179,41 @@ public class FmpTransportTests
         Assert.Equal(49, rows[49].Volume);
     }
 
-    // GetObjectAsync tests are deliberately NOT here. All three from the brief (a successful object read, an
-    // error envelope arriving as a 200, and a plan restriction) need FmpJsonContext.Default.FinancialReport,
-    // which does not exist until Task 8. Task 7 ships GetObjectAsync covered by the GetBytesAsync tests below
-    // plus a compile; Task 8 adds the three GetObjectAsync tests once FinancialReport exists.
+    [Fact]
+    public async Task GetObjectAsync_reads_a_json_object_body()
+    {
+        var (transport, handler) = Build(StubHandler.Json("""{"symbol":"AAPL","period":"FY","year":"2025"}"""));
+
+        var report = await transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport);
+
+        Assert.NotNull(report);
+        Assert.Equal("AAPL", report.Symbol);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetObjectAsync_raises_an_error_envelope_that_arrived_as_a_200()
+    {
+        // The reason this method cannot use GetListAsync's first-byte test: here BOTH the success shape and the
+        // error shape are JSON objects. Measured 2026-08-27, a miss on financial-reports-json is HTTP 200
+        // carrying {"Error Message": "No Data for this symbol or invalid API call…"}.
+        var (transport, _) = Build(StubHandler.Json(
+            """{"Error Message":"No Data for this symbol or invalid API call."}"""));
+
+        var ex = await Assert.ThrowsAsync<FmpApiException>(
+            () => transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport));
+
+        Assert.Contains("No Data for this symbol", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task GetObjectAsync_raises_a_plan_restriction_before_reading_the_body()
+    {
+        var (transport, _) = Build(StubHandler.Status(HttpStatusCode.PaymentRequired));
+
+        await Assert.ThrowsAsync<FmpPlanRestrictedException>(
+            () => transport.GetObjectAsync(new FmpRequest("stable/x"), FmpJsonContext.Default.FinancialReport));
+    }
 
     [Fact]
     public async Task GetBytesAsync_returns_the_body_verbatim_without_looking_at_it()

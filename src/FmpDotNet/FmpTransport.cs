@@ -97,8 +97,8 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     /// is 558 KB — and it is accepted because the alternative is guessing.</para></summary>
     /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
-    /// <exception cref="FmpApiException">FMP reported an error — in the body of a 200, or on a non-success
-    /// status.</exception>
+    /// <exception cref="FmpApiException">FMP reported an error — in the body of a 200, on a non-success status,
+    /// or in a body that is not valid JSON at all.</exception>
     public async Task<T?> GetObjectAsync<T>(
         FmpRequest request, JsonTypeInfo<T> typeInfo, CancellationToken ct = default)
     {

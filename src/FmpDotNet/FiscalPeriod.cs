@@ -33,8 +33,8 @@ public enum FiscalPeriod
     /// through <c>Q4</c>.
     ///
     /// <para><b>Not accepted on the two report-document paths</b> —
-    /// <c>GetFinancialReportAsync</c> and
-    /// <c>GetFinancialReportWorkbookAsync</c> reject it. A filed report is one
+    /// <see cref="Endpoints.StatementEndpoints.GetFinancialReportAsync"/> and
+    /// <see cref="Endpoints.StatementEndpoints.GetFinancialReportWorkbookAsync"/> reject it. A filed report is one
     /// fiscal period, and "the 2025 quarterly report" is not a document that exists. See those methods for what
     /// FMP does instead when you ask.</para></summary>
     Quarter,
@@ -49,8 +49,8 @@ public enum FiscalPeriod
     Q3,
 
     /// <summary>Fourth fiscal quarter of each year, across years. <b>Not the same series as
-    /// <see cref="Annual"/></b> even where the period ends on the same day: measured on AAPL, the Q4 end and the
-    /// fiscal year end are both 2025-09-27, and the two series carry different figures.</summary>
+    /// <see cref="Annual"/></b> even where the period ends on the same day: measured on AAPL 2026-08-27, the Q4
+    /// end and the fiscal year end are both 2025-09-27, and the two series carry different figures.</summary>
     Q4,
 }
 
