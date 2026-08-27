@@ -1,0 +1,4 @@
+[
+  { "symbol": "^TTIN", "name": "S&P/TSX Capped Industrials Index", "exchange": "TSX", "currency": "CAD" },
+  { "symbol": "^GSPC", "name": "S&P 500", "exchange": "SNP", "currency": "USD" }
+]

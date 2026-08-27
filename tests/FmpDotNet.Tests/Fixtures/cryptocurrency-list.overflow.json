@@ -1,0 +1,8 @@
+[
+  { "symbol": "SHIBDOGEUSD", "name": "SHIBADOGE USD", "exchange": "CCC", "icoDate": "2021-10-27",
+    "circulatingSupply": 9223372036854776000, "totalSupply": 1.8398528382123738e+23 },
+  { "symbol": "MIOTAUSD", "name": "IOTA USD", "exchange": "CCC", "icoDate": "2017-11-09",
+    "circulatingSupply": 6304286374.701883, "totalSupply": 6304286374.701883 },
+  { "symbol": "NULLSUPPLYUSD", "name": "Null Supply USD", "exchange": "CCC", "icoDate": null,
+    "circulatingSupply": 21000000, "totalSupply": null }
+]

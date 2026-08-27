@@ -61,4 +61,100 @@ public class DirectoryListsTests
 
         Assert.Equal("/stable/etf-list", handler.Requests.Single().AbsolutePath);
     }
+
+    [Fact]
+    public async Task A_crypto_supply_beyond_long_max_is_read_rather_than_refused()
+    {
+        var (endpoints, _) = Build(Fixture("cryptocurrency-list.overflow.json"));
+
+        var coins = await endpoints.GetCryptocurrencyListAsync();
+
+        // SHIBDOGEUSD is the single row of 4,793 measured 2026-08-27 that exceeds long.MaxValue on both supply
+        // fields. Typed `long?` this throws a JsonException and costs the whole 4,793-row response, not one field.
+        Assert.Equal("SHIBDOGEUSD", coins[0].Symbol);
+        Assert.Equal(9223372036854776000m, coins[0].CirculatingSupply);
+        Assert.Equal(183985283821237380000000m, coins[0].TotalSupply);
+    }
+
+    [Fact]
+    public async Task A_fractional_crypto_supply_is_read_rather_than_refused()
+    {
+        var (endpoints, _) = Build(Fixture("cryptocurrency-list.overflow.json"));
+
+        var coins = await endpoints.GetCryptocurrencyListAsync();
+
+        // 953 of 4,792 circulating values carried a fractional part on 2026-08-27. A whole-number type refuses
+        // every one of them.
+        Assert.Equal(6304286374.701883m, coins[1].CirculatingSupply);
+    }
+
+    [Fact]
+    public async Task A_missing_crypto_supply_reads_as_null_rather_than_zero()
+    {
+        var (endpoints, _) = Build(Fixture("cryptocurrency-list.overflow.json"));
+
+        var coins = await endpoints.GetCryptocurrencyListAsync();
+
+        // 1,474 of 4,793 rows omitted totalSupply. Zero would be a claim; null is the absence of one.
+        Assert.Null(coins[2].TotalSupply);
+        Assert.Null(coins[2].IcoDate);
+    }
+
+    [Fact]
+    public async Task A_commodity_carries_no_exchange_and_that_is_not_a_fault()
+    {
+        var (endpoints, _) = Build(Fixture("commodities-list.json"));
+
+        var commodities = await endpoints.GetCommodityListAsync();
+
+        // Null on all 40 measured rows. Pinned so the day it starts arriving is a visible change rather than a
+        // silent one, and so the smoke baseline recording it empty reads as correct rather than as drift.
+        Assert.All(commodities, c => Assert.Null(c.Exchange));
+        Assert.Equal("Dec", commodities[0].TradeMonth);
+        // USX is US cents, not a typo for USD. A caller converting prices must not treat the two alike.
+        Assert.Equal("USX", commodities[1].Currency);
+    }
+
+    [Fact]
+    public async Task A_forex_pair_carries_both_sides_of_the_cross()
+    {
+        var (endpoints, _) = Build(Fixture("forex-list.head.json"));
+
+        var pairs = await endpoints.GetForexListAsync();
+
+        Assert.Equal("ARSMXN", pairs[0].Symbol);
+        Assert.Equal("ARS", pairs[0].FromCurrency);
+        Assert.Equal("Mexican Peso", pairs[0].ToName);
+    }
+
+    [Fact]
+    public async Task An_index_carries_its_exchange_and_currency()
+    {
+        var (endpoints, _) = Build(Fixture("index-list.head.json"));
+
+        var indexes = await endpoints.GetIndexListAsync();
+
+        Assert.Equal("^TTIN", indexes[0].Symbol);
+        Assert.Equal("CAD", indexes[0].Currency);
+    }
+
+    public static TheoryData<string, Func<DirectoryEndpoints, Task>> AssetClassCalls => new()
+    {
+        { "/stable/commodities-list", e => e.GetCommodityListAsync() },
+        { "/stable/cryptocurrency-list", e => e.GetCryptocurrencyListAsync() },
+        { "/stable/forex-list", e => e.GetForexListAsync() },
+        { "/stable/index-list", e => e.GetIndexListAsync() },
+    };
+
+    [Theory]
+    [MemberData(nameof(AssetClassCalls))]
+    public async Task Each_asset_class_list_asks_for_the_path_fmp_serves(
+        string path, Func<DirectoryEndpoints, Task> call)
+    {
+        var (endpoints, handler) = Build("[]");
+
+        await call(endpoints);
+
+        Assert.Equal(path, handler.Requests.Single().AbsolutePath);
+    }
 }

@@ -106,6 +106,60 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         return Symbols(rows, static r => r.Symbol, static r => r.Name);
     }
 
+    /// <summary>Every commodity FMP carries — 40 measured 2026-08-27, the whole set.
+    ///
+    /// <para>FMP documents this under Commodity rather than Directory. It lives here because it answers
+    /// Directory's question, and because no <c>fmp.Commodity</c> facade exists for it to join — see
+    /// <see cref="CommodityInfo"/>.</para>
+    ///
+    /// <para><b><see cref="CommodityInfo.Exchange"/> is null on every row</b>, and
+    /// <see cref="CommodityInfo.Currency"/> distinguishes <c>USD</c> from <c>USX</c>, which is US cents. Ignores
+    /// <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<CommodityInfo>> GetCommodityListAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/commodities-list"), FmpJsonContext.Default.ListCommodityInfo, ct);
+
+    /// <summary>Every cryptocurrency pair FMP carries — 4,793 measured 2026-08-27.
+    ///
+    /// <para>Filed under Crypto in FMP's documentation; here for the reason given on
+    /// <see cref="CommodityInfo"/>.</para>
+    ///
+    /// <para><b>The supply fields are <see cref="decimal"/> because a whole-number type refuses real rows.</b> 953
+    /// circulating values are fractional and one row exceeds <see cref="long.MaxValue"/> on both fields — see
+    /// <see cref="CryptocurrencyInfo.CirculatingSupply"/>. Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<CryptocurrencyInfo>> GetCryptocurrencyListAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/cryptocurrency-list"), FmpJsonContext.Default.ListCryptocurrencyInfo, ct);
+
+    /// <summary>Every forex pair FMP carries — 1,551 measured 2026-08-27.
+    ///
+    /// <para>Filed under Forex in FMP's documentation; here for the reason given on
+    /// <see cref="CommodityInfo"/>. Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<ForexPair>> GetForexListAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/forex-list"), FmpJsonContext.Default.ListForexPair, ct);
+
+    /// <summary>Every market index FMP carries — 425 measured 2026-08-27.
+    ///
+    /// <para>Filed under Indexes in FMP's documentation; here for the reason given on
+    /// <see cref="CommodityInfo"/>. The <b>constituent</b> lists — S&amp;P 500, Nasdaq, Dow Jones, current and
+    /// historical — are a separate six paths and are not modelled. Ignores <c>limit</c>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<IndexInfo>> GetIndexListAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/index-list"), FmpJsonContext.Default.ListIndexInfo, ct);
+
     /// <summary>Every symbol FMP carries, listed or not — 91,844 of them measured on 2026-08-26, 7.7 MB of JSON.
     ///
     /// <para><b>The obvious name for this endpoint 404s.</b> <c>stable/company-symbol-list</c> appears in older

@@ -1,0 +1,6 @@
+[
+  { "symbol": "ARSMXN", "fromCurrency": "ARS", "toCurrency": "MXN",
+    "fromName": "Argentine Peso", "toName": "Mexican Peso" },
+  { "symbol": "EURUSD", "fromCurrency": "EUR", "toCurrency": "USD",
+    "fromName": "Euro", "toName": "US Dollar" }
+]

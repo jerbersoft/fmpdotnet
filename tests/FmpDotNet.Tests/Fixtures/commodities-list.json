@@ -1,0 +1,5 @@
+[
+  { "symbol": "ZMUSD", "name": "Soybean Meal Futures", "exchange": null, "tradeMonth": "Dec", "currency": "USD" },
+  { "symbol": "ZCUSX", "name": "Corn Futures", "exchange": null, "tradeMonth": "Dec", "currency": "USX" },
+  { "symbol": "GCUSD", "name": "Gold Futures", "exchange": null, "tradeMonth": "Dec", "currency": "USD" }
+]
