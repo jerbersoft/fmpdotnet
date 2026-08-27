@@ -178,4 +178,45 @@ public class FmpTransportTests
         Assert.Equal("SYM49", rows[49].Symbol);
         Assert.Equal(49, rows[49].Volume);
     }
+
+    // GetObjectAsync tests are deliberately NOT here. All three from the brief (a successful object read, an
+    // error envelope arriving as a 200, and a plan restriction) need FmpJsonContext.Default.FinancialReport,
+    // which does not exist until Task 8. Task 7 ships GetObjectAsync covered by the GetBytesAsync tests below
+    // plus a compile; Task 8 adds the three GetObjectAsync tests once FinancialReport exists.
+
+    [Fact]
+    public async Task GetBytesAsync_returns_the_body_verbatim_without_looking_at_it()
+    {
+        // Deliberately not JSON and deliberately not a zip. The transport does not classify a binary body — the
+        // endpoint that knows what it asked for does.
+        byte[] payload = [0x50, 0x4B, 0x03, 0x04, 0xFF, 0x00, 0x41];
+        var (transport, _) = Build(new HttpResponseMessage(HttpStatusCode.OK)
+        {
+            // The content type FMP actually sends for a workbook, which is a lie, and is ignored here.
+            Content = new ByteArrayContent(payload)
+            {
+                Headers = { ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/json") },
+            },
+        });
+
+        Assert.Equal(payload, await transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
+
+    [Fact]
+    public async Task GetBytesAsync_still_raises_a_failure_status()
+    {
+        var (transport, _) = Build(StubHandler.Status(HttpStatusCode.BadRequest));
+
+        await Assert.ThrowsAsync<FmpApiException>(() => transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.PaymentRequired)]
+    [InlineData(HttpStatusCode.Forbidden)]
+    public async Task GetBytesAsync_raises_a_plan_restriction_before_reading_the_body(HttpStatusCode status)
+    {
+        var (transport, _) = Build(StubHandler.Status(status));
+
+        await Assert.ThrowsAsync<FmpPlanRestrictedException>(() => transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
 }
