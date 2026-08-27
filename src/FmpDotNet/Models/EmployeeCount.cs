@@ -27,7 +27,7 @@ public sealed record EmployeeCount
     /// <summary>When EDGAR accepted the filing.
     ///
     /// <para>FMP sends this as <c>"2025-10-31 06:01:26"</c> — space-separated, no <c>T</c>, no offset — and it is
-    /// EDGAR's <b>Eastern</b> wall clock, matching <see cref="IncomeStatement.AcceptedDate"/>. Read with
+    /// EDGAR's <b>Eastern</b> wall clock, matching <see cref="IncomeStatement.AcceptedDate"/>. If read with
     /// <see cref="NullableFmpInstantJsonConverter"/> instead, which parses the identical wire shape as UTC, every
     /// value would be four or five hours early and nothing would throw.</para></summary>
     [JsonPropertyName("acceptanceTime")]

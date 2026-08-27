@@ -111,6 +111,7 @@ public class CompanyPeopleTests
         Assert.Equal("USD", cfo.CurrencyPay);
         Assert.Equal("male", cfo.Gender);
         Assert.Equal(1972, cfo.YearBorn);
+        Assert.True(cfo.Active);
 
         // Measured 2026-08-27 over 203 rows across 18 symbols: pay null on 32 of the first 64, yearBorn on 24,
         // gender on 9. Typing any of these non-nullable binds a zero or an empty string over a real absence.

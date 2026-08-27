@@ -33,6 +33,7 @@ public class CompanyNotesTests
             new string?[] { "T", "T 33", "T 33A", "T 32A", "T 32" },
             notes.Select(n => n.Symbol));
         Assert.Contains(notes, n => n.Symbol!.Contains(' '));
+        Assert.Equal("0000732717", notes[0].Cik);
     }
 
     [Fact]

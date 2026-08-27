@@ -154,6 +154,7 @@ title together in one string (`"Luca Maestri Former Senior Vice President, Chief
 
 Three fields: `industryTitle, year, averageCompensation`. **`averageCompensation` is fractional** —
 `609504.1428571428` — so it is a `decimal`, not an integer, on every row that is not exactly zero.
+339 of the 377 rows returned by the bare call were fractional (measured 2026-08-27).
 
 The first call to `year=2025` took **37.18 s**; the identical call later took **0.53 s**. Cold, this
 endpoint is slow enough to trip a default HTTP timeout.
@@ -172,7 +173,7 @@ PFE, MRK, DIS, NKE, CSCO, ORCL`):
 | `yearBorn` | integer or null (24 null of the first 64) |
 | `currencyPay` | always present — **`"USD"` and `"TWD"`**, so pay is not comparable across rows without it |
 
-`SPY` answers `[]` — an ETF has no executives.
+`SPY` answers `[]` — an ETF has no executives. `AAPL` answered 8 rows and `TSM` 10 (measured 2026-08-27).
 
 ## `company-notes`: `symbol` is not the ticker, and titles carry raw HTML entities
 

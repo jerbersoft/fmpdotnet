@@ -142,8 +142,9 @@ internal static class LiveApi
     /// <para><b>Named rather than falling out of the default string case, for the reason recorded on
     /// <see cref="Exchange"/>.</b> <c>Probe.Argument</c> maps any unrecognised string to <see cref="Symbol"/>,
     /// which would send <c>name=AAPL</c> — and <c>mergers-acquisitions-search</c> matches company names, not
-    /// tickers, answering an unmatched name with an empty array and HTTP 200 rather than an error. The probe
-    /// would record <c>rows 0</c> as the baseline and match it every week thereafter.</para>
+    /// tickers, answering an unmatched name with an empty array and HTTP 200 rather than an error (measured
+    /// 2026-08-27). The probe would record <c>rows 0</c> as the baseline and match it every week
+    /// thereafter.</para>
     ///
     /// <para><c>"Apple"</c> rather than <c>"Bank"</c>: measured 2026-08-27, <c>Apple</c> answers 3 rows in
     /// which all nine fields are populated at least once — everything the baseline records — while <c>Bank</c>

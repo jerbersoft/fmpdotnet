@@ -8,8 +8,9 @@ namespace FmpDotNet.Models;
 /// <c>ZZZZNOPE</c> <c>[]</c>. <b>ETFs get peers</b> — <c>SPY</c> answers <c>IVV</c> and friends — so this is not
 /// an equity-only endpoint.</para>
 ///
-/// <para>This has its own record rather than reusing <see cref="MarketCapitalization"/> for one reason: the
-/// wire name. See <see cref="MarketCap"/>.</para></summary>
+/// <para>This has its own record rather than reusing <see cref="MarketCapitalization"/> for two reasons.
+/// The field sets differ — this carries <see cref="CompanyName"/> and <see cref="Price"/>, which that does
+/// not, and lacks its <c>Date</c> — and the wire name differs too. See <see cref="MarketCap"/>.</para></summary>
 public sealed record StockPeer
 {
     /// <summary>The peer's ticker, as FMP spells it.</summary>
@@ -26,7 +27,9 @@ public sealed record StockPeer
     /// <para><b>FMP spells this <c>mktCap</c> here and <c>marketCap</c> on every other endpoint in the Company
     /// group.</b> Measured 2026-08-27. The <c>[JsonPropertyName]</c> below is load-bearing: "correcting" it to
     /// <c>marketCap</c> makes every row bind <see langword="null"/> silently, with no exception and no missing
-    /// row to notice. The C# name stays <c>MarketCap</c> so callers see one spelling across the SDK.</para>
+    /// row to notice. The C# name is <c>MarketCap</c>, matching every other stable-shaped model in this SDK;
+    /// <see cref="ExchangeVariant.MktCap"/> is the deliberate exception, keeping the v3 spellings for the reason
+    /// recorded there.</para>
     ///
     /// <para><see langword="decimal"/> rather than <see langword="long"/> for the reason recorded on
     /// <see cref="MarketCapitalization.MarketCap"/>. All ten symbols probed on 2026-08-27 answered integral

@@ -44,8 +44,9 @@ public class MergersAcquisitionsTests
     public async Task All_three_target_fields_are_nullable_and_a_small_sample_would_not_show_it()
     {
         // Measured over the 1,000 rows of page 0 on 2026-08-27: targetedCik null on 390, targetedSymbol on 181,
-        // targetedCompanyName on 1. A 10-row sample shows none of them. Typing any of the three non-nullable —
-        // as an independent client does, from FMP's documented example — binds "" over a real absence.
+        // targetedCompanyName on 1. A 10-row sample shows none of them. Typing any of the three non-nullable
+        // fails to compile under Nullable=enable with TreatWarningsAsErrors, rather than binding a coerced
+        // empty string.
         var (endpoints, _) = Build(StubHandler.Json(Binding.Fixture("mergers-acquisitions-latest.p0.json")));
 
         var deals = await endpoints.GetLatestMergersAcquisitionsAsync(0, 1000);

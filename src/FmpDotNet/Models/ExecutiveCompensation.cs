@@ -17,7 +17,7 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b>Plan gating, measured by a third party rather than here.</b> Every path in this slice answered 200
 /// on the Ultimate key this SDK was measured with, so this repo's own measurements say nothing about lower
-/// tiers. An independent client recorded this endpoint as available on its plans on 2026-08-23; the two
+/// tiers. An independent client recorded no plan restriction on this endpoint on 2026-08-23; the three
 /// endpoints in this group that it recorded as 402 are noted on their own methods.</para></summary>
 public sealed record ExecutiveCompensation
 {

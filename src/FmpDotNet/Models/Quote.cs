@@ -88,8 +88,9 @@ public sealed record Quote
     ///
     /// <para><see cref="CompanyProfile.MarketCap"/> is <see cref="decimal"/> for exactly this reason too.
     /// Measured 2026-08-27, <c>stable/profile?symbol=GOOG</c> answered <c>4098415617064.9995</c> — the same
-    /// <c>.9995</c> tail on a second endpoint the same day, which is what turns the double-artefact reading
-    /// above from a guess into a measurement. That property was <see cref="long"/> until that measurement, and
+    /// <c>.9995</c> tail on a second endpoint the same day, which rules out a cause specific to the quote
+    /// endpoint and leaves the double-artefact reading above as the explanation. That property was
+    /// <see cref="long"/> until that measurement, and
     /// <c>System.Text.Json</c> cannot bind a fractional number to one.</para></summary>
     [JsonPropertyName("marketCap")] public decimal? MarketCap { get; init; }
 
