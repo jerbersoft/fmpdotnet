@@ -93,7 +93,7 @@ transfer the full set — the behaviour already recorded for `etf-list` and its 
 current trailing-twelve-month snapshot, with no date field of any kind. Two calls days apart are not
 comparable as a series and nothing in the payload says so.
 
-**`period` takes five values, not two.** Beyond `annual` and `quarter`, the four fiscal quarters
+**`period` takes six values, not two.** Beyond `annual` and `quarter`, the four fiscal quarters
 work as filters:
 
 ```
