@@ -61,6 +61,51 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         return Labels(rows, static r => r.Industry);
     }
 
+    /// <summary>Every country FMP classifies an exchange against, as ISO 3166-1 alpha-2 codes — 117 of them
+    /// measured 2026-08-27.
+    ///
+    /// <para><b>Codes, not names.</b> The wire key is <c>country</c> and the values are <c>"FK"</c>, <c>"MT"</c>,
+    /// <c>"SG"</c> — two characters on every measured row. A caller rendering these to a user needs a lookup;
+    /// <c>GetExchangesAsync</c> carries both spellings of the same fact and is the cheapest join for it.</para>
+    ///
+    /// <para>Ignores <c>limit</c>, like every list endpoint in this group except <c>cik-list</c> and
+    /// <c>symbol-change</c>. Order is the wire order, unsorted — see <see cref="Labels{T}"/>.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public async Task<IReadOnlyList<string>> GetCountriesAsync(CancellationToken ct = default)
+    {
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/available-countries"),
+            FmpJsonContext.Default.ListCountryName, ct).ConfigureAwait(false);
+        return Labels(rows, static r => r.Country);
+    }
+
+    /// <summary>Every ETF symbol FMP carries — 14,567 measured 2026-08-27.
+    ///
+    /// <para><b>A strict subset of <see cref="GetStockListAsync(CancellationToken)"/>.</b> All 14,567 appeared in
+    /// that endpoint's 91,845, none outside it — the same relation already measured for
+    /// <see cref="GetActivelyTradingAsync(CancellationToken)"/>. So this is a filter of the universe rather than a
+    /// separate one, and a caller holding the stock list already has these rows; what this endpoint adds is
+    /// knowing <i>which</i> of them are funds, which no field on the stock list says.</para>
+    ///
+    /// <para><b>The name arrives under <c>name</c>, not <c>companyName</c></b> — the <c>actively-trading-list</c>
+    /// spelling rather than the <c>stock-list</c> one, which is why this reuses that endpoint's wire shape. Both
+    /// unwrap to <see cref="CompanySymbol"/>; see that type for why the SDK absorbs the inconsistency instead of
+    /// publishing it.</para>
+    ///
+    /// <para>Ignores <c>limit</c>: asking for 5 rows still transfers all 14,567. Order is the wire order.</para></summary>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public async Task<IReadOnlyList<CompanySymbol>> GetEtfListAsync(CancellationToken ct = default)
+    {
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/etf-list"),
+            FmpJsonContext.Default.ListActivelyTradingRow, ct).ConfigureAwait(false);
+        return Symbols(rows, static r => r.Symbol, static r => r.Name);
+    }
+
     /// <summary>Every symbol FMP carries, listed or not — 91,844 of them measured on 2026-08-26, 7.7 MB of JSON.
     ///
     /// <para><b>The obvious name for this endpoint 404s.</b> <c>stable/company-symbol-list</c> appears in older
