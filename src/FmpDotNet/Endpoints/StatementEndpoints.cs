@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 
@@ -618,6 +619,79 @@ public sealed class StatementEndpoints(FmpTransport transport)
             .GetBytesAsync(Report("stable/financial-reports-xlsx", symbol, year, period), ct)
             .ConfigureAwait(false);
         return bytes is [0x50, 0x4B, 0x03, 0x04, ..] ? bytes : null;
+    }
+
+    /// <summary>The highest <c>page</c> <c>stable/latest-financial-statements</c> will serve. Measured
+    /// 2026-08-27: <c>page=101</c> answers HTTP 400 <c>Maxmium Query Parameter: The maximum page number for this
+    /// endpoint is '100'</c> — FMP's spelling of "maximum".
+    ///
+    /// <para>With <see cref="MaxLatestStatementsPageSize"/> that makes 25,250 rows reachable in total, and page
+    /// 100 was still returning filings dated 2026-08-05 — so the ceiling cuts about three weeks back and
+    /// everything older is unreachable through this path.</para></summary>
+    public const int MaxLatestStatementsPage = 100;
+
+    /// <summary>The largest page <c>stable/latest-financial-statements</c> will serve. A <b>cap, not a page
+    /// size</b>: measured 2026-08-27, <c>limit=1000</c> answered exactly 250 rows.
+    ///
+    /// <para>A caller who asks for 1,000 rows a page and advances the page index by 1,000 skips three quarters of
+    /// the feed and never sees an error, so <see cref="GetLatestStatementsAsync"/> rejects a larger limit rather
+    /// than passing it on to be clamped — the same treatment
+    /// <see cref="DirectoryEndpoints.MaxCikListPageSize"/> gives the registrant index.</para></summary>
+    public const int MaxLatestStatementsPageSize = 250;
+
+    /// <summary>One page of the market-wide feed of recently-ingested filings, newest first. From
+    /// <c>stable/latest-financial-statements</c>.
+    ///
+    /// <para>Rows are keyed on calendar year rather than fiscal year, and carry a wall-clock ingest time with no
+    /// timezone — see <see cref="LatestFinancialStatement"/> for both.</para></summary>
+    /// <param name="page">Zero-based page index, 0 to <see cref="MaxLatestStatementsPage"/>.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxLatestStatementsPageSize"/>. Required rather than
+    /// defaulted: the page size and the page index have to agree for a walk to be complete, and a default would
+    /// let them disagree invisibly.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's rows, newest first. Empty past the end. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is outside 0 to
+    /// <see cref="MaxLatestStatementsPage"/>, or <paramref name="limit"/> is outside 1 to
+    /// <see cref="MaxLatestStatementsPageSize"/> — see those constants for why both are enforced here rather than
+    /// left to be clamped or refused upstream.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<LatestFinancialStatement>> GetLatestStatementsAsync(
+        int page, int limit, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(page, MaxLatestStatementsPage);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxLatestStatementsPageSize);
+        return transport.GetListAsync(
+            new FmpRequest("stable/latest-financial-statements").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListLatestFinancialStatement, ct);
+    }
+
+    /// <summary>Walks the recency feed from page 0 and streams every filing it can reach — at most 25,250 rows
+    /// over 101 requests.
+    ///
+    /// <para><b>Bounded by <see cref="MaxLatestStatementsPage"/> as well as by a short page</b>, and the bound is
+    /// not belt-and-braces: page 101 is an HTTP 400, so a walk that only stopped on a short page would end this
+    /// sequence with an exception rather than an ending. Measured 2026-08-27, page 100 was still full, so that
+    /// bound is reached in practice rather than in theory.</para>
+    ///
+    /// <para><b>This is not "every statement FMP has."</b> It is roughly the last three weeks of ingests. See
+    /// <see cref="LatestFinancialStatement"/>.</para></summary>
+    /// <param name="ct">Cancels the walk between pages as well as mid-page.</param>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429. Possible if 101 pages are walked flat
+    /// out.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async IAsyncEnumerable<LatestFinancialStatement> StreamLatestStatementsAsync(
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        for (var page = 0; page <= MaxLatestStatementsPage; page++)
+        {
+            var rows = await GetLatestStatementsAsync(page, MaxLatestStatementsPageSize, ct).ConfigureAwait(false);
+            foreach (var row in rows) yield return row;
+
+            // A short page is the last page, and an empty one ends it too — the same condition.
+            if (rows.Count < MaxLatestStatementsPageSize) yield break;
+        }
     }
 
     /// <summary>The query shape the two report-document paths share, and the one place a legal

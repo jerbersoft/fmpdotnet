@@ -65,6 +65,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<AsReportedStatement>))]
 [JsonSerializable(typeof(List<RevenueSegmentation>))]
 [JsonSerializable(typeof(List<OwnerEarnings>))]
+[JsonSerializable(typeof(List<LatestFinancialStatement>))]
 [JsonSerializable(typeof(List<FinancialReportLink>))]
 // Not a list — the only object-shaped response in this slice. See FinancialReport.
 [JsonSerializable(typeof(FinancialReport))]
