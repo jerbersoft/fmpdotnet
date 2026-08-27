@@ -16,7 +16,7 @@ public sealed record ExchangeInfo
     ///
     /// <para><b>Note which side of the naming this is.</b> On <see cref="CompanyProfile"/> the code lives under
     /// <c>exchange</c> and the display name under <c>exchangeFullName</c>; on
-    /// <c>ExchangeVariant</c> those two are the other way round. This field is the code.</para></summary>
+    /// <see cref="ExchangeVariant"/> those two are the other way round. This field is the code.</para></summary>
     [JsonPropertyName("exchange")] public string? Exchange { get; init; }
 
     /// <summary>The display name — <c>Australian Securities Exchange</c>.</summary>
@@ -34,7 +34,7 @@ public sealed record ExchangeInfo
     /// <para><b>Five of the 63 rows carry the literal string <c>"N/A"</c> rather than null</b>, measured
     /// 2026-08-27. The SDK does not normalise it, because doing so would hide which value FMP actually sent — but
     /// a caller appending this blindly produces <c>AAPL.N/A</c>. Test for it explicitly, or use
-    /// <c>SearchEndpoints.GetExchangeVariantsAsync</c>, which answers the same question by
+    /// <see cref="Endpoints.SearchEndpoints.GetExchangeVariantsAsync"/>, which answers the same question by
     /// returning the symbols themselves.</para></summary>
     [JsonPropertyName("symbolSuffix")] public string? SymbolSuffix { get; init; }
 

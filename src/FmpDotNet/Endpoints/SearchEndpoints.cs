@@ -161,6 +161,40 @@ public sealed class SearchEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListIsinSearchResult, ct);
     }
 
+    /// <summary>Every exchange <paramref name="symbol"/> trades on, each with a full company profile attached —
+    /// 6 rows for <c>AAPL</c> measured 2026-08-27, spanning USD, EUR, MXN and CAD.
+    ///
+    /// <para>The question this answers is "where else does this trade, and under what ticker" — the reliable way
+    /// to find a symbol's foreign listings, and better than appending
+    /// <see cref="ExchangeInfo.SymbolSuffix"/> by hand, which is the literal string <c>"N/A"</c> on five
+    /// exchanges.</para>
+    ///
+    /// <para><b>The rows are <see cref="ExchangeVariant"/>, not <see cref="CompanyProfile"/>, and the difference
+    /// is not cosmetic.</b> FMP serves a v3-era shape here: <c>mktCap</c> for <c>marketCap</c>, <c>lastDiv</c> for
+    /// <c>lastDividend</c>, and — the one that produces silently wrong code —
+    /// <see cref="ExchangeVariant.Exchange"/> holding the display name where
+    /// <see cref="CompanyProfile.Exchange"/> holds the short code. See <see cref="ExchangeVariant"/> for the
+    /// measured comparison.</para>
+    ///
+    /// <para><b>Prices and market caps are in each listing's own currency.</b> Comparing them across rows without
+    /// reading <see cref="ExchangeVariant.Currency"/> compares magnitudes, not values.</para></summary>
+    /// <param name="symbol">The ticker to find listings for. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per exchange, in FMP's order, the primary listing first. Empty for an unknown symbol —
+    /// HTTP 200, not an error. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<ExchangeVariant>> GetExchangeVariantsAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/search-exchange-variants").With("symbol", symbol),
+            FmpJsonContext.Default.ListExchangeVariant, ct);
+    }
+
     /// <summary>The shared body of the two query-shaped searches, which differ only in path.</summary>
     private Task<IReadOnlyList<SymbolSearchResult>> QueryAsync(
         string path, string query, int? limit, string? exchange, CancellationToken ct)

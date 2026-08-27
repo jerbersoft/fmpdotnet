@@ -1,5 +1,7 @@
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using FmpDotNet.Endpoints;
+using FmpDotNet.Models;
 
 namespace FmpDotNet.Tests;
 
@@ -153,5 +155,84 @@ public class SearchEndpointsTests
         await Assert.ThrowsAsync<ArgumentException>(() => endpoints.FindBySymbolAsync(query));
 
         Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task An_exchange_variant_reads_the_code_from_exchange_short_name()
+    {
+        var (endpoints, _) = Build(Fixture("search-exchange-variants.AAPL.json"));
+
+        var variants = await endpoints.GetExchangeVariantsAsync("AAPL");
+
+        // THE INVERSION. On stable/profile, `exchange` is the code and `exchangeFullName` the display name. Here
+        // `exchange` is the DISPLAY NAME and the code lives in exchangeShortName. A caller filtering on
+        // Exchange == "NASDAQ" against this endpoint gets nothing, with no error.
+        Assert.Equal("NASDAQ", variants[0].ExchangeShortName);
+        Assert.Equal("NASDAQ Global Select", variants[0].Exchange);
+    }
+
+    [Fact]
+    public async Task An_exchange_variant_is_not_a_company_profile()
+    {
+        // The two shapes have 36 fields each and 29 in common, so a reader comparing counts would conclude they
+        // are interchangeable. These four wire keys are the ones that differ, and binding CompanyProfile to this
+        // payload leaves all four null while every other field populates — the worst kind of near-miss.
+        var variant = typeof(ExchangeVariant).GetProperties()
+            .SelectMany(p => p.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false))
+            .Cast<JsonPropertyNameAttribute>().Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+        var profile = typeof(CompanyProfile).GetProperties()
+            .SelectMany(p => p.GetCustomAttributes(typeof(JsonPropertyNameAttribute), false))
+            .Cast<JsonPropertyNameAttribute>().Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+
+        Assert.Contains("mktCap", variant);
+        Assert.Contains("marketCap", profile);
+        Assert.DoesNotContain("marketCap", variant);
+        Assert.DoesNotContain("mktCap", profile);
+        // And the field only this endpoint carries.
+        Assert.Contains("dcf", variant);
+        Assert.DoesNotContain("dcf", profile);
+        await Task.CompletedTask;
+    }
+
+    [Fact]
+    public async Task An_exchange_variant_carries_a_cik_only_for_the_primary_listing()
+    {
+        var (endpoints, _) = Build(Fixture("search-exchange-variants.AAPL.json"));
+
+        var variants = await endpoints.GetExchangeVariantsAsync("AAPL");
+
+        // 5 of 6 measured rows had a null cik. This endpoint looks like a symbol -> CIK bridge and is not one;
+        // FindByCikAsync goes the other way and DirectoryEndpoints.StreamCikListAsync walks the registry.
+        Assert.Equal("0000320193", variants[0].Cik);
+        Assert.Null(variants[1].Cik);
+        Assert.Null(variants[2].Cik);
+    }
+
+    [Fact]
+    public async Task An_exchange_variant_dcf_does_not_reconcile_with_its_own_price()
+    {
+        var (endpoints, _) = Build(Fixture("search-exchange-variants.AAPL.json"));
+
+        var variants = await endpoints.GetExchangeVariantsAsync("AAPL");
+
+        // dcf + dcfDiff implies a price the row does not carry: 142.85 + 170.11 = 312.96 against price 313.45.
+        // Measured on every row, and the direction is not consistent — the Mexican row implies 5300.01 against
+        // 5330. Pinned so a caller cannot infer price from the pair.
+        var implied = variants[0].Dcf!.Value + variants[0].DcfDiff!.Value;
+        Assert.NotEqual(variants[0].Price!.Value, implied);
+        Assert.Equal(312.96m, Math.Round(implied, 2));
+    }
+
+    [Fact]
+    public async Task An_exchange_variant_row_can_be_missing_its_price_entirely()
+    {
+        var (endpoints, _) = Build(Fixture("search-exchange-variants.AAPL.json"));
+
+        var variants = await endpoints.GetExchangeVariantsAsync("AAPL");
+
+        // AAPL.DE carried nulls for price, range, changes and dcfDiff while still reporting isActivelyTrading.
+        Assert.Null(variants[2].Price);
+        Assert.Null(variants[2].Changes);
+        Assert.True(variants[2].IsActivelyTrading);
     }
 }

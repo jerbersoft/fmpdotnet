@@ -30,7 +30,7 @@ public sealed record SymbolSearchResult
     /// <see cref="Endpoints.QuoteEndpoints.GetExchangeQuotesAsync"/> expects, and the vocabulary
     /// <see cref="Endpoints.DirectoryEndpoints.GetExchangesAsync"/> publishes.
     ///
-    /// <para><b>The code, not the display name.</b> <c>ExchangeVariant.Exchange</c> is the other way
+    /// <para><b>The code, not the display name.</b> <see cref="ExchangeVariant.Exchange"/> is the other way
     /// round — same field name, opposite meaning, on an endpoint in the same group.</para></summary>
     [JsonPropertyName("exchange")] public string? Exchange { get; init; }
 }

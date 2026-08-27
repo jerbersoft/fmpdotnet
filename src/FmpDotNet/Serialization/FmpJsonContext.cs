@@ -39,6 +39,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<CikSearchResult>))]
 [JsonSerializable(typeof(List<CusipSearchResult>))]
 [JsonSerializable(typeof(List<IsinSearchResult>))]
+[JsonSerializable(typeof(List<ExchangeVariant>))]
 [JsonSerializable(typeof(List<EconomicRelease>))]
 [JsonSerializable(typeof(List<FinancialScores>))]
 [JsonSerializable(typeof(List<AnalystEstimate>))]
