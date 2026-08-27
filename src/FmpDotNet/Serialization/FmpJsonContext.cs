@@ -55,8 +55,12 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<AdjustedEndOfDayBar>))]
 [JsonSerializable(typeof(List<IntradayBar>))]
 // The five below were built for the *-bulk CSV surface and are registered here because their per-symbol JSON
-// twins carry the identical field set, measured 2026-08-27. They bind by [JsonPropertyName] rather than by
-// property name — see StatementReuseBindingTests for why that is not optional.
+// twins carry the identical field set, measured 2026-08-27. Every property still carries [JsonPropertyName], but
+// measured 2026-08-27 only 108 of the 237 attributes across these five types are load-bearing — the TTM suffixes
+// on RatiosTtm and KeyMetricsTtm, FMP's four "Activites" typos on CashFlowGrowth, and two abbreviation mismatches
+// on IncomeStatementGrowth. The rest, including all 56 on BalanceSheetGrowth, would bind the same way from the
+// C# property name alone; they are kept so the mapping stays explicit rather than contingent on
+// PropertyNameCaseInsensitive staying set. See StatementReuseBindingTests.
 [JsonSerializable(typeof(List<RatiosTtm>))]
 [JsonSerializable(typeof(List<KeyMetricsTtm>))]
 [JsonSerializable(typeof(List<IncomeStatementGrowth>))]

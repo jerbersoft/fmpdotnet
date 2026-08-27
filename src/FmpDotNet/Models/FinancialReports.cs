@@ -106,7 +106,14 @@ public sealed record FinancialReport
     public int? Year { get; init; }
 
     /// <summary>The report's sections, keyed by FMP's truncated section name. Never <see langword="null"/>;
-    /// empty when the response carried nothing but the three scalars.</summary>
+    /// empty when the response carried nothing but the three scalars.
+    ///
+    /// <para>This auto-property's <c>= Empty</c> initialiser is the form <see cref="AsReportedStatement.Data"/>
+    /// documents as unsafe under System.Text.Json's source-generated object-initialiser binding. It is safe here
+    /// only because this type carries <see cref="FinancialReportJsonConverter"/>: a type-level
+    /// <see cref="JsonConverterAttribute"/> makes the generator emit a value-converter path instead, so the
+    /// object-initialiser path this property's default would otherwise be exposed to is never
+    /// generated.</para></summary>
     public IReadOnlyDictionary<string, JsonElement> Sections { get; init; } =
         ReadOnlyDictionary<string, JsonElement>.Empty;
 }

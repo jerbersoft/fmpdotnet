@@ -64,7 +64,9 @@ public sealed record AsReportedStatement
         // 2026-08-27, System.Text.Json's source-generated deserialiser sets every `init` member through one
         // object-initialiser expression, so a member absent from the payload binds through the initialiser to
         // `default` rather than to the property's own field initialiser. An auto-property here would silently
-        // let an absent `data` key answer null despite the doc comment promising otherwise.
+        // let an absent `data` key answer null despite the doc comment promising otherwise. Symbol's `= ""`
+        // above has the same exposure and would bind to null, not "", under the same absence — left as an
+        // auto-property anyway because every payload measured on 2026-08-27 carried a `symbol` key.
         get => _data ?? ReadOnlyDictionary<string, JsonElement>.Empty;
         init => _data = value;
     }

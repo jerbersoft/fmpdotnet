@@ -57,7 +57,8 @@ public sealed record ScreenerResult
     /// the same day returned only plain integers — so the non-integer shape is real but not reliably
     /// reproducible. Every other volume field in this SDK that has met the same problem is already
     /// <see langword="decimal"/>? — <see cref="Quote.Volume"/>, <see cref="IntradayBar.Volume"/>,
-    /// <see cref="AftermarketQuote.Volume"/> and <see cref="BulkCompanyProfile.Volume"/>.</summary>
+    /// <see cref="AftermarketQuote.Volume"/>, <see cref="BulkCompanyProfile.Volume"/> and
+    /// <see cref="ShortQuote.Volume"/>.</summary>
     [JsonPropertyName("volume")] public decimal? Volume { get; init; }
 
     /// <summary>The exchange's <b>long</b> name — <c>NASDAQ Global Select</c>, <c>New York Stock Exchange</c>.

@@ -36,8 +36,11 @@ public sealed record OwnerEarnings
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]
     public LocalDate? Date { get; init; }
 
-    /// <summary>The ratio FMP uses to split capex into maintenance and growth — <b>a rate, not an amount</b>,
-    /// despite the name reading like a balance. AAPL measured 0.13466 for Q3 2026.</summary>
+    /// <summary>A ratio FMP reports on the row, alongside the capex split — <b>a rate, not an amount</b>, despite
+    /// the name reading like a balance. AAPL measured 0.13466 for Q3 2026. That it drives the split into
+    /// <see cref="MaintenanceCapex"/> and <see cref="GrowthCapex"/> is FMP's naming, not something this SDK has
+    /// verified: on both measured rows, this value times the two capex fields' sum — the most direct reading of
+    /// "the ratio used to split capex" — does not equal <see cref="MaintenanceCapex"/>.</summary>
     [JsonPropertyName("averagePPE")] public decimal? AveragePpe { get; init; }
 
     /// <summary>Estimated capital spending needed to maintain the business, signed the way the cash flow
@@ -50,8 +53,13 @@ public sealed record OwnerEarnings
     /// possessive, where the endpoint is named <c>owner-earnings</c>.</summary>
     [JsonPropertyName("ownersEarnings")] public decimal? OwnersEarnings { get; init; }
 
-    /// <summary>Estimated capital spending on growth — total capex less <see cref="MaintenanceCapex"/>. Also
-    /// negative.</summary>
+    /// <summary>Estimated capital spending on growth — total capex less <see cref="MaintenanceCapex"/>, signed
+    /// the same way. <b>Negative on both measured rows, not guaranteed beyond that</b>: AAPL's Q3 2026 row is
+    /// −2,071,205,460 and its Q2 2026 row is −2,130,994,500, measured 2026-08-27. That is two rows of one filer,
+    /// and there is no structural reason to expect more: <see cref="MaintenanceCapex"/> is demonstrably the
+    /// residual of the two capex fields — it flips sign across those same two rows while this one does not — so
+    /// whichever field plays the residual role next could move either way. Add it to net income exactly as FMP
+    /// signs it; do not flip the sign first, on this row or any other.</summary>
     [JsonPropertyName("growthCapex")] public decimal? GrowthCapex { get; init; }
 
     /// <summary>Owner earnings per share for the quarter.</summary>

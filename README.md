@@ -282,9 +282,10 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as twelve actionable issues under the epic, each 7 to 13 paths and each carrying the
-measured path list for its group. Company is now the largest and is the one a trading consumer needs next, so it
-is the natural next slice rather than long-tail work.
+That remainder is tracked as twelve actionable issues under the epic, each 9 to 14 paths and each carrying the
+measured path list for its group. Company (13 paths) is not the largest — the Form 13F/Insider Trades issue and
+the Analyst/Calendar issue are each 14 — but it is the one a trading consumer needs next, so it is the natural
+next slice rather than long-tail work.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is

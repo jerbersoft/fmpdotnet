@@ -4,15 +4,18 @@ using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Endpoints;
 
-/// <summary>The period-shaped fundamentals endpoints: the three statements plus the four derived sets.
+/// <summary>The fundamentals endpoints built on one symbol's financial statements: the three core statements
+/// and their trailing-twelve-month twins, two families of growth series (FMP's own summary and the per-line
+/// breakdowns), the as-reported (XBRL) versions, the derived sets (ratios, key metrics, enterprise values), and
+/// other data pulled from the same filings — financial scores, owner earnings, revenue segmentation, and one
+/// filing's rendered report or XLSX workbook. <see cref="GetLatestStatementsAsync"/> and
+/// <see cref="StreamLatestStatementsAsync"/> are the outlier: a market-wide feed of recently-ingested statements,
+/// not one company's history.
 ///
-/// <para>All seven take the same three arguments and answer newest period first. They are grouped here because
-/// they share one query shape, not because FMP groups them — FMP splits them across its Statements, Ratios and
-/// Metrics sections.</para>
-///
-/// <para><see cref="GetScoresAsync"/> is the exception and does not go through that shared shape: it takes no
-/// period and no limit, and answers one row or none. It lives here because its figures come off the same
-/// statements, not because it is period-shaped.</para></summary>
+/// <para>Most, but not all, share one query shape — symbol, period and limit, newest first. Several of the rest
+/// still take a period, just not the same limit story (or none), and a few take neither: the private
+/// <c>Periodic</c>, <c>Rolling</c>, <c>Envelope</c> and <c>Report</c> helpers below say exactly which paths take
+/// what.</para></summary>
 public sealed class StatementEndpoints(FmpTransport transport)
 {
     /// <summary>Income statements for one symbol, newest first.</summary>
@@ -728,7 +731,8 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// rows regardless — see <see cref="MaxOwnerEarningsRows"/>.</para></summary>
     public const int FullHistoryLimit = 100_000;
 
-    /// <summary>The one query shape all seven share. Written once so the seven cannot drift apart.</summary>
+    /// <summary>The query shape shared by the periodic fundamentals paths — symbol, period and limit. Written
+    /// once so they cannot drift apart.</summary>
     private static FmpRequest Periodic(string path, string symbol, FiscalPeriod period, int? limit)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);

@@ -8,13 +8,16 @@ namespace FmpDotNet.Tests;
 
 /// <summary>Proves the five CSV-built models bind the JSON forms of their endpoints.
 ///
-/// <para><b>These are the tests that fail when someone deletes a <c>[JsonPropertyName]</c>.</b> The five records
-/// here were written for the <c>*-bulk</c> CSV surface, which maps them by an explicit wire-name lookup, and
-/// their C# property names deliberately drop FMP's <c>TTM</c> suffix — <c>GrossProfitMargin</c> for
-/// <c>grossProfitMarginTTM</c>. The serializer context sets <c>PropertyNameCaseInsensitive</c> and no naming
-/// policy, so without the attributes JSON binding falls back to the property name, misses, and leaves the field
-/// null. Nothing throws. <c>symbol</c> populates and 61 metrics do not, and every assertion that spot-checked one
-/// field would still pass.</para>
+/// <para><b>Not every one of these fails the same way if a <c>[JsonPropertyName]</c> is deleted.</b> Measured
+/// 2026-08-27, only 108 of the 237 attributes across the five are load-bearing. <c>RatiosTtm</c> breaks hardest:
+/// its C# property names deliberately drop FMP's <c>TTM</c> suffix — <c>GrossProfitMargin</c> for
+/// <c>grossProfitMarginTTM</c> — and the serializer context sets <c>PropertyNameCaseInsensitive</c> with no
+/// naming policy, so without the attribute, binding falls back to the property name, misses the suffixed wire
+/// name, and leaves the field null with nothing throwing: <c>symbol</c> populates and all 61 metrics do not.
+/// <c>KeyMetricsTtm</c> is close behind at 41 of 42. <c>BalanceSheetGrowth</c> is the other extreme — none of its
+/// 56 attributes are load-bearing, because its wire names are already the camelCase of its property names — and
+/// the remaining two records land in between. Either way, an assertion that spot-checked one field would still
+/// pass.</para>
 ///
 /// <para>So each test asserts the WHOLE record populated, against a row captured live on 2026-08-27 in which
 /// every field carried a value — measured, not assumed: all five captures were checked for nulls and had
