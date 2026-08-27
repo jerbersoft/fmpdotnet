@@ -248,16 +248,22 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. Roughly 165
-paths remain, across News, SEC Filings, Form 13F, Insider Trades, ETF & Mutual Funds, Earnings Transcripts,
-Senate/House, ESG, COT, Fundraisers, Technical Indicators, Market Performance, Market Hours and DCF.
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **148 paths
+remain**, and they are not spread the way FMP's own section headings suggest. The largest groups are Statements
+(19), Company (13), SEC Filings (12), Market Performance (11) and News (10); Analyst, Calendar and the Indexes
+constituent lists carry 7 apiece.
 
-Indexes, Commodity, Forex and Crypto are **not** among them, despite having their own sections in FMP's
-documentation: they re-document `stable/quote` and `stable/historical-price-eod` rather than adding endpoints, and
-`fmp.Quote` and `fmp.Chart` already reach them. `GetQuoteAsync("BTCUSD")`, `GetQuoteAsync("EURUSD")`,
-`GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were each measured returning the ordinary seventeen-field
-quote. That is why 230 unique paths back FMP's 263 documented APIs, and why the denominator here is the smaller
-number.
+Split by asset class the balance is lopsided. **106 of the 148 are equity-only** — statements, filings, ownership,
+analyst opinion, corporate actions — against 42 that are shared or belong to another asset class. That is because
+what has been built so far is price plumbing, and one `GetQuoteAsync` serves equities, ETFs, indices, commodities,
+forex and crypto alike: the breadth came free, and the equity depth is the part still to build.
+
+Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
+`fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
+`stable/quote` and `stable/historical-price-eod` re-documented, which `fmp.Quote` and `fmp.Chart` already reach.
+`GetQuoteAsync("BTCUSD")`, `GetQuoteAsync("EURUSD")`, `GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were
+each measured returning the ordinary seventeen-field quote. That is why 230 unique paths back FMP's 263 documented
+APIs, and why the denominator here is the smaller number.
 
 **`FmpTransport` is public precisely so none of that blocks you.** Reach an unmodelled endpoint through it rather
 than building a second `HttpClient`: the transport carries the throttle, the timeout, the 429 handling and the
