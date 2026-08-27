@@ -132,6 +132,82 @@ public sealed class StatementEndpoints(FmpTransport transport)
         transport.GetListAsync(Periodic("stable/enterprise-values", symbol, period, limit),
             FmpJsonContext.Default.ListEnterpriseValues, ct);
 
+    /// <summary>Rolling-twelve-month income statements for one symbol, newest first. From
+    /// <c>stable/income-statement-ttm</c>.
+    ///
+    /// <para><b>The same 39 fields as <see cref="GetIncomeStatementAsync"/>, on a different clock.</b> The wire
+    /// field set was compared key by key on 2026-08-27 and is identical, so this reuses
+    /// <see cref="IncomeStatement"/> rather than declaring a near-duplicate record. Each row covers the twelve
+    /// months ending at the <c>date</c> on it, so consecutive rows OVERLAP by nine months — summing them
+    /// quadruples the revenue. The plain statement is the one to sum.</para>
+    ///
+    /// <para><b>No <c>period</c> parameter, deliberately.</b> The endpoint accepts one and ignores it, measured
+    /// 2026-08-27: the answer is always quarterly-stepped and newest-first from the latest quarter. This is the
+    /// deepest series in the group — AAPL returned 164 rows back to 1985-09-30.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it. Class shares need the hyphenated form (<c>BRK-B</c>).</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
+    /// history: the SDK sends <see cref="FullHistoryLimit"/>, because FMP reads an omitted limit as 5.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol — which answers <c>[]</c> at HTTP 200 rather
+    /// than a 404. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<IncomeStatement>> GetIncomeStatementTtmAsync(
+        string symbol, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Rolling("stable/income-statement-ttm", symbol, limit),
+            FmpJsonContext.Default.ListIncomeStatement, ct);
+
+    /// <summary>Rolling-twelve-month balance sheets for one symbol, newest first. From
+    /// <c>stable/balance-sheet-statement-ttm</c>.
+    ///
+    /// <para><b>Sixty of <see cref="BalanceSheetStatement"/>'s 61 fields.</b>
+    /// <see cref="BalanceSheetStatement.CapitalLeaseObligationsNonCurrent"/> is <b>never</b> sent on this path and
+    /// therefore always binds null — measured 2026-08-27 across AAPL, JPM, XOM, O, TSM, SHOP, BRK-B, KO, GE and
+    /// MSFT, where the TTM row carried exactly 60 keys every time and the plain balance sheet carried the 61st
+    /// for all ten. It is structural, not a sparse filer, and null here is an absence rather than a zero.</para>
+    ///
+    /// <para>A rolling balance sheet is a stranger object than a rolling income statement — a balance sheet is
+    /// already a point in time — so read these as "the balance sheet as at the end of each trailing twelve-month
+    /// window", which is the quarter end, not an average over the year.</para>
+    ///
+    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<BalanceSheetStatement>> GetBalanceSheetTtmAsync(
+        string symbol, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Rolling("stable/balance-sheet-statement-ttm", symbol, limit),
+            FmpJsonContext.Default.ListBalanceSheetStatement, ct);
+
+    /// <summary>Rolling-twelve-month cash flow statements for one symbol, newest first. From
+    /// <c>stable/cash-flow-statement-ttm</c>.
+    ///
+    /// <para>The same 47 fields as <see cref="GetCashFlowAsync"/>, compared key by key on 2026-08-27 and
+    /// identical, so this reuses <see cref="CashFlowStatement"/>. Consecutive rows overlap by nine months; do not
+    /// sum them.</para>
+    ///
+    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
+    /// <see cref="FullHistoryLimit"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<CashFlowStatement>> GetCashFlowTtmAsync(
+        string symbol, int? limit = null, CancellationToken ct = default) =>
+        transport.GetListAsync(Rolling("stable/cash-flow-statement-ttm", symbol, limit),
+            FmpJsonContext.Default.ListCashFlowStatement, ct);
+
     /// <summary>Altman Z and Piotroski F for one symbol, or null when FMP has no scores for it.
     ///
     /// <para>Single record rather than a list, and <paramref name="symbol"/> is the only parameter: measured 2026-08-26,
@@ -187,6 +263,22 @@ public sealed class StatementEndpoints(FmpTransport transport)
             .With("period", period.ToQueryValue())
             // `limit ?? FullHistoryLimit`, not `limit` — a null limit means "all of it", and FMP reads a missing
             // limit as 5. See FullHistoryLimit.
+            .With("limit", limit ?? FullHistoryLimit);
+    }
+
+    /// <summary>The query shape for the per-symbol paths that take no <c>period</c>.
+    ///
+    /// <para>Separate from <see cref="Periodic"/> rather than passing a nullable period through it, because the
+    /// difference is a fact about the endpoints and not a formatting choice: measured 2026-08-27, these paths
+    /// accept <c>period</c> and discard it. A helper that could emit it would leave the decision to a call
+    /// site.</para></summary>
+    private static FmpRequest Rolling(string path, string symbol, int? limit)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
+        return new FmpRequest(path)
+            .With("symbol", symbol)
             .With("limit", limit ?? FullHistoryLimit);
     }
 }
