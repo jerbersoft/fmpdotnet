@@ -35,6 +35,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<CikEntry>))]
 [JsonSerializable(typeof(List<DelistedCompany>))]
 [JsonSerializable(typeof(List<EmployeeCount>))]
+[JsonSerializable(typeof(List<ExecutiveCompensation>))]
+[JsonSerializable(typeof(List<ExecutiveCompensationBenchmark>))]
 [JsonSerializable(typeof(List<KeyExecutive>))]
 [JsonSerializable(typeof(List<MarketCapitalization>))]
 [JsonSerializable(typeof(List<StockPeer>))]

@@ -1,0 +1,36 @@
+[
+  {
+    "cik": "0000320193",
+    "symbol": "AAPL",
+    "companyName": "Apple Inc.",
+    "filingDate": "2026-01-08",
+    "acceptedDate": "2026-01-08 16:31:36",
+    "nameAndPosition": "Luca Maestri Former Senior Vice President, Chief Financial Officer",
+    "year": 2025,
+    "salary": 819231,
+    "bonus": 0,
+    "stockAward": 13003031,
+    "optionAward": 0,
+    "incentivePlanCompensation": 1638462,
+    "allOtherCompensation": 22204,
+    "total": 15482928,
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/0001308179-26-000008-index.htm"
+  },
+  {
+    "cik": "0000320193",
+    "symbol": "AAPL",
+    "companyName": "Apple Inc.",
+    "filingDate": "2026-01-08",
+    "acceptedDate": "2026-01-08 16:31:36",
+    "nameAndPosition": "Sabih Khan Senior Vice President, Chief Operating Officer",
+    "year": 2025,
+    "salary": 1000000,
+    "bonus": 0,
+    "stockAward": 22009766,
+    "optionAward": 0,
+    "incentivePlanCompensation": 4000000,
+    "allOtherCompensation": 21905,
+    "total": 27031671,
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000130817926000008/0001308179-26-000008-index.htm"
+  }
+]

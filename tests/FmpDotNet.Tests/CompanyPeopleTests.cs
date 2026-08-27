@@ -155,4 +155,81 @@ public class CompanyPeopleTests
 
         Assert.Empty(await endpoints.GetKeyExecutivesAsync("SPY"));
     }
+
+    [Fact]
+    public async Task Binds_every_field_of_an_executive_compensation_row()
+    {
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("governance-executive-compensation.AAPL.json")));
+
+        var rows = await endpoints.GetExecutiveCompensationAsync("AAPL");
+
+        Assert.Equal(2, rows.Count);
+        var maestri = rows[0];
+        Assert.Equal("0000320193", maestri.Cik);
+        Assert.Equal("AAPL", maestri.Symbol);
+        Assert.Equal("Apple Inc.", maestri.CompanyName);
+        Assert.Equal(new LocalDate(2026, 1, 8), maestri.FilingDate);
+        Assert.Equal(Instant.FromUtc(2026, 1, 8, 21, 31, 36), maestri.AcceptedDate);
+        Assert.Equal(
+            "Luca Maestri Former Senior Vice President, Chief Financial Officer",
+            maestri.NameAndPosition);
+        Assert.Equal(2025, maestri.Year);
+        Assert.Equal(819231m, maestri.Salary);
+        Assert.Equal(13003031m, maestri.StockAward);
+        Assert.Equal(1638462m, maestri.IncentivePlanCompensation);
+        Assert.Equal(22204m, maestri.AllOtherCompensation);
+        Assert.Equal(15482928m, maestri.Total);
+        Assert.StartsWith("https://www.sec.gov/", maestri.Link);
+
+        // bonus and optionAward are a real 0, not an absence — the model must not treat zero as missing.
+        Assert.Equal(0m, maestri.Bonus);
+        Assert.Equal(0m, maestri.OptionAward);
+    }
+
+    [Fact]
+    public async Task Executive_compensation_sends_no_year_because_the_endpoint_ignores_it()
+    {
+        // symbol=AAPL and symbol=AAPL&year=2025 answered byte-identical bodies of 339 rows spanning 1999-2025
+        // on 2026-08-27. This asserts the request, because a signature that accepted `year` would be a lie the
+        // compiler cannot catch — and the URL is the only place that lie would show.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetExecutiveCompensationAsync("AAPL");
+
+        var query = Assert.Single(handler.Requests).Query;
+        Assert.Contains("symbol=AAPL", query);
+        Assert.DoesNotContain("year=", query);
+    }
+
+    [Fact]
+    public async Task Benchmark_average_compensation_is_fractional()
+    {
+        // 784407.5555555555 — an average, so integral is the exception rather than the rule. 339 of the 377
+        // rows measured on 2026-08-27 were fractional.
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("executive-compensation-benchmark.noyear.json")));
+
+        var rows = await endpoints.GetExecutiveCompensationBenchmarkAsync();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("ABRASIVE, ASBESTOS & MISC NONMETALLIC MINERAL PRODS", rows[0].IndustryTitle);
+        Assert.Equal(2024, rows[0].Year);
+        Assert.Equal(784407.5555555555m, rows[0].AverageCompensation);
+    }
+
+    [Fact]
+    public async Task Benchmark_sends_year_only_when_it_is_supplied()
+    {
+        // Omitted, FMP answers LAST year rather than this one — 377 rows stamped 2024, measured 2026-08-27.
+        // The SDK does not substitute a year of its own: doing so would answer a different question than the
+        // caller asked, and FMP's own default is the documented behaviour.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.GetExecutiveCompensationBenchmarkAsync();
+        await endpoints.GetExecutiveCompensationBenchmarkAsync(2025);
+
+        Assert.DoesNotContain("year=", handler.Requests[0].Query);
+        Assert.Contains("year=2025", handler.Requests[1].Query);
+    }
 }

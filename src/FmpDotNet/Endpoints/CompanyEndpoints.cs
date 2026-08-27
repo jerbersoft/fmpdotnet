@@ -356,6 +356,59 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListKeyExecutive, ct);
     }
 
+    /// <summary>Reported executive compensation for one filer — <c>stable/governance-executive-compensation</c>.
+    ///
+    /// <para><b>There is no <c>year</c> parameter, and that is deliberate.</b> FMP documents one and ignores it:
+    /// measured 2026-08-27, <c>symbol=AAPL</c> and <c>symbol=AAPL&amp;year=2025</c> answered byte-identical
+    /// bodies. Accepting the parameter would let a caller believe they had filtered when they had not, which is
+    /// a lie neither the compiler nor the response can catch. Filter
+    /// <see cref="ExecutiveCompensation.Year"/> yourself, knowing what you are holding.</para>
+    ///
+    /// <para><b>What you are holding is the filer's whole history.</b> <c>AAPL</c> answered 339 rows spanning
+    /// 1999 → 2025 and <c>JPM</c> 160, in one call. There is no paging and no server-side filter; the SDK does
+    /// not emulate one, because a client-side year filter would hide the size of what was actually
+    /// fetched.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every row FMP holds for the filer. Empty for an unknown symbol — <c>ZZZZNOPE</c> answered
+    /// <c>[]</c> with HTTP 200. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<ExecutiveCompensation>> GetExecutiveCompensationAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/governance-executive-compensation").With("symbol", symbol),
+            FmpJsonContext.Default.ListExecutiveCompensation, ct);
+    }
+
+    /// <summary>Average executive compensation by SEC industry — <c>stable/executive-compensation-benchmark</c>.
+    ///
+    /// <para><b>Omitting <paramref name="year"/> answers last year, not this one.</b> Measured on 2026-08-27,
+    /// the bare call answered 377 rows every one of them stamped <c>2024</c>. The SDK sends no year of its own
+    /// when the caller supplies none — substituting one would answer a different question than was asked — so
+    /// read <see cref="ExecutiveCompensationBenchmark.Year"/> on the rows rather than assuming.</para>
+    ///
+    /// <para><b>The first call is slow.</b> 37.18 s cold against 0.53 s warm, measured 2026-08-27. That is
+    /// inside this SDK's default timeout and outside many shorter ones.</para>
+    ///
+    /// <para><b>Recorded 402 on free and on Starter by an independent client on 2026-08-23</b>, and working on
+    /// Premium. Not measurable here: every path in this group answered 200 on the Ultimate key this SDK was
+    /// measured with. Catch <see cref="FmpPlanRestrictedException"/> if your consumers may be on a lower
+    /// tier.</para></summary>
+    /// <param name="year">The year to benchmark. Omitted from the request when null, which gets FMP's own
+    /// default of last year.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per industry. A year outside the data answers a single zero row rather than an error.
+    /// Never <see langword="null"/>.</returns>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403 — see the plan note above.</exception>
+    public Task<IReadOnlyList<ExecutiveCompensationBenchmark>> GetExecutiveCompensationBenchmarkAsync(
+        int? year = null, CancellationToken ct = default)
+        => transport.GetListAsync(
+            new FmpRequest("stable/executive-compensation-benchmark").With("year", year),
+            FmpJsonContext.Default.ListExecutiveCompensationBenchmark, ct);
+
     /// <summary>The request both employee-count paths make. Shared because the two are one dataset behind two
     /// documented names — see <see cref="GetEmployeeCountAsync(string, int?, CancellationToken)"/>. The path is
     /// the only difference, and each caller passes a literal.</summary>
