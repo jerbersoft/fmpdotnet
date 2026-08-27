@@ -42,7 +42,7 @@ The alternative — document the 5 and leave it — was rejected on the preceden
 `symbol-change`, where the SDK sends an explicit limit precisely because FMP's default hid 98% of
 the data. A default that silently returns 12% of a company's history is the same defect.
 
-### 2. `period` has five values, and the SDK models two
+### 2. `period` has six values, and the SDK models two
 
 `period` accepts `Q1` through `Q4` as *filters across years*, not just `annual` and `quarter`:
 
@@ -60,8 +60,8 @@ work. `FiscalPeriod` gains `Q1`, `Q2`, `Q3` and `Q4` **after** the existing memb
 vocabularies for the same concept — the request takes `annual`/`quarter` while the response labels
 rows `FY`/`Q1`-`Q4` — and an enum keeps a caller from posting a response value back as a request
 value." That argument inverts once `Q1` is legal in both directions, so it is rewritten rather than
-left to mislead. The enum still earns its place: it makes the five legal values discoverable and
-rejects the sixth.
+left to mislead. The enum still earns its place: it makes the six legal values discoverable and
+rejects everything else.
 
 **An unrecognised `period` falls back to annual silently** — `period=bogus` answers FY rows at
 HTTP 200. That is the reason `ToQueryValue` throws on an undeclared enum member instead of emitting

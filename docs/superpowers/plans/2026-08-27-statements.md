@@ -100,7 +100,7 @@ namespace FmpDotNet;
 
 /// <summary>The reporting cadence asked of the period-shaped endpoints.
 ///
-/// <para><b>Five values, not two.</b> Beyond <c>annual</c> and <c>quarter</c>, FMP accepts each fiscal quarter as
+/// <para><b>Six values, not two.</b> Beyond <c>annual</c> and <c>quarter</c>, FMP accepts each fiscal quarter as
 /// a filter ACROSS years, which is a different question from "give me quarters". Measured on AAPL 2026-08-27:</para>
 ///
 /// <code>
@@ -113,7 +113,7 @@ namespace FmpDotNet;
 /// enum stopped a caller posting a response value back as a request value — FMP labels rows <c>FY</c>/<c>Q1</c>
 /// while the request took <c>annual</c>/<c>quarter</c>. That is no longer true: <c>Q1</c> is legal in both
 /// directions and <c>FY</c> is accepted as a synonym for <c>annual</c>. What the enum earns now is different and
-/// still worth having — it makes all five legal values discoverable, and it rejects the sixth. Measured
+/// still worth having — it makes all six legal values discoverable, and it rejects everything else. Measured
 /// 2026-08-27, <b>an unrecognised period silently falls back to annual</b> on the statement paths:
 /// <c>period=bogus</c> answers FY rows at HTTP 200 with no warning, so a typo costs you the wrong series and
 /// nothing says so. On the two report-document paths the same typo is an HTTP 400 instead. One query parameter,
@@ -292,7 +292,7 @@ Expected: PASS, whole suite.
 None of the seven has a `<param>` tag for `limit` at all. Add this pair to each of `GetIncomeStatementAsync`, `GetBalanceSheetAsync`, `GetCashFlowAsync`, `GetRatiosAsync`, `GetKeyMetricsAsync`, `GetFinancialGrowthAsync` and `GetEnterpriseValuesAsync`, above the existing `<exception>` tag:
 
 ```csharp
-    /// <param name="period">Which series to ask for. All five values work on this path, including
+    /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
@@ -310,7 +310,7 @@ Revert `Periodic()`'s last line to `.With("limit", limit)`, run
 
 ```bash
 git add src/FmpDotNet/FiscalPeriod.cs src/FmpDotNet/Endpoints/StatementEndpoints.cs tests/FmpDotNet.Tests/StatementEndpointsTests.cs
-git commit -m "fix: send an explicit full-history limit, and widen FiscalPeriod to five values (#28)"
+git commit -m "fix: send an explicit full-history limit, and widen FiscalPeriod to six values (#28)"
 ```
 
 ---
@@ -1006,7 +1006,7 @@ In `src/FmpDotNet/Endpoints/StatementEndpoints.cs`, after the TTM statements fro
     /// <para>The model is shared with <c>stable/income-statement-growth-bulk</c>: the JSON and CSV field sets
     /// were compared name by name on 2026-08-27 and are identical.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
-    /// <param name="period">Which series to ask for. All five values work, including
+    /// <param name="period">Which series to ask for. All six values work, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
@@ -1027,7 +1027,7 @@ In `src/FmpDotNet/Endpoints/StatementEndpoints.cs`, after the TTM statements fro
     /// <see cref="GetIncomeStatementGrowthAsync"/>. Model shared with the bulk CSV form; field sets compared name
     /// by name on 2026-08-27 and identical.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
-    /// <param name="period">Which series to ask for. All five values work.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -1048,7 +1048,7 @@ In `src/FmpDotNet/Endpoints/StatementEndpoints.cs`, after the TTM statements fro
     /// <c>growthNetCashProvidedByOperatingActivites</c></b> — one letter short of <c>Activities</c>. The C#
     /// property corrects it; the wire name does not.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
-    /// <param name="period">Which series to ask for. All five values work.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -1481,7 +1481,7 @@ Then the four as-reported methods, which go through `Periodic()`. Write all four
     /// <para>Measured 2026-08-27: 24 tagged facts for AAPL and 39 for JPM on the same path and the same
     /// cadence.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
-    /// <param name="period">Which series to ask for. All five values work.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -1519,7 +1519,7 @@ Then the two segmentation methods:
     /// <para>Segment names are the company's own and change when it reorganises; see
     /// <see cref="RevenueSegmentation"/>.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
-    /// <param name="period">Which series to ask for. All five values work.</param>
+    /// <param name="period">Which series to ask for. All six values work.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Rows newest first, or empty for an unknown symbol. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
@@ -3041,7 +3041,7 @@ Run against the spec after Task 10, before the final whole-branch review.
 | spec section | task |
 |---|---|
 | The seven things a shape-only reading would get wrong, #1 (5-row truncation) | 1 |
-| #2 (`period` has five values) | 1 |
+| #2 (`period` has six values) | 1 |
 | #3 (`owner-earnings` caps at 50) | 6 |
 | #4 (xlsx content-type lie) | 8 |
 | #5 (as-reported dictionary is open and mixed) | 5 |
