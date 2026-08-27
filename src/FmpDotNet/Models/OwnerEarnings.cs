@@ -56,10 +56,10 @@ public sealed record OwnerEarnings
     /// <summary>Estimated capital spending on growth — total capex less <see cref="MaintenanceCapex"/>, signed
     /// the same way. <b>Negative on both measured rows, not guaranteed beyond that</b>: AAPL's Q3 2026 row is
     /// −2,071,205,460 and its Q2 2026 row is −2,130,994,500, measured 2026-08-27. That is two rows of one filer,
-    /// and there is no structural reason to expect more: <see cref="MaintenanceCapex"/> is demonstrably the
-    /// residual of the two capex fields — it flips sign across those same two rows while this one does not — so
-    /// whichever field plays the residual role next could move either way. Add it to net income exactly as FMP
-    /// signs it; do not flip the sign first, on this row or any other.</summary>
+    /// and there is no structural reason to expect more: across those same two rows, <see cref="MaintenanceCapex"/>
+    /// flips sign while this one does not, so the two fields do not behave alike and neither field's sign is
+    /// promised going forward. Add it to net income exactly as FMP signs it; do not flip the sign first, on this
+    /// row or any other.</summary>
     [JsonPropertyName("growthCapex")] public decimal? GrowthCapex { get; init; }
 
     /// <summary>Owner earnings per share for the quarter.</summary>

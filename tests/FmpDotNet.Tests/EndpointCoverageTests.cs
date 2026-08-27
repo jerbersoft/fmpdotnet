@@ -21,7 +21,7 @@ namespace FmpDotNet.Tests;
 /// <para><b>The coverage table is discovered by driving the code, not by reading it.</b> Each public endpoint
 /// method is invoked against a stub and the path it actually requests is recorded. The obvious alternative —
 /// grepping the sources for <c>new FmpRequest("…")</c> — was tried first and silently missed thirteen endpoints:
-/// the seven period-shaped statements go through <c>StatementEndpoints.Periodic</c> and six bulk statement
+/// the period-shaped statements go through <c>StatementEndpoints.Periodic</c> and six bulk statement
 /// variants through <c>BulkEndpoints.Periodic</c>, so their paths are arguments to a helper rather than literals
 /// at a construction site. A text scan that is wrong produces a table that looks complete, which is the exact
 /// failure this file exists to prevent.</para></summary>

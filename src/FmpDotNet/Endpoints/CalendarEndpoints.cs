@@ -45,7 +45,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// history, not a recent window. A caller that wants a handful of recent quarters should say so, and one
     /// paging a whole universe unbounded should expect the full history per symbol.</para>
     ///
-    /// <para><b>There is no <c>period</c> parameter.</b> Unlike the seven period-shaped endpoints on
+    /// <para><b>There is no <c>period</c> parameter.</b> Unlike the period-shaped endpoints on
     /// <see cref="StatementEndpoints"/>, this one accepts <c>symbol</c> and <c>limit</c> only, and every row is a
     /// quarterly announcement. There is nothing to ask for annually.</para>
     ///

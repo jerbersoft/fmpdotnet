@@ -40,7 +40,7 @@ var fmp = provider.GetRequiredService<FmpClient>();
 
 var profile = await fmp.Company.GetProfileAsync("AAPL");
 
-// The seven period-shaped endpoints share one signature: symbol, cadence, limit.
+// The period-shaped endpoints share one signature: symbol, cadence, limit.
 var income  = await fmp.Statements.GetIncomeStatementAsync("AAPL", FiscalPeriod.Annual, limit: 5);
 var ratios  = await fmp.Statements.GetRatiosAsync("AAPL", FiscalPeriod.Quarter, limit: 8);
 

@@ -216,8 +216,8 @@ public sealed class StatementEndpoints(FmpTransport transport)
     ///
     /// <para>Single record rather than a list, and <paramref name="symbol"/> is the only parameter: measured 2026-08-26,
     /// <c>stable/financial-scores</c> answers a single-element array and takes neither <c>period</c> nor
-    /// <c>limit</c> — which is why this one does not go through the shared periodic query shape the other seven
-    /// use. Sending parameters the endpoint does not accept is not free.</para>
+    /// <c>limit</c> — which is why this one does not go through the shared periodic query shape the other
+    /// period-shaped methods use. Sending parameters the endpoint does not accept is not free.</para>
     ///
     /// <para>Null covers two different situations the response cannot tell apart, because both arrive as
     /// <c>[]</c> with HTTP 200 rather than a 404: FMP knows no such symbol, and the scores do not apply to this
