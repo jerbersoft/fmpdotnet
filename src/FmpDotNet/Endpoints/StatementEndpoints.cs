@@ -14,17 +14,14 @@ namespace FmpDotNet.Endpoints;
 /// statements, not because it is period-shaped.</para></summary>
 public sealed class StatementEndpoints(FmpTransport transport)
 {
-    // CS1573 fires once a method documents ANY parameter and not all of them. `symbol` and `ct` were undocumented
-    // before this task and stay that way here — only `period` and `limit` changed behaviour in this task, and
-    // documenting the other two is scope this task does not own (task 1 brief, step 7). Scoped to these seven
-    // methods only; restored before GetScoresAsync below, which carries no partial <param> tags of its own.
-#pragma warning disable CS1573
     /// <summary>Income statements for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -34,11 +31,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListIncomeStatement, ct);
 
     /// <summary>Balance sheets for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -48,11 +47,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListBalanceSheetStatement, ct);
 
     /// <summary>Cash flow statements for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -62,11 +63,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListCashFlowStatement, ct);
 
     /// <summary>Financial ratios for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -76,11 +79,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListFinancialRatios, ct);
 
     /// <summary>Key metrics for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -90,11 +95,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListKeyMetrics, ct);
 
     /// <summary>Period-on-period growth rates for one symbol, newest first.</summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -110,11 +117,13 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// both measured against AAPL on 2026-08-26: the caller must remember which series it asked for, and
     /// <c>(symbol, date)</c> is <b>not</b> a unique key across both, because a Q4 end and a fiscal year end are the
     /// same day — <c>2025-09-27</c> appears in the annual series and the quarterly one.</para></summary>
+    /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="period">Which series to ask for. All six values work on this path, including
     /// <see cref="FiscalPeriod.Q1"/>–<see cref="FiscalPeriod.Q4"/> as cross-year filters.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/> rather than omitting the parameter, because FMP
     /// reads an omitted limit as 5. See that constant.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -122,7 +131,6 @@ public sealed class StatementEndpoints(FmpTransport transport)
         string symbol, FiscalPeriod period = FiscalPeriod.Annual, int? limit = null, CancellationToken ct = default) =>
         transport.GetListAsync(Periodic("stable/enterprise-values", symbol, period, limit),
             FmpJsonContext.Default.ListEnterpriseValues, ct);
-#pragma warning restore CS1573
 
     /// <summary>Altman Z and Piotroski F for one symbol, or null when FMP has no scores for it.
     ///
