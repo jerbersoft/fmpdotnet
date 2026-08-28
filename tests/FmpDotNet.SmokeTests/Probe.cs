@@ -401,6 +401,7 @@ internal static class Probe
                 "limit" => 5,
                 "page" => 0,
                 "part" => 0,
+                "quarter" => LiveApi.SettledQuarter,
                 _ => throw Unknown(parameter),
             };
 

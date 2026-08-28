@@ -328,6 +328,9 @@ public partial class EndpointCoverageTests
                 "year" => 2025,
                 // Under the delisted archive's hard cap of 100, and positive — both are validated.
                 "limit" => 5,
+                // 1 to 4, because the endpoints validate it. The `_ => 0` default below would be rejected
+                // before a request went out, and the method would silently vanish from the coverage table.
+                "quarter" => 3,
                 _ => 0, // page, part
             };
         }

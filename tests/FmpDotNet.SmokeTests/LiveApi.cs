@@ -121,6 +121,22 @@ internal static class LiveApi
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 
+    /// <summary>The fiscal quarter the five 13F probes ask for, paired with <see cref="SettledYear"/>.
+    ///
+    /// <para><b>Q3 and not Q4, and the reason is the filing deadline rather than the data.</b> A 13F is due 45
+    /// days after the quarter ends, so <see cref="SettledYear"/>'s Q4 is not filed until mid-February of the
+    /// following year — and <see cref="SettledYear"/> is <c>Today.Year - 1</c>, which means a run in January
+    /// would ask for a quarter nobody has filed yet and record <c>rows 0</c> as the baseline for all five
+    /// paths. Q3 of <see cref="SettledYear"/> was due by 14 November of that year, so it is settled on every
+    /// day this suite can run.</para>
+    ///
+    /// <para>Measured 2026-08-28 with <c>year=2025&amp;quarter=3</c>: <c>extract</c> answered 41 rows,
+    /// <c>holder-industry-breakdown</c> 33, <c>extract-analytics/holder</c> 5 (the probe's <c>limit</c>),
+    /// <c>symbol-positions-summary</c> 1 and <c>industry-summary</c> 394. The same five with
+    /// <c>quarter=4</c> answered 42, 34, 5, 1 and 394 — Q4 is equally good in August and unsafe in
+    /// January.</para></summary>
+    public const int SettledQuarter = 3;
+
     /// <summary>The symbol every per-symbol probe uses. One symbol, not a list: the suite is asserting that the
     /// SDK still reads FMP's shape, not that FMP's coverage is broad. AAPL because it files everything — a
     /// symbol with sparse fundamentals would record half the model as null and detect nothing when the other

@@ -1,0 +1,50 @@
+[
+  {
+    "date": "2026-06-30",
+    "filingDate": "2026-08-07",
+    "acceptedDate": "2026-08-07",
+    "cik": "0000093751",
+    "securityCusip": "10170A100",
+    "symbol": null,
+    "nameOfIssuer": "BOUNDLESS BIO INC",
+    "shares": 15962,
+    "titleOfClass": "COM",
+    "sharesType": "SH",
+    "putCallShare": "",
+    "value": 39905,
+    "link": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/0000093751-26-000507-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/XML_Infotable.xml"
+  },
+  {
+    "date": "2026-06-30",
+    "filingDate": "2026-08-07",
+    "acceptedDate": "2026-08-07",
+    "cik": "0000093751",
+    "securityCusip": "29103W104",
+    "symbol": null,
+    "nameOfIssuer": "EMERALD HOLDING INC",
+    "shares": 244374,
+    "titleOfClass": "COM",
+    "sharesType": "SH",
+    "putCallShare": "",
+    "value": 1231645,
+    "link": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/0000093751-26-000507-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/XML_Infotable.xml"
+  },
+  {
+    "date": "2026-06-30",
+    "filingDate": "2026-08-07",
+    "acceptedDate": "2026-08-07",
+    "cik": "0000093751",
+    "securityCusip": "100557107",
+    "symbol": "SAM",
+    "nameOfIssuer": "BOSTON BEER INC",
+    "shares": 314732,
+    "titleOfClass": "CL A",
+    "sharesType": "SH",
+    "putCallShare": "",
+    "value": 55807630,
+    "link": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/0000093751-26-000507-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/93751/000009375126000507/XML_Infotable.xml"
+  }
+]

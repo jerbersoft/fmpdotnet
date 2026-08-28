@@ -55,4 +55,51 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
             new FmpRequest("stable/institutional-ownership/dates").With("cik", cik),
             FmpJsonContext.Default.ListFilingQuarter, ct);
     }
+
+    /// <summary>Every position one filer reported for one quarter — <c>stable/institutional-ownership/extract</c>.
+    ///
+    /// <para><b>Wide, and unpageable.</b> State Street's 2026 Q2 answered 4,177 rows. The endpoint accepts
+    /// <c>limit</c> and ignores it — measured 2026-08-28, <c>limit=5</c> returned all 4,177 with a
+    /// byte-identical body — so no <c>limit</c> and no <c>page</c> are offered here rather than shipping a
+    /// control that silently does nothing.</para>
+    ///
+    /// <para><b>An unfiled quarter answers an empty list, not an error</b>, and so does an issuer's CIK. Use
+    /// <see cref="GetFilingDatesAsync"/> to find out which quarters exist.</para></summary>
+    /// <param name="cik">The institutional filer's Central Index Key, padded or unpadded.</param>
+    /// <param name="year">The calendar year of the quarter end. <b>Not range-checked</b> — an out-of-range year
+    /// answers an empty list with HTTP 200, which is a legitimate "no data", and inventing a floor would invent
+    /// a fact.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4. Required by FMP: omitting it answers
+    /// <c>400 … missing query parameter - quarter</c>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every reported position, unpaged. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cik"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is outside 1 to 4.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<InstitutionalHolding>> GetHoldingsAsync(
+        string cik, int year, int quarter, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        ThrowIfQuarterOutOfRange(quarter);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/extract")
+                .With("cik", cik).With("year", year).With("quarter", quarter),
+            FmpJsonContext.Default.ListInstitutionalHolding, ct);
+    }
+
+    /// <summary>Rejects a quarter FMP could only answer with an error.
+    ///
+    /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it
+    /// answers <c>400 … missing query parameter - quarter</c> on every one. The range is the calendar's, not a
+    /// measured cap — there is no fifth quarter to measure.</para>
+    ///
+    /// <para>The parameter is named <c>quarter</c> so that <c>[CallerArgumentExpression]</c> puts the caller's
+    /// own parameter name on <see cref="ArgumentException.ParamName"/>.</para></summary>
+    private static void ThrowIfQuarterOutOfRange(int quarter)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(quarter, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(quarter, 4);
+    }
 }
