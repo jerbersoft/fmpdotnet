@@ -172,10 +172,10 @@ public sealed record IpoProspectus
 
     /// <summary>Offering price per share to the public.
     ///
-    /// <para><b>The most fractional field in this slice:</b> measured 0.12 to 12,183,292 across 165 rows on
-    /// 2026-08-28, with 51 of 165 rows — nearly a third — fractional. The range fits comfortably within
-    /// <see cref="int"/>'s ceiling, so width is not what earns this <see langword="decimal"/>?; the fractional
-    /// rate does.</para></summary>
+    /// <para><b>The most fractional of the four prospectus money fields measured:</b> 51 of 165 rows on
+    /// 2026-08-28 — nearly a third — against 18, 13 and 11 of 165 for the three totals beside it. Measured 0.12
+    /// to 12,183,292 across those same 165 rows. The range fits comfortably within <see cref="int"/>'s ceiling,
+    /// so width is not what earns this <see langword="decimal"/>?; the fractional rate does.</para></summary>
     [JsonPropertyName("pricePublicPerShare")] public decimal? PricePublicPerShare { get; init; }
 
     /// <summary>Total offering value to the public.
