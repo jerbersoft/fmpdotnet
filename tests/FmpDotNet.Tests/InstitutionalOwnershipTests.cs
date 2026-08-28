@@ -360,4 +360,137 @@ public class InstitutionalOwnershipTests
 
         Assert.Empty(handler.Requests);
     }
+
+    // ---- institutional-ownership/holder-industry-breakdown -------------------------------------------------------
+
+    [Fact]
+    public void A_captured_industry_breakdown_row_binds_all_twelve_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-holder-industry-breakdown.BRK.json"),
+            FmpJsonContext.Default.ListHolderIndustryBreakdown)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("0001067983", rows[0].Cik);
+        Assert.Equal("BERKSHIRE HATHAWAY INC", rows[0].InvestorName);
+        Assert.Equal("ELECTRONIC COMPUTERS", rows[0].IndustryTitle);
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].Date);
+        Assert.Equal(22.0383m, rows[0].Weight);
+        Assert.Equal(8107036430m, rows[0].Performance);
+    }
+
+    [Fact]
+    public void An_industry_performance_percentage_can_contradict_its_own_dollar_figure()
+    {
+        // Not a capture error, and not something to normalise. All three measured rows carry a positive
+        // `performance` beside a negative `performancePercentage` — 8,107,036,430 against −296.8456. FMP's
+        // percentage is computed against a base this endpoint does not publish, and the two figures are not
+        // reconcilable from the response. The SDK reports both as sent; a consumer that assumes they agree in
+        // sign is wrong on every row measured, which is what this test records.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-holder-industry-breakdown.BRK.json"),
+            FmpJsonContext.Default.ListHolderIndustryBreakdown)!;
+
+        Assert.All(rows, r =>
+        {
+            Assert.True(r.Performance > 0);
+            Assert.True(r.PerformancePercentage < 0);
+        });
+        Assert.Equal(-296.8456m, rows[0].PerformancePercentage);
+        Assert.Equal(-4118474790m, rows[0].LastPerformance);
+    }
+
+    [Fact]
+    public async Task The_industry_breakdown_call_sends_cik_year_and_quarter()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetHolderIndustryBreakdownAsync("0001067983", 2025, 3);
+
+        Assert.Equal(
+            "/stable/institutional-ownership/holder-industry-breakdown", handler.Requests[0].AbsolutePath);
+        Assert.Contains("cik=0001067983", handler.Requests[0].Query);
+        Assert.Contains("year=2025", handler.Requests[0].Query);
+        Assert.Contains("quarter=3", handler.Requests[0].Query);
+        Assert.DoesNotContain("limit=", handler.Requests[0].Query);
+        Assert.DoesNotContain("page=", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(-1)]
+    public async Task A_quarter_outside_one_to_four_is_refused_on_industry_breakdown(int quarter)
+    {
+        // Task 3's review flagged this exact omission: the shared guard being exercised on two other methods
+        // does not cover a third that might later stop calling it. Mirrors
+        // A_quarter_outside_one_to_four_is_refused and
+        // A_quarter_outside_one_to_four_is_refused_on_holder_analytics.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHolderIndustryBreakdownAsync("0001067983", 2025, quarter));
+
+        Assert.Equal("quarter", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    // ---- institutional-ownership/holder-performance-summary ------------------------------------------------------
+
+    [Fact]
+    public void A_captured_holder_performance_row_binds_all_thirty_three_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-holder-performance-summary.BRK.json"),
+            FmpJsonContext.Default.ListHolderPerformance)!;
+
+        Assert.Equal(2, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("BERKSHIRE HATHAWAY INC", rows[0].InvestorName);
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].Date);
+        Assert.Equal(29, rows[0].PortfolioSize);
+        Assert.Equal(1, rows[0].SecuritiesAdded);
+        Assert.Equal(1, rows[0].SecuritiesRemoved);
+        Assert.Equal(20, rows[0].AverageHoldingPeriod);
+        Assert.Equal(29, rows[0].AverageHoldingPeriodTop10);
+        Assert.Equal(25, rows[0].AverageHoldingPeriodTop20);
+        Assert.Equal(299253556246m, rows[0].MarketValue);
+        Assert.Equal(288653953205m, rows[0].PerformanceSinceInception);
+        Assert.Equal(-151.8108m, rows[0].PerformanceSinceInceptionRelativeToSP500Percentage);
+    }
+
+    [Fact]
+    public void The_performance_summary_answers_every_quarter_not_just_the_latest()
+    {
+        // Measured 2026-08-28: 53 rows for Berkshire, newest first, one per quarter reported — the same 53
+        // quarters GetFilingDatesAsync enumerates. That is why this method takes no year and no quarter: it is
+        // the filer's whole history, and asking for one quarter of it is not something the endpoint offers.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-holder-performance-summary.BRK.json"),
+            FmpJsonContext.Default.ListHolderPerformance)!;
+
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].Date);
+        Assert.Equal(new LocalDate(2026, 3, 31), rows[1].Date);
+        // The quarter that flips sign, which is why these two rows were chosen.
+        Assert.Equal(21069772689m, rows[0].Performance);
+        Assert.Equal(-2243708176m, rows[1].Performance);
+        // And each row's LastPerformance is the next row's Performance — the series is self-consistent.
+        Assert.Equal(rows[1].Performance, rows[0].LastPerformance);
+    }
+
+    [Fact]
+    public async Task The_performance_summary_call_sends_only_the_cik()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetHolderPerformanceAsync("0001067983");
+
+        Assert.Equal(
+            "/stable/institutional-ownership/holder-performance-summary", handler.Requests[0].AbsolutePath);
+        Assert.Contains("cik=0001067983", handler.Requests[0].Query);
+        Assert.DoesNotContain("year=", handler.Requests[0].Query);
+        Assert.DoesNotContain("quarter=", handler.Requests[0].Query);
+        Assert.DoesNotContain("limit=", handler.Requests[0].Query);
+    }
 }

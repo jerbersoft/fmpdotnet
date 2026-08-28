@@ -147,6 +147,57 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListHolderAnalytics, ct);
     }
 
+    /// <summary>How one filer's quarter was spread across industries —
+    /// <c>stable/institutional-ownership/holder-industry-breakdown</c>.
+    ///
+    /// <para>One row per industry, sorted by weight; Berkshire's 2026 Q2 answered 24. No <c>limit</c> and no
+    /// <c>page</c> — the endpoint honours neither, and the result set is small enough that it does not
+    /// matter.</para></summary>
+    /// <param name="cik">The institutional filer's Central Index Key, padded or unpadded.</param>
+    /// <param name="year">The calendar year of the quarter end. Not range-checked.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4. Required by FMP.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The industry breakdown, unpaged. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cik"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is outside 1 to 4.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<HolderIndustryBreakdown>> GetHolderIndustryBreakdownAsync(
+        string cik, int year, int quarter, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        ThrowIfQuarterOutOfRange(quarter);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/holder-industry-breakdown")
+                .With("cik", cik).With("year", year).With("quarter", quarter),
+            FmpJsonContext.Default.ListHolderIndustryBreakdown, ct);
+    }
+
+    /// <summary>One filer's aggregate portfolio performance for every quarter it has reported —
+    /// <c>stable/institutional-ownership/holder-performance-summary</c>.
+    ///
+    /// <para><b>No <c>year</c> and no <c>quarter</c>, and that is the endpoint's shape rather than a choice
+    /// made here.</b> It answers the filer's whole history, newest first — 53 rows for Berkshire, measured
+    /// 2026-08-28, one per quarter in <see cref="GetFilingDatesAsync"/>. There is no per-quarter variant to
+    /// offer.</para>
+    ///
+    /// <para>No <c>limit</c> either: the endpoint ignores it.</para></summary>
+    /// <param name="cik">The institutional filer's Central Index Key, padded or unpadded.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every quarter the filer has reported, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="cik"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<HolderPerformance>> GetHolderPerformanceAsync(
+        string cik, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/holder-performance-summary").With("cik", cik),
+            FmpJsonContext.Default.ListHolderPerformance, ct);
+    }
+
     /// <summary>Rejects a quarter FMP could only answer with an error.
     ///
     /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it

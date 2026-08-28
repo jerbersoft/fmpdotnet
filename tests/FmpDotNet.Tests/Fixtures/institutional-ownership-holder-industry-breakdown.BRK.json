@@ -1,0 +1,44 @@
+[
+  {
+    "date": "2026-06-30",
+    "cik": "0001067983",
+    "investorName": "BERKSHIRE HATHAWAY INC",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "weight": 22.0383,
+    "lastWeight": 21.9856,
+    "changeInWeight": 0.0526,
+    "changeInWeightPercentage": 0.2394,
+    "performance": 8107036430,
+    "performancePercentage": -296.8456,
+    "lastPerformance": -4118474790,
+    "changeInPerformance": 12225511220
+  },
+  {
+    "date": "2026-06-30",
+    "cik": "0001067983",
+    "investorName": "BERKSHIRE HATHAWAY INC",
+    "industryTitle": "FINANCE SERVICES",
+    "weight": 17.1367,
+    "lastWeight": 17.4306,
+    "changeInWeight": -0.2939,
+    "changeInWeightPercentage": -1.686,
+    "performance": 5423114738,
+    "performancePercentage": -153.0162,
+    "lastPerformance": -10229173928,
+    "changeInPerformance": 15652288666
+  },
+  {
+    "date": "2026-06-30",
+    "cik": "0001067983",
+    "investorName": "BERKSHIRE HATHAWAY INC",
+    "industryTitle": "SERVICES-COMPUTER PROGRAMMING, DATA PROCESSING, ETC.",
+    "weight": 15.8296,
+    "lastWeight": 6.7112,
+    "changeInWeight": 9.1183,
+    "changeInWeightPercentage": 135.8667,
+    "performance": 4263796880,
+    "performancePercentage": -1039.1502,
+    "lastPerformance": -454005852,
+    "changeInPerformance": 4717802732
+  }
+]
