@@ -216,15 +216,19 @@ public class DividendTests
     {
         var (endpoints, _) = Build(Binding.Fixture("dividends-calendar.head.json"));
 
-        var rows = await endpoints.GetDividendsCalendarAsync(Day(2026, 8, 24), Day(2026, 8, 25));
+        // from is the fixture's earliest row, deliberately. Ask for a day earlier than the earliest row FMP
+        // returned and MissesStartOfRange fires — correctly, since the SDK cannot tell an empty day from a
+        // truncated one. This test is about the cap being carried on a complete response, so it asks for a range
+        // the response actually covers.
+        var rows = await endpoints.GetDividendsCalendarAsync(Day(2026, 8, 25), Day(2026, 8, 28));
 
         var result = Assert.IsType<CalendarResult<Dividend>>(rows);
         Assert.Equal(4000, result.RowCap);
         // Null, and deliberately: the row cap always fires first at 340-876 rows a day, so no window limit is
         // observable on this path and asserting one would be inventing evidence.
         Assert.Null(result.LookbackLimitDays);
-        Assert.Equal(Day(2026, 8, 24), result.RequestedFrom);
-        Assert.Equal(Day(2026, 8, 25), result.RequestedTo);
+        Assert.Equal(Day(2026, 8, 25), result.RequestedFrom);
+        Assert.Equal(Day(2026, 8, 28), result.RequestedTo);
         Assert.Equal(Day(2026, 8, 25), result.EarliestReturnedDate);
         Assert.Equal(5, result.RowsReturned);
         Assert.False(result.LikelyTruncated);
