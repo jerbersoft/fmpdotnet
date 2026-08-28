@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "AAPL",
+    "name": "APPLE INC.",
+    "cik": "0000320193",
+    "sicCode": "3571",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "businessAddress": "['ONE APPLE PARK WAY', 'CUPERTINO CA 95014']",
+    "phoneNumber": "(408) 996-1010"
+  },
+  {
+    "symbol": "DELL",
+    "name": "DELL TECHNOLOGIES INC.",
+    "cik": "0001571996",
+    "sicCode": "3571",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "businessAddress": "['ONE DELL WAY', 'ROUND ROCK TX 78682']",
+    "phoneNumber": "800-289-3355"
+  },
+  {
+    "symbol": "None",
+    "name": "GRAPHICS PROPERTIES HOLDINGS, INC.",
+    "cik": "0000802301",
+    "sicCode": "3571",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "businessAddress": "['56 HARRISON STREET', 'NEW ROCHELLE NY 10801']",
+    "phoneNumber": "914-235-1075"
+  },
+  {
+    "symbol": "None",
+    "name": "DELL INC",
+    "cik": "0000826083",
+    "sicCode": "3571",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "businessAddress": "['ONE DELL WAY', 'ROUND ROCK TX 78682-2244']",
+    "phoneNumber": "5127284737"
+  },
+  {
+    "symbol": "None",
+    "name": "XRS CORP",
+    "cik": "0000854398",
+    "sicCode": "3571",
+    "industryTitle": "ELECTRONIC COMPUTERS",
+    "businessAddress": "['965 PRAIRIE CENTER DRIVE', 'EDEN PRAIRIE MN 55344']",
+    "phoneNumber": "952-707-5600"
+  }
+]

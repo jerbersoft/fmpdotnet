@@ -197,6 +197,45 @@ public sealed class SearchEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListExchangeVariant, ct);
     }
 
+    /// <summary>Registrants matching a symbol, a CIK, a SIC code, or any combination —
+    /// <c>stable/industry-classification-search</c>.
+    ///
+    /// <para>The narrow counterpart to
+    /// <see cref="DirectoryEndpoints.GetAllIndustryClassificationsAsync(CancellationToken)"/>: that answers all
+    /// 25,952 registrants as a 7.3 MB download, this answers a question about them. Same row shape either way —
+    /// see <see cref="IndustryClassification"/>.</para>
+    ///
+    /// <para><b>The three arguments narrow rather than conflict.</b> Measured 2026-08-28,
+    /// <c>symbol=AAPL&amp;cik=320193&amp;sicCode=3571</c> answered one row, and <c>sicCode=3571</c> alone
+    /// answered a list headed by Apple and Dell. All three are optional individually and at least one is
+    /// required: FMP answers a bare call with HTTP 400 and "Please enter at least one search value: cik,
+    /// sicCode, or symbol.", so this raises <see cref="ArgumentException"/> before the call is spent rather than
+    /// letting a caller buy that sentence.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it. Optional.</param>
+    /// <param name="cik">The SEC Central Index Key. Padded or unpadded — measured 2026-08-28, both forms answer
+    /// identically. Optional.</param>
+    /// <param name="sicCode">A four-character SIC code as the classification paths spell it, e.g. <c>"3571"</c>.
+    /// Note that <see cref="DirectoryEndpoints.GetSicCodesAsync"/> spells codes below 1000 without their leading
+    /// zero; pad before using one here. Optional.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every matching registrant. Empty when nothing matches. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException">All three of <paramref name="symbol"/>, <paramref name="cik"/> and
+    /// <paramref name="sicCode"/> are null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> FindIndustryClassificationAsync(
+        string? symbol = null, string? cik = null, string? sicCode = null, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(symbol) && string.IsNullOrWhiteSpace(cik) && string.IsNullOrWhiteSpace(sicCode))
+            throw new ArgumentException(
+                "At least one of 'symbol', 'cik' or 'sicCode' is required — "
+                + "stable/industry-classification-search answers 400 without one.", nameof(symbol));
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/industry-classification-search")
+                .With("symbol", symbol).With("cik", cik).With("sicCode", sicCode),
+            FmpJsonContext.Default.ListIndustryClassification, ct);
+    }
+
     /// <summary>The shared body of the two query-shaped searches, which differ only in path.</summary>
     private Task<IReadOnlyList<SymbolSearchResult>> QueryAsync(
         string path, string query, int? limit, string? exchange, CancellationToken ct)

@@ -237,4 +237,94 @@ public class IndustryClassificationTests
 
         Assert.All(rows, r => Assert.Equal(3, r.SicCode!.Length));
     }
+
+    // ---- fmp.Search --------------------------------------------------------------------------------------------
+
+    private static (SearchEndpoints Endpoints, StubHandler Handler) BuildSearch(
+        params HttpResponseMessage[] responses)
+    {
+        var handler = new StubHandler(responses);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new SearchEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Classification_search_sends_only_the_values_it_was_given()
+    {
+        var (endpoints, handler) = BuildSearch(
+            StubHandler.Json(Binding.Fixture("industry-classification-search.sic3571.json")));
+
+        var rows = await endpoints.FindIndustryClassificationAsync(sicCode: "3571");
+
+        Assert.Equal(5, rows.Count);
+        var uri = handler.Requests.Single();
+        Assert.Equal("/stable/industry-classification-search", uri.AbsolutePath);
+        Assert.Contains("sicCode=3571", uri.Query);
+        Assert.DoesNotContain("symbol=", uri.Query);
+        Assert.DoesNotContain("cik=", uri.Query);
+    }
+
+    [Fact]
+    public async Task Classification_search_sends_all_three_when_all_three_are_given()
+    {
+        // Measured 2026-08-28: symbol=AAPL, cik=320193 and sicCode=3571 together answered 1 row, so the three
+        // narrow the result rather than conflicting. That is what makes an all-optional signature safe.
+        var (endpoints, handler) = BuildSearch(StubHandler.Json("[]"));
+
+        await endpoints.FindIndustryClassificationAsync("AAPL", "320193", "3571");
+
+        var uri = handler.Requests.Single();
+        Assert.Contains("symbol=AAPL", uri.Query);
+        Assert.Contains("cik=320193", uri.Query);
+        Assert.Contains("sicCode=3571", uri.Query);
+    }
+
+    [Fact]
+    public async Task Classification_search_refuses_an_empty_query_before_spending_a_call()
+    {
+        // FMP answers a bare call with HTTP 400 and "Please enter at least one search value: cik, sicCode, or
+        // symbol." (measured 2026-08-28). Raising it here costs nothing and says the same thing at the call site.
+        var (endpoints, handler) = BuildSearch(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.FindIndustryClassificationAsync());
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => endpoints.FindIndustryClassificationAsync("  ", "", null));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Classification_search_carries_the_literal_None_symbol_through_unchanged()
+    {
+        // Three of the five captured rows read "None" in `symbol` — a Python None rendered into a string field,
+        // the same naive-formatting fault that produces the bracketed address. The SDK does not translate it to
+        // null: doing so would assert FMP will never list a security called None, and would hide the fault from
+        // the caller who has to decide what to do about it.
+        var (endpoints, _) = BuildSearch(
+            StubHandler.Json(Binding.Fixture("industry-classification-search.sic3571.json")));
+
+        var rows = await endpoints.FindIndustryClassificationAsync(sicCode: "3571");
+
+        Assert.Equal("AAPL", rows[0].Symbol);
+        Assert.Equal("None", rows[2].Symbol);
+        Assert.Equal(3, rows.Count(r => r.Symbol == "None"));
+    }
+
+    [Fact]
+    public async Task The_search_path_sends_the_bracketed_address_too_and_it_is_normalised()
+    {
+        // Two of the five IndustryClassification paths bracket, not one: this and all-industry-classification.
+        // Measured 2026-08-28 on both ?symbol=AAPL and ?sicCode=3571.
+        var (endpoints, _) = BuildSearch(
+            StubHandler.Json(Binding.Fixture("industry-classification-search.sic3571.json")));
+
+        var rows = await endpoints.FindIndustryClassificationAsync(sicCode: "3571");
+
+        Assert.Equal("ONE APPLE PARK WAY, CUPERTINO CA 95014", rows[0].BusinessAddress);
+    }
 }
