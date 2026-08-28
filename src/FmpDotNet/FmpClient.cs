@@ -9,7 +9,8 @@ namespace FmpDotNet;
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
-    SearchEndpoints search, SecFilingsEndpoints secFilings, QuoteEndpoints quote, ChartEndpoints chart,
+    SearchEndpoints search, SecFilingsEndpoints secFilings,
+    InstitutionalOwnershipEndpoints institutionalOwnership, QuoteEndpoints quote, ChartEndpoints chart,
     BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -50,6 +51,14 @@ public sealed class FmpClient(
     /// filings, and are on <see cref="Directory"/> and <see cref="Search"/> instead. See
     /// <see cref="SecFilingsEndpoints"/>.</para></summary>
     public SecFilingsEndpoints SecFilings { get; } = secFilings;
+
+    /// <summary>Who owns what, as institutions report it quarterly on Form 13F — holdings, holder analytics,
+    /// performance and industry breakdowns, plus SC 13D/G beneficial-ownership disclosures.
+    ///
+    /// <para>The 5% stake disclosures FMP files under Insider Trades are here rather than on
+    /// <c>InsiderTrades</c>, because an SC 13D/G is an institutional stake filing and not a Form 4
+    /// transaction. See <see cref="InstitutionalOwnershipEndpoints"/>.</para></summary>
+    public InstitutionalOwnershipEndpoints InstitutionalOwnership { get; } = institutionalOwnership;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.
