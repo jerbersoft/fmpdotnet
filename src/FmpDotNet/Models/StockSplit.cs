@@ -30,7 +30,7 @@ public sealed record StockSplit
     /// assumed: across 961 calendar rows on 2026-08-28 every value was whole, and the largest was
     /// <b>1,011,977</b> against an <see cref="int"/> ceiling of 2,147,483,647. Recording what was measured beats
     /// widening against a fractional value nobody has seen — and the same check went the other way on
-    /// <c>IpoCalendarEntry.MarketCap</c>, which does not fit.</para></summary>
+    /// <see cref="IpoCalendarEntry.MarketCap"/>, which does not fit.</para></summary>
     [JsonPropertyName("numerator")] public int? Numerator { get; init; }
 
     /// <summary>Shares held before the split, per <see cref="Numerator"/> shares held after. Largest measured

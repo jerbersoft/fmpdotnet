@@ -1,0 +1,7 @@
+[
+ {"symbol": "XLABW", "date": "2026-08-28", "daa": "2026-08-28T04:00:00.000Z", "company": "Exascale Labs Holdings Inc. Warrant", "exchange": "NASDAQ", "actions": "Expected", "shares": null, "priceRange": null, "marketCap": null},
+ {"symbol": "XLAB", "date": "2026-08-28", "daa": "2026-08-28T04:00:00.000Z", "company": "Exascale Labs Holdings Inc. Class A Common Stock", "exchange": "NASDAQ", "actions": "Expected", "shares": null, "priceRange": null, "marketCap": null},
+ {"symbol": "PSQLW", "date": "2026-08-28", "daa": "2026-08-28T04:00:00.000Z", "company": "Pasqal Holding SA Warrant", "exchange": "NASDAQ", "actions": "Expected", "shares": null, "priceRange": null, "marketCap": null},
+ {"symbol": "IPHXU", "date": "2026-08-28", "daa": "2026-08-28T04:00:00.000Z", "company": "Inflection Point Acquisition Corp. VIII Unit", "exchange": "NASDAQ", "actions": "Expected", "shares": null, "priceRange": null, "marketCap": null},
+ {"symbol": "DHGR", "date": "2026-08-28", "daa": "2026-08-28T04:00:00.000Z", "company": "Devonian Health Group Inc.", "exchange": "NYSE", "actions": "Expected", "shares": null, "priceRange": null, "marketCap": null}
+]

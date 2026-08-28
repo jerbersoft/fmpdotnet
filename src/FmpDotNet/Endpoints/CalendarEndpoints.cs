@@ -336,4 +336,49 @@ public sealed class CalendarEndpoints(FmpTransport transport)
         // window from `to`.
         return new CalendarResult<StockSplit>(kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
+
+    /// <summary>Every offering FMP has scheduled or priced in a date range, from <c>stable/ipos-calendar</c>.
+    ///
+    /// <para><b>This path will not reach more than 90 days back from <paramref name="to"/>, exactly as
+    /// <see cref="GetSplitsCalendarAsync"/> does, and it drops the front of the range without saying so.</b>
+    /// Measured 2026-08-28 against four <c>to</c> values spanning twenty months, each with <c>from</c> fixed at
+    /// 2015-01-01, the earliest row returned was 90 days before <c>to</c> every time. A request for the whole of
+    /// 2024 answered Q4 of 2024, at <b>358 rows</b> — no cap was reached and none was measured on this path, so
+    /// <see cref="CalendarResult{T}.MissesStartOfRange"/> is what catches it.</para>
+    ///
+    /// <para><b>Most rows are unpriced.</b> <see cref="IpoCalendarEntry.PriceRange"/> was null on 441 of 450
+    /// rows, <see cref="IpoCalendarEntry.Shares"/> on 349 and <see cref="IpoCalendarEntry.MarketCap"/> on 354.
+    /// A row per warrant and per unit is normal, so one company can occupy several rows on one date.</para>
+    ///
+    /// <para>Rows whose <c>date</c> cannot be parsed are dropped, for the reason recorded on this
+    /// class.</para></summary>
+    /// <param name="from">First day of the range, inclusive. Anything more than 90 days before
+    /// <paramref name="to"/> is silently ignored.</param>
+    /// <param name="to">Last day of the range, inclusive, and the anchor the 90-day window is measured
+    /// from.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A <see cref="CalendarResult{T}"/> of <see cref="IpoCalendarEntry"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<IpoCalendarEntry>> GetIpoCalendarAsync(
+        LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        DateRange.ThrowIfBackwards(from, to);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/ipos-calendar").With("from", from).With("to", to),
+            FmpJsonContext.Default.ListIpoCalendarEntry, ct).ConfigureAwait(false);
+
+        LocalDate? earliest = null;
+        foreach (var row in rows)
+            if (row?.Date is { } date && (earliest is null || date < earliest)) earliest = date;
+
+        var kept = new List<IpoCalendarEntry>(rows.Count);
+        foreach (var row in rows)
+            if (row is { Date: not null }) kept.Add(row);
+
+        return new CalendarResult<IpoCalendarEntry>(
+            kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+    }
 }

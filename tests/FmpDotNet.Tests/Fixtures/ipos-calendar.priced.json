@@ -1,0 +1,7 @@
+[
+ {"symbol": "MOT", "date": "2026-08-14", "daa": "2026-08-14T04:00:00.000Z", "company": "MetaOptics Ltd", "exchange": "NASDAQ", "actions": "Expected", "shares": 3000000, "priceRange": "5.00 - 7.00", "marketCap": 24150000},
+ {"symbol": "OCLT", "date": "2026-08-06", "daa": "2026-08-06T04:00:00.000Z", "company": "OceanLight Acquisition Corp", "exchange": "NASDAQ", "actions": "Expected", "shares": 10000000, "priceRange": "10.00", "marketCap": 115000000},
+ {"symbol": "NCOU", "date": "2026-07-21", "daa": "2026-07-21T04:00:00.000Z", "company": "Southern Cross Acquisition I Corp.", "exchange": "NASDAQ", "actions": "Expected", "shares": 10000000, "priceRange": "10.00", "marketCap": 100000000},
+ {"symbol": "SCATU", "date": "2026-08-26", "daa": "2026-08-26T04:00:00.000Z", "company": "Southern Cross Acquisition II Corp.", "exchange": "NASDAQ", "actions": "Priced", "shares": 7500000, "priceRange": null, "marketCap": 75000000},
+ {"symbol": "JTTT", "date": "2026-08-26", "daa": "2026-08-26T04:00:00.000Z", "company": "JATT III Acquisition Corp", "exchange": "NASDAQ", "actions": "Priced", "shares": 6000000, "priceRange": null, "marketCap": 60000000}
+]
