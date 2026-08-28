@@ -51,10 +51,12 @@ public sealed record BulkCompanyProfile
 
     /// <summary>Market capitalisation, in <see cref="Currency"/>.
     ///
-    /// <para><see langword="decimal"/> — the same type <see cref="CompanyProfile.MarketCap"/> uses, and for the
-    /// same reason, found the same way; see that property's remarks for the measurement. CSV carries no
-    /// integer/float distinction to preserve, and the repo's rule is that money is
-    /// <see langword="decimal"/>.</para></summary>
+    /// <para><see langword="decimal"/>, the same type <see cref="CompanyProfile.MarketCap"/> uses — but reached
+    /// by a different route, and the distinction is worth keeping. That one was <see langword="long"/> until a
+    /// live measurement forced it wider; this one has always been <see langword="decimal"/> because CSV carries
+    /// no integer/float distinction to preserve, and the repo's rule is that money is
+    /// <see langword="decimal"/>. No fractional <c>marketCap</c> has been measured on <c>profile-bulk</c>
+    /// itself.</para></summary>
     public decimal? MarketCap { get; init; }
 
     /// <summary>Beta against the broad market. <c>0</c> is a real measured value (<c>MRV.TO</c>), not an absent
