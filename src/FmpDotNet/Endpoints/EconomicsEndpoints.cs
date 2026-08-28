@@ -66,9 +66,7 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     public async Task<IReadOnlyList<EconomicRelease>> GetEconomicCalendarAsync(
         LocalDate from, LocalDate to, CancellationToken ct = default)
     {
-        if (to < from)
-            throw new ArgumentOutOfRangeException(
-                nameof(to), to, $"'to' must not be earlier than 'from' ({from:uuuu-MM-dd}).");
+        DateRange.ThrowIfBackwards(from, to);
 
         return await transport.GetListAsync(
             new FmpRequest("stable/economic-calendar").With("from", from).With("to", to),

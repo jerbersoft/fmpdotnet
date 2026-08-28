@@ -194,7 +194,7 @@ public sealed class ChartEndpoints(FmpTransport transport)
         string symbol, ChartInterval interval, LocalDate from, LocalDate to, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        ThrowIfBackwards(from, to);
+        DateRange.ThrowIfBackwards(from, to);
 
         return transport.GetListAsync(
             new FmpRequest($"stable/historical-chart/{interval.ToPathSegment()}")
@@ -210,18 +210,9 @@ public sealed class ChartEndpoints(FmpTransport transport)
     private static FmpRequest DailyRequest(string variant, string symbol, LocalDate from, LocalDate to)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        ThrowIfBackwards(from, to);
+        DateRange.ThrowIfBackwards(from, to);
 
         return new FmpRequest($"stable/historical-price-eod/{variant}")
             .With("symbol", symbol).With("from", from).With("to", to);
-    }
-
-    /// <summary>Rejects a transposed range before it costs a call. See <see cref="GetIntradayAsync"/> for the
-    /// measurements that make this a guard rather than a note.</summary>
-    private static void ThrowIfBackwards(LocalDate from, LocalDate to)
-    {
-        if (to < from)
-            throw new ArgumentOutOfRangeException(
-                nameof(to), to, $"'to' must not be earlier than 'from' ({from:uuuu-MM-dd}).");
     }
 }

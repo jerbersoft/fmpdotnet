@@ -266,7 +266,7 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        ThrowIfBackwards(from, to);
+        DateRange.ThrowIfBackwards(from, to);
 
         return transport.GetListAsync(
             new FmpRequest("stable/historical-market-capitalization")
@@ -518,16 +518,5 @@ public sealed class CompanyEndpoints(FmpTransport transport)
         return transport.GetListAsync(
             new FmpRequest(path).With("symbol", symbol).With("limit", limit),
             FmpJsonContext.Default.ListEmployeeCount, ct);
-    }
-
-    /// <summary>Rejects a transposed range before it costs a call, matching <c>ChartEndpoints.ThrowIfBackwards</c>.
-    ///
-    /// <para>Nullable on both ends because the range is optional here, unlike on the chart endpoints: one end
-    /// alone cannot be backwards, so the guard fires only when both are supplied.</para></summary>
-    private static void ThrowIfBackwards(LocalDate? from, LocalDate? to)
-    {
-        if (from is { } start && to is { } end && end < start)
-            throw new ArgumentOutOfRangeException(
-                nameof(to), to, $"'to' must not be earlier than 'from' ({start:uuuu-MM-dd}).");
     }
 }

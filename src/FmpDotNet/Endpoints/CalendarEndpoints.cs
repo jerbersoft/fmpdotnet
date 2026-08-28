@@ -134,9 +134,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
         LocalDate from, LocalDate to, bool includeReportTimes = false, bool clampToRange = false,
         CancellationToken ct = default)
     {
-        if (to < from)
-            throw new ArgumentOutOfRangeException(
-                nameof(to), to, $"The range end must not precede its start; 'from' was {from:uuuu-MM-dd}.");
+        DateRange.ThrowIfBackwards(from, to);
 
         var request = new FmpRequest("stable/earnings-calendar")
             .With("from", from)
