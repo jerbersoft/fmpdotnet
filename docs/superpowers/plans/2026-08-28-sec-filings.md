@@ -422,7 +422,10 @@ public sealed record IndustryClassification
 /// <para>Named for the <see cref="CikEntry"/> precedent: a reference-list row that is an entry in a vocabulary
 /// rather than a thing in the market. Measured 2026-08-28, the endpoint answers all <b>444</b> rows for every
 /// combination of <c>page</c> and <c>limit</c> tried — see
-/// <see cref="Endpoints.DirectoryEndpoints.GetSicCodesAsync"/>.</para></summary>
+/// <c>DirectoryEndpoints.GetSicCodesAsync</c>, added in a later task on this same slice.</para></summary>
+/// <remarks>A <c>&lt;c&gt;</c> span rather than a <c>&lt;see cref&gt;</c> because the method does not exist yet:
+/// an unresolved cref is CS1574, and <c>TreatWarningsAsErrors</c> makes that a build error. Task 2 promotes it
+/// to a real cref once <c>GetSicCodesAsync</c> is there to point at.</remarks>
 public sealed record SicCodeEntry
 {
     /// <summary>The SEC review office that handles filings under this code — <c>"Office of Life Sciences"</c>.
@@ -463,7 +466,7 @@ Expected: PASS. Eight `[Fact]`s — five for the converter, two for binding, one
 - [ ] **Step 8: Mutation-check the converter**
 
 Change `Replace("', '", ", ")` to `Replace("','", ", ")` and re-run.
-Expected: `The_bracketed_encoding_becomes_the_joined_one`, `An_apostrophe_inside_an_element_survives_because_the_transform_is_textual`, `A_single_element_address_loses_its_brackets_and_nothing_else` and `The_converter_is_wired_to_the_property_and_not_merely_written` fail. Restore.
+Expected: exactly three fail — `The_bracketed_encoding_becomes_the_joined_one`, `An_apostrophe_inside_an_element_survives_because_the_transform_is_textual` and `The_converter_is_wired_to_the_property_and_not_merely_written`. `A_single_element_address_loses_its_brackets_and_nothing_else` passes under both implementations and that is correct, not a gap: a one-element address has no internal separator for the mutation to corrupt, so that test discriminates bracket-stripping and nothing else. Restore.
 
 Then delete the `[JsonConverter(typeof(BusinessAddressJsonConverter))]` attribute and re-run.
 Expected: only `The_converter_is_wired_to_the_property_and_not_merely_written` fails — which is the point of that test: nothing else notices. Restore.
