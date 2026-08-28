@@ -79,6 +79,24 @@ public class CompanyEndpointsTests
     }
 
     [Fact]
+    public async Task Binds_the_fractional_volume_that_stable_profile_serves_on_some_symbols()
+    {
+        // Measured live 2026-08-28: `stable/profile?symbol=BAC` answered 19757648.08675. Four of fifteen symbols
+        // sampled that day came back fractional (PRTA, PRDO, BAC, RIVN) and eleven integral; AAPL itself answered
+        // fractional at one measurement and integral twelve minutes later the same session, so it is not even a
+        // fixed property of a symbol. This property was `long?` until then, so GetProfileAsync("BAC") threw
+        // JsonException against the live API — every one of the profile's other 35 fields lost to the one field
+        // that happened to be fractional.
+        var endpoints = Build(StubHandler.Json(
+            """[{"symbol":"BAC","companyName":"Bank of America Corporation","volume":19757648.08675}]"""));
+
+        var profile = await endpoints.GetProfileAsync("BAC");
+
+        Assert.NotNull(profile);
+        Assert.Equal(19757648.08675m, profile.Volume);
+    }
+
+    [Fact]
     public async Task Looks_a_profile_up_by_cik_through_the_same_model()
     {
         // stable/profile-cik answers the identical 36 fields as stable/profile, in the same order, wrapped in a

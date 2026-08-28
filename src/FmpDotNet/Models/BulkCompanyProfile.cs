@@ -84,9 +84,10 @@ public sealed record BulkCompanyProfile
     /// clean while doing it.
     ///
     /// <para>The fractions say what the figure is: an <i>average</i> over some recent window, not the volume of a
-    /// single session, despite sharing the name of <see cref="CompanyProfile.Volume"/>, which on the per-symbol
-    /// JSON endpoint is the session count. Do not compare the two across the two endpoints as though they measured
-    /// the same thing.</para></summary>
+    /// single session. <see cref="CompanyProfile.Volume"/> shares the name but is not reliably clean either —
+    /// measured 2026-08-28, the per-symbol figure arrives fractional on some symbols and integral on others, with
+    /// no way to predict which from the symbol alone. Do not compare the two across the two endpoints as though
+    /// they measured the same thing.</para></summary>
     public decimal? Volume { get; init; }
 
     /// <summary>Average daily volume. Integral on all three measured rows, but <see langword="decimal"/> for the
