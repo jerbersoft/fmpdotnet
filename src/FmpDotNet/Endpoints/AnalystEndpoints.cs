@@ -3,15 +3,27 @@ using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Endpoints;
 
-/// <summary>FMP's analyst coverage group — what the sell side expects, as opposed to what a company reported.
+/// <summary>FMP's analyst coverage group — sell-side opinion about a company (estimates, grades, price
+/// targets) alongside FMP's own algorithmic scoring of its reported fundamentals (ratings).
 ///
-/// <para>Everything here is a <b>forecast</b>. The statement endpoints on <see cref="StatementEndpoints"/> answer
-/// periods that have ended; this group answers periods that have not, and the two must not be joined as though
-/// they were the same kind of fact.</para></summary>
+/// <para><see cref="GetEstimatesAsync"/> is the only forecast in this group — see the warning on that method
+/// before joining it to anything else. <see cref="GetGradesAsync"/> is a dated log of past analyst actions,
+/// upgrades, downgrades and initiations, not a projection of anything future.
+/// <see cref="GetGradeHistoryAsync"/> is monthly historical snapshots of the analyst-count distribution and
+/// <see cref="GetGradeConsensusAsync"/> the current one; <see cref="GetPriceTargetConsensusAsync"/> and
+/// <see cref="GetPriceTargetSummaryAsync"/> summarise targets analysts have already published. And
+/// <see cref="GetRatingAsync"/>/<see cref="GetRatingHistoryAsync"/> are not sell-side opinion at all: they are
+/// FMP's own score, computed over reported fundamentals rather than solicited from analysts — see
+/// <see cref="CompanyRating"/> for the overall score and its six DCF/ROE/ROA/debt-to-equity/P/E/P/B
+/// components.</para></summary>
 public sealed class AnalystEndpoints(FmpTransport transport)
 {
     /// <summary>Sell-side consensus estimates for one symbol's future fiscal periods, from
     /// <c>stable/analyst-estimates</c>.
+    ///
+    /// <para><b>This is the one forecast in <see cref="AnalystEndpoints"/>.</b> It answers fiscal periods that
+    /// have not ended, where <see cref="StatementEndpoints"/> answers periods that have, and the two must not be
+    /// joined as though they were the same kind of fact.</para>
     ///
     /// <para><b>Rows come back descending — furthest future first — so <paramref name="limit"/> returns the N
     /// furthest-out estimates, not the next N.</b> This is the opposite of what a caller reaching for
@@ -218,8 +230,12 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     /// <summary>Analyst price-target activity on one symbol over four windows, from
     /// <c>stable/price-target-summary</c>. Returns <see langword="null"/> when FMP has no coverage.
     ///
-    /// <para><b>A zero count and a zero average are indistinguishable from "unknown" in this payload</b> — read
-    /// the remarks on <see cref="PriceTargetSummary"/> and gate every average on its matching count.</para>
+    /// <para><b>"Unknown" is the <see langword="null"/> this method returns, not a zero inside a row.</b>
+    /// Measured 2026-08-28: an uncovered symbol answers <c>[]</c> and this method returns
+    /// <see langword="null"/> outright, while a covered symbol sends all ten fields and a zero inside one of its
+    /// windows is a measured zero — no analyst activity in that window. Read the remarks on
+    /// <see cref="PriceTargetSummary"/> for the figures, and still gate every average on its matching count: a
+    /// real zero count still makes the paired average meaningless.</para>
     ///
     /// <para><see cref="PriceTargetSummary.Publishers"/> arrives as a string containing a JSON array and is
     /// parsed into a list; this is the same shape and now the same type as the whole-universe

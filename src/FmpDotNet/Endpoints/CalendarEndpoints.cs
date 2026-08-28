@@ -6,26 +6,46 @@ namespace FmpDotNet.Endpoints;
 
 /// <summary>FMP's <c>Calendar</c> group — events dated on a calendar rather than tied to a fiscal period.
 ///
-/// <para>The two endpoints here answer the same question from opposite ends: <c>stable/earnings</c> takes one
-/// symbol and returns its whole earnings history, <c>stable/earnings-calendar</c> takes a date range and returns
-/// every symbol in it. Their row shapes overlap exactly — seven fields, identical names — which is why
-/// <see cref="EarningsCalendarEntry"/> is <see cref="EarningsReport"/> plus five optional extras.</para>
+/// <para>Nine methods. Three of them pair a per-symbol history against a date-ranged calendar answering the
+/// same question from the opposite end: earnings (<see cref="GetEarningsAsync"/> /
+/// <see cref="GetEarningsCalendarAsync"/>), dividends (<see cref="GetDividendsAsync"/> /
+/// <see cref="GetDividendsCalendarAsync"/>) and splits (<see cref="GetSplitsAsync"/> /
+/// <see cref="GetSplitsCalendarAsync"/>). The earnings pair's row shapes overlap exactly — seven fields,
+/// identical names — which is why <see cref="EarningsCalendarEntry"/> is <see cref="EarningsReport"/> plus five
+/// optional extras; the dividend and split pairs instead share one record across both ends. The remaining three
+/// methods are IPO feeds with no per-symbol twin at all: <see cref="GetIpoCalendarAsync"/> is a scheduling
+/// calendar, and <see cref="GetIpoDisclosuresAsync"/>/<see cref="GetIpoProspectusesAsync"/> are EDGAR filing
+/// feeds that take a date range because FMP offers no per-symbol path for either.</para>
 ///
-/// <para>Both drop rows whose <c>date</c> cannot be parsed, rather than returning them with a null date or letting
-/// one bad value abort the response. Reasoned once, here, since it applies to both:</para>
+/// <para><b>Rows whose <c>date</c> cannot be parsed are dropped on five of the nine methods, and handed over
+/// unfiltered on the other four — check which group a method is in before relying on either behaviour.</b> The
+/// rule applies to <see cref="GetEarningsAsync"/> and to the four date-ranged methods that return dated rows in
+/// a <see cref="CalendarResult{T}"/>-shaped answer: <see cref="GetEarningsCalendarAsync"/>,
+/// <see cref="GetDividendsCalendarAsync"/>, <see cref="GetSplitsCalendarAsync"/> and
+/// <see cref="GetIpoCalendarAsync"/>. It does not apply to <see cref="GetDividendsAsync"/> or
+/// <see cref="GetSplitsAsync"/> — see the remarks on each for why a per-symbol path hands over every row
+/// instead — nor to <see cref="GetIpoDisclosuresAsync"/> and <see cref="GetIpoProspectusesAsync"/>, which apply
+/// no date-based filtering of any kind and return exactly what FMP sent.</para>
+///
+/// <para>Reasoned once, here, for the five methods it applies to:</para>
 ///
 /// <list type="bullet">
-/// <item><description>On these two endpoints the date is not a field, it is half the row's identity —
+/// <item><description>Wherever it applies, the date is not a field, it is half the row's identity —
 /// <c>(symbol, date)</c> is the key a caller stores, deduplicates and joins on. A row with no date cannot be placed
 /// on a timeline, cannot be matched to the same event arriving from another request, and in a keyed store becomes
 /// either a phantom or a collision. The SDK already applies exactly this rule to the directory endpoints, where a
 /// blank label is dropped because "a label is a key".</description></item>
-/// <item><description>On the calendar it is also the only answer that stays consistent: a null-dated row cannot be
-/// clamped to a range either, so keeping it would force a second arbitrary decision with no honest answer.</description></item>
-/// <item><description>It is a defence rather than a routine. Measured 2026-08-26, all 165 rows of AAPL's full
-/// history and all 48 rows of the captured calendar day carried a parseable date, so this should remove nothing;
-/// <see cref="EarningsCalendarResult.RowsReturned"/> against <see cref="EarningsCalendarResult.Count"/> says how
-/// much it removed if it ever does.</description></item>
+/// <item><description>On the four calendar methods it is also the only answer that stays consistent: a
+/// null-dated row cannot be clamped to a range either, so keeping it would force a second arbitrary decision
+/// with no honest answer.</description></item>
+/// <item><description>It is a defence rather than a routine, and it was measured only on the earnings pair.
+/// Measured 2026-08-26, all 165 rows of AAPL's full earnings history and all 48 rows of the captured earnings
+/// calendar day carried a parseable date, so the rule should remove nothing there;
+/// <see cref="EarningsCalendarResult.RowsReturned"/> against <see cref="EarningsCalendarResult.Count"/>, and
+/// <see cref="CalendarResult{T}.RowsReturned"/> against <see cref="CalendarResult{T}.Count"/> on the other
+/// three, say how much it removed if it ever does. The dividends, splits and IPO calendars apply the same rule
+/// by analogy to that reasoning, not from a per-path measurement of undated rows — no such measurement was taken
+/// on those three paths, so treat their expected removal count as unknown rather than zero.</description></item>
 /// </list></summary>
 public sealed class CalendarEndpoints(FmpTransport transport)
 {
@@ -175,7 +195,15 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="Dividend.Date"/> at the call site.</para>
     ///
     /// <para>An unknown symbol answers <c>[]</c> with HTTP 200 rather than a 404, which the transport surfaces
-    /// as an empty list — never null.</para></summary>
+    /// as an empty list — never null.</para>
+    ///
+    /// <para><b>Every row FMP sends is returned, undated ones included.</b> Unlike
+    /// <see cref="GetDividendsCalendarAsync"/>, this method does not drop a row whose <c>date</c> will not parse.
+    /// On a per-symbol path the symbol is the row's identity, not the date: a dividend with an unparseable date
+    /// is still that symbol's dividend, so the SDK hands it over rather than deciding for the caller that it
+    /// should be dropped. On a calendar the date is half the row's identity instead, because the caller is
+    /// asking what happened in a range and an undated row cannot be placed in one — see the note on
+    /// <see cref="CalendarEndpoints"/>.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it — hyphenated for class shares (<c>BRK-B</c>, not
     /// <c>BRK.B</c>).</param>
     /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
@@ -260,7 +288,13 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <para><b>There is no date range on this method, because the endpoint ignores one.</b> Measured the same
     /// day: <c>symbol=AAPL</c> answers 5 rows with and without <c>from=2024-01-01&amp;to=2024-12-31</c> — and
     /// AAPL had no split in 2024, so a filter that worked would have answered none. Use
-    /// <see cref="GetSplitsCalendarAsync"/> for a date range.</para></summary>
+    /// <see cref="GetSplitsCalendarAsync"/> for a date range.</para>
+    ///
+    /// <para><b>Every row FMP sends is returned, undated ones included.</b> Unlike
+    /// <see cref="GetSplitsCalendarAsync"/>, this method does not drop a row whose <c>date</c> will not parse. On
+    /// a per-symbol path the symbol is the row's identity, not the date: a split with an unparseable date is
+    /// still that symbol's split, so the SDK hands it over rather than deciding for the caller that it should be
+    /// dropped — see the note on <see cref="CalendarEndpoints"/>.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
     /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
     /// <param name="ct">Cancellation token.</param>

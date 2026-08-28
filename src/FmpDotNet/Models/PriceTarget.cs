@@ -32,10 +32,22 @@ public sealed record PriceTargetConsensus
 /// <summary>Analyst price-target activity on one symbol, summarised over four windows, from
 /// <c>stable/price-target-summary</c>.
 ///
-/// <para>The same ten fields as the whole-universe <see cref="BulkPriceTargetSummary"/>, and since this slice
-/// the same <i>types</i> too — read that type's remarks on why a zero count and a zero average are
-/// indistinguishable in the payload, and why the average is only meaningful where the matching count is above
-/// zero.</para>
+/// <para>The same ten fields as the whole-universe <see cref="BulkPriceTargetSummary"/>. <see cref="Publishers"/>
+/// converged on the same type too, a nullable read-only list of strings — see below.
+/// <see cref="Symbol"/> did not: it is nullable here, against a non-nullable
+/// <see cref="BulkPriceTargetSummary.Symbol"/> initialised to <c>""</c> on the bulk type, so the two records are
+/// not interchangeable on that one field.</para>
+///
+/// <para><b>Here, "unknown" is the <see langword="null"/> this endpoint returns, and a zero inside a returned
+/// row is a measured zero — the opposite of the bulk CSV path.</b> Measured 2026-08-28: an uncovered symbol
+/// answers an empty array and <see cref="Endpoints.AnalystEndpoints.GetPriceTargetSummaryAsync"/> returns
+/// <see langword="null"/> — checked on four, <c>MRV.TO</c>, <c>001231.SZ</c>, <c>0018.HK</c> and <c>GOODY.IS</c>,
+/// all <c>[]</c>. A covered symbol sends all ten keys, and a window with no activity in it arrives as a real
+/// <c>0</c>: <c>BRK-B</c> sent <see cref="LastMonthCount"/> 0 and <see cref="LastYearCount"/> 0 alongside
+/// <see cref="AllTimeCount"/> 2 and <see cref="AllTimeAvgPriceTarget"/> 465.5.
+/// <see cref="BulkPriceTargetSummary"/> genuinely behaves the other way — no field on that CSV can ever be
+/// blank, so a zero and "unknown" collapse into the same value there — and the two paths must not be reasoned
+/// about interchangeably on this point.</para>
 ///
 /// <para><b><see cref="Publishers"/> arrives as a string containing a JSON array</b> and is parsed by
 /// <see cref="PublisherListJsonConverter"/>. It is the only nested-format field in this endpoint

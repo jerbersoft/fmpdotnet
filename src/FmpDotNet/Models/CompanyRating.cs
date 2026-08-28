@@ -41,7 +41,12 @@ public sealed record CompanyRating
     /// <c>A+</c>.</summary>
     [JsonPropertyName("rating")] public string? Rating { get; init; }
 
-    /// <summary>FMP's overall score, 1 to 5 across the rows measured.
+    /// <summary>FMP's overall score.
+    ///
+    /// <para><b>Every row measured was 3</b> — all five rows of the captured <c>ratings-historical</c> history
+    /// and the single row of the captured <c>ratings-snapshot</c>, measured 2026-08-28. That is not evidence
+    /// about the scale's bounds: six rows all landing on the same value says nothing about where the top or
+    /// bottom sits, and no wider range was measured.</para>
     ///
     /// <para><b>The one field <see cref="BulkCompanyRating"/> does not carry</b>, and therefore the reason these
     /// are two records rather than one.</para></summary>
