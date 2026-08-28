@@ -293,6 +293,21 @@ public class InstitutionalOwnershipTests
     }
 
     [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(-1)]
+    public async Task A_quarter_outside_one_to_four_is_refused_on_holder_analytics(int quarter)
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHolderAnalyticsAsync("AAPL", 2025, quarter));
+
+        Assert.Equal("quarter", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
     [InlineData(101)]
     [InlineData(200)]
     [InlineData(1000)]
