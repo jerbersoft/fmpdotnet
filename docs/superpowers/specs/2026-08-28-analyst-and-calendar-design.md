@@ -16,7 +16,7 @@ methods) still reads well, so neither is split.
 Every path is an ordinary `GET` returning a JSON array that `FmpTransport.GetListAsync` already serves. No new
 transport primitive, no streaming, no CSV.
 
-**Eleven new records, one result type, one converter, eleven `FmpJsonContext` registrations.**
+**Eleven new records, one generic result type, one converter, eleven `FmpJsonContext` registrations.**
 
 ### Which facade takes what
 
@@ -52,8 +52,10 @@ The wire name `dividend` collides with the record name, so the property is `Divi
 `SplitType`.
 
 `Numerator` and `Denominator` are `int?`. Measured whole in 961 of 961 rows, including 707/500 and 729/1000
-from non-US listings. `SplitType` is `string?` and must be read carefully: it is JSON-null in 16 rows *and*
-the literal string `"None"` in others.
+from non-US listings, with maxima of 1,011,977 and 1,000,000. `SplitType` is `string?` and is **JSON-null on 16
+of 961 rows**; the three string values are `stock-split`, `stock-dividend` and `spin-off`. (This paragraph
+first claimed a literal `"None"` sentinel as well. Re-measured field by field over all 961 rows while planning,
+that string appears nowhere in the response — see the measurements.)
 
 **`CompanyRating`** — `ratings-snapshot` and `ratings-historical`. Ten fields: `Symbol`, `Date`, `Rating`,
 `OverallScore`, `DiscountedCashFlowScore`, `ReturnOnEquityScore`, `ReturnOnAssetsScore`, `DebtToEquityScore`,
@@ -75,7 +77,7 @@ or add a permanently-null one to the bulk shape.
 | `GradeHistory` | `grades-historical` | `Symbol`, `Date`, and five `AnalystRatings*` counts |
 | `PriceTargetConsensus` | `price-target-consensus` | `Symbol`, `TargetHigh`, `TargetLow`, `TargetConsensus`, `TargetMedian` |
 | `PriceTargetSummary` | `price-target-summary` | ten fields including `Publishers` |
-| `IpoCalendarEntry` | `ipos-calendar` | nine fields including the redundant `Daa` |
+| `IpoCalendarEntry` | `ipos-calendar` | nine fields including the redundant `Daa`; `PriceRange` is `string?` and `Shares`/`MarketCap` are `decimal?` — see below |
 | `IpoDisclosure` | `ipos-disclosure` | `Symbol`, `FilingDate`, `AcceptedDate`, `EffectivenessDate`, `Cik`, `Form`, `Url` |
 | `IpoProspectus` | `ipos-prospectus` | thirteen fields, six of them money |
 
@@ -86,31 +88,71 @@ Every record is a `public sealed record` with `init` properties, an explicit `[J
 member, no `required` members and no non-nullable properties, per the house rule. `Cik` is `string?`, never an
 integer type: it arrives zero-padded to ten characters.
 
-## `DividendCalendarResult`
+**Three numeric typings were corrected while planning, from a magnitude sweep the first pass did not run.**
 
-`dividends-calendar` truncates at 4000 rows and drops them **from the front of the requested range** — a full
-year returns its last three days. The already-shipped `EarningsCalendarResult` solves exactly this problem for
-`stable/earnings-calendar`, and this design applies that proven type to the second endpoint measured to have
-it rather than inventing anything.
+- **`IpoCalendarEntry.PriceRange` is `string?`, not a number.** It is null on 441 of 450 rows, and the nine
+  populated ones are formatted strings — `"5.00 - 7.00"`, `"10.00"`, `"15 - 17"`. Typed `decimal?` it would
+  read null on all 450: null where FMP sent null, and null where FMP sent a price, indistinguishably. Same
+  shape as `SecProfile.FiftyTwoWeekRange` from the previous slice.
+- **`IpoCalendarEntry.MarketCap` and `Shares` are `decimal?`**, matching `MarketCapitalization.MarketCap` and
+  `SharesFloat.OutstandingShares`. `marketCap` was measured at 74,999,999,925 — thirty-five times
+  `int.MaxValue`. An `int?` there does not answer null; `System.Text.Json` throws, and `FmpTransport` does not
+  wrap `DeserializeAsync`, so one row costs the whole response.
+- **Every money field on `IpoProspectus` is `decimal?`**, for the same reason plus a fractional one:
+  `pricePublicTotal` reaches 74,999,999,925 and 13 of 165 rows carry a fractional value in it.
 
-It mirrors the original member for member:
+## `CalendarResult<T>`
 
-- implements `IReadOnlyList<Dividend>`, so `GetDividendsCalendarAsync` still returns a list and nothing about
-  the ordinary path changes;
-- `RowCap = 4000`, documented with the measurement that establishes it;
+**Three of the five date-ranged methods truncate, by two different mechanisms.** This section originally
+specified a single `DividendCalendarResult` for `dividends-calendar`, on the measurement that the other
+calendar paths "do not hit the cap". They do not — and two of them truncate anyway:
+
+| path | mechanism | what a caller sees |
+|---|---|---|
+| `dividends-calendar` | 4000-row cap | a full year answers its last three days |
+| `splits-calendar` | **90-day window from `to`** | a full year answers Q4, at 737 rows |
+| `ipos-calendar` | **90-day window from `to`** | a full year answers Q4, at 358 rows |
+| `ipos-disclosure` | none measured | the whole range, 25,689 rows for 2024 |
+| `ipos-prospectus` | none measured | the whole range, 1,048 rows for 2024 |
+
+Both mechanisms drop rows from the **front** of the requested range and report nothing. They differ in what can
+detect them: 737 rows is nowhere near any cap, so a row-count test is blind to the window clamp. Only comparing
+the earliest returned date against the requested `from` sees both.
+
+**So the type is generic: `CalendarResult<T>`, one class serving all three.** Three hand-mirrored copies of one
+result type would be verbatim duplication of a logic block, which the review rubric treats as a defect, and the
+second and third copies would differ only in which tell can fire.
+
+- implements `IReadOnlyList<T>`, so every signature in the block below is unchanged and nothing about the
+  ordinary path changes;
 - `RowsReturned` counted on the **raw** response, before any clamping or dropping — the ordering that makes the
-  signal trustworthy, and the reason the original exists;
-- `AtRowCap` — `RowsReturned >= RowCap`;
-- `MissesStartOfRange` — nothing came back for the first requested day though later days did;
-- `IsLikelyTruncated` — either tell fired;
-- `RequestedFrom`, `RequestedTo`, `EarliestReturnedDate`.
+  signal trustworthy, and the reason `EarningsCalendarResult` exists;
+- `RowCap` — `4000` for `dividends-calendar`, `null` for the two window-clamped paths, because no row cap was
+  measured on them and a made-up one would be a fact nobody checked;
+- `LookbackLimitDays` — `90` for the two window-clamped paths, `null` for `dividends-calendar`, where the row
+  cap always fires first and so no window limit is observable;
+- `AtRowCap` — `RowCap is { } cap && RowsReturned >= cap`; never fires where `RowCap` is null;
+- `ExceedsLookbackLimit` — the requested range is wider than `LookbackLimitDays`; never fires where that is null;
+- `MissesStartOfRange` — the earliest row returned is later than the requested `from`. **This is the only tell
+  that sees both mechanisms**, and the reason it is not merely a second opinion;
+- `LikelyTruncated` — any tell fired;
+- `RequestedFrom`, `RequestedTo`, `EarliestReturnedDate`;
+- `static bool IsLikelyTruncated(IReadOnlyList<T> rows)`, mirroring the shipped helper, for callers holding
+  the result as a plain list.
 
-**Auto-chunking is explicitly out of scope.** Neither calendar does it today; adding it needs request-count
-limits, cancellation semantics and a decision about partial failure mid-walk, and that is a slice of its own.
-The design records the safe width the measurement supports — roughly six days at the observed 340–876
-rows/day, but season-dependent, which is precisely why the type reports rather than guesses.
+Naming follows the shipped type exactly: the **property** is `LikelyTruncated` and the **static method** is
+`IsLikelyTruncated`. An earlier draft of this section wrote the property as `IsLikelyTruncated`, which is the
+method's name on `EarningsCalendarResult` and would not compile beside it.
 
-`stable/earnings-calendar` behaviour is unchanged by this slice.
+**Auto-chunking is explicitly out of scope.** No calendar does it today; adding it needs request-count limits,
+cancellation semantics and a decision about partial failure mid-walk, and that is a slice of its own. What the
+measurement supports is recorded instead: roughly six days for `dividends-calendar` at the observed 340–876
+rows/day, season-dependent — which is precisely why the type reports rather than guesses — and a flat 90 days
+for the other two, which is not season-dependent and which the type therefore states outright.
+
+`stable/earnings-calendar` and its `EarningsCalendarResult` are **unchanged by this slice.** Retrofitting the
+shipped type onto the generic one is a follow-up, not a rider on a coverage slice: it is public API on a
+shipped path, its own tests pin it, and nothing in this slice needs it moved.
 
 ## Converters
 
@@ -191,48 +233,66 @@ shared `DateRange.ThrowIfBackwards` promoted in the previous slice. No fifth cop
 
 ## Traps, and what defends each
 
-Twelve measured traps. Each gets a test that fails if the trap is reintroduced.
+Fifteen measured traps — twelve from the first pass, three added by the re-measurement while planning. Each gets a test that fails if the trap is reintroduced.
 
 | # | trap | defence |
 |---|---|---|
-| 1 | `dividends-calendar` returns 4000 rows and eats the front of the range | `DividendCalendarResult` and its two tells |
+| 1 | `dividends-calendar` returns 4000 rows and eats the front of the range | `CalendarResult<Dividend>`, `RowCap = 4000` |
 | 2 | `ratings-historical` answers **one** row with no `limit` | `limit` defaults to 100; documented; test |
 | 3 | `grades` ignores `limit` and `page` | signature accepts neither; test asserts the query string carries neither |
 | 4 | `from`/`to` ignored on all five per-symbol paths | signatures accept neither |
 | 5 | `grades-consensus` is **not** the newest `grades-historical` row | separate records; both documented with the measured counts |
 | 6 | `ipos-calendar.daa` duplicates `date` at a constant `T04:00:00.000Z` | modelled and documented as redundant, never used as a distinct value |
 | 7 | `acceptedDate` here is a date, not the SEC paths' timestamp | `LocalDate?` via the plain converter; test pins the 10-character form |
-| 8 | `splitType` is null *and* the literal `"None"` | documented; test binds both |
+| 8 | `splitType` is JSON-null on 16 of 961 rows | `string?`; fixture carries null rows; test binds them |
 | 9 | `declarationDate` blank on 2232/4000 rows | blank reads as null, not as an error |
 | 10 | `ipos-calendar` shares / priceRange / marketCap mostly null | all nullable; fixture carries null rows |
 | 11 | `ipos-disclosure` returns 132,332 rows uncapped for a wide range | documented on the method as a payload warning |
 | 12 | `frequency` shows 2 values on one path and 8 on another | `string?`, never an enum |
+| 13 | `splits-calendar` and `ipos-calendar` answer a year with one quarter | `CalendarResult<T>`, `LookbackLimitDays = 90` |
+| 14 | `ipos-calendar.priceRange` is a formatted string, populated on 9 rows in 450 | `string?`; test binds a populated one |
+| 15 | `marketCap` and two prospectus totals exceed `int` by ~35× | `decimal?`; test binds the measured maximum |
 
 ## Testing
 
 Fixtures are verbatim captures from the 2026-08-28 pass, five rows each, and must never contain the API key —
 it travels in the query string, so no built URL is ever written to a fixture or a log line.
 
-Fourteen path fixtures. Three earn extra captures because one response cannot carry the trap:
-a `dividends-calendar` capture whose `declarationDate` is blank, an `ipos-calendar` capture with the
-mostly-null numeric fields, and a `splits-calendar` capture containing both a null `splitType` and a `"None"`
-one.
+Fourteen path fixtures, plus **two** extra captures — not three. The two dropped from the original count were
+dropped because the path fixture measured on the same day already carries the trap verbatim, and a hand-built
+duplicate is weaker evidence than a real capture:
+
+- a `dividends-calendar` capture whose `declarationDate` is blank — **already the head fixture**: all five of
+  its captured rows carry a blank `declarationDate`, and `dividends.AAPL.json` carries populated ones, so both
+  states are covered by path fixtures with no third file;
+- an `ipos-calendar` capture with the mostly-null numerics — **already the head fixture**, all five rows null
+  in `shares`, `priceRange` and `marketCap`. What is *not* covered is the opposite, so the extra capture is
+  `ipos-calendar.priced.json`: rows with all three populated, including the formatted `priceRange` string;
+- a `splits-calendar` capture carrying a null `splitType` — genuinely needed, because the head fixture is
+  `stock-split` on all five rows. `splits-calendar.split-types.json` carries two nulls, two `stock-dividend`
+  and the single `spin-off`. It does not carry a `"None"`, because there is none to carry.
 
 Every new behaviour is mutation-checked: break the implementation, confirm the *specific* test fails, restore
 against a forced fresh build. Every model is registered in `FmpJsonContext` — a missing registration fails at
 runtime, not at compile time.
 
 The live smoke sweep reaches new endpoints by reflection, so all fourteen are already in it. `Probe.Argument`
-needs no new argument names — `symbol`, `limit`, `from` and `to` are all known — but `from` now dispatches on
-declaring type, and the two new date-ranged Calendar methods must be checked against that dispatch so they get
-a range wide enough to answer rows and narrow enough not to truncate.
+needs no new argument names — `symbol`, `limit`, `from` and `to` are all known — but `from` dispatches on
+declaring type, and **five** new date-ranged Calendar methods land on that dispatch, not two as this section
+first said. Its `CalendarEndpoints` arm currently answers `SettledWeekday` for `from`, giving every one of them
+a one-day window: correct for `dividends-calendar`, which answers 876 rows in a day, and wrong for the four
+others, which are sparse enough that a single day can answer nothing and record an empty baseline that agrees
+with itself forever. The width has to be chosen per method, and pinned by a keyless test.
 
 ## What this design does not do
 
-- **No auto-chunking** on either calendar. Recorded as the natural next slice.
-- **No change to `stable/earnings-calendar`.** Its result type is the model being followed, not modified.
+- **No auto-chunking** on any calendar. Recorded as the natural next slice.
+- **No change to `stable/earnings-calendar`.** Its result type is the model being followed, not modified, and
+  not retrofitted onto `CalendarResult<T>` either — a separate, deliberate follow-up.
 - **No enums** for `frequency`, `action`, `newGrade`, `splitType`, `actions` or `exchange`. Each observed set
   is a sample from one path and one symbol, not a domain.
 - **No reuse of `BulkCompanyRating`**, which lacks `overallScore`.
-- **`Numerator`/`Denominator` stay `int?`.** 961 of 961 whole. Recording what was measured beats widening to
-  `decimal?` against a fractional value nobody has seen.
+- **`Numerator`/`Denominator` stay `int?`.** 961 of 961 whole, largest 1,011,977 against an `int.MaxValue` of
+  2,147,483,647. Recording what was measured beats widening to `decimal?` against a fractional value nobody has
+  seen. This is the opposite ruling from `marketCap` above, and the difference is the measurement: those two
+  were checked against the limit and fit, `marketCap` was checked and does not.

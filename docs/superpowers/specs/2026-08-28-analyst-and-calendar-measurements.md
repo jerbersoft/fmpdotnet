@@ -4,6 +4,13 @@ Every fact the [design](2026-08-28-analyst-and-calendar-design.md) rests on, wit
 Measured against the live API on **2026-08-28** across six probe passes, roughly 110 calls, all ordinary JSON
 endpoints. No `*-bulk` path was touched.
 
+**A second pass on the same day, while the implementation plan was being written, re-verified every finding a
+signature or a trap test rests on and corrected four of them.** Each correction is marked in place below. Three
+were transcription faults — a sentinel conflated with one from the previous slice, a field left out of a type
+table, a magnitude never checked. The fourth was an inference stated as a measurement: two paths were recorded
+as not truncating, on the strength of a row count, when in fact they truncate by a mechanism a row count cannot
+see. Everything not marked as corrected was re-measured and held exactly.
+
 ## Entitlement — all fourteen are reachable
 
 No path returned 402. Six answered 200 with no parameters at all; the other eight returned 400 naming the
@@ -61,20 +68,66 @@ six-day window above returned 2147 and was complete; the thirty-day window was n
 2025-12-31 answered 4000 rows with an earliest date of **2025-11-25**. The shipped
 `EarningsCalendarResult` already detects and reports this; `dividends-calendar` has no equivalent.
 
-## The other three calendar-shaped paths do not hit the cap
+## `splits-calendar` and `ipos-calendar` truncate too — by a 90-day window, not by a row cap
 
-Probed over 2000-01-01 .. 2026-08-28:
+**Found while planning, 2026-08-28.** This section first read "the other three calendar-shaped paths do not hit
+the cap", inferred from their row counts over a wide range: `splits-calendar` 947, `ipos-calendar` 443. Those
+counts are real. The inference from them was wrong — a response can be far below a row cap and still be
+truncated, and both of these are.
 
-| path | rows |
-|---|---|
-| `splits-calendar` | 947 |
-| `ipos-calendar` | 443 |
-| `ipos-prospectus` | 26,876 |
-| `ipos-disclosure` | **132,332** |
+**Neither path will reach more than 90 days back from `to`.** Measured against four different `to` values
+spanning twenty months, with `from` fixed at 2015-01-01 in every call:
 
-`ipos-disclosure` and `ipos-prospectus` are not capped and not paginated — a wide range returns the whole
-matching set in one response. 132,332 rows is a payload concern rather than a truncation one, and the
-opposite failure mode from the cap above: the caller gets everything they asked for and may not want it.
+| `to` | `splits-calendar` rows | earliest returned | `ipos-calendar` rows | earliest returned | gap |
+|---|---|---|---|---|---|
+| 2024-12-31 | 737 | 2024-10-02 | 358 | 2024-10-02 | **90 days** |
+| 2025-06-30 | 620 | 2025-04-01 | 446 | 2025-04-01 | **90 days** |
+| 2026-03-31 | 632 | 2025-12-31 | 449 | 2025-12-31 | **90 days** |
+| 2026-08-28 | 947 | 2026-05-31 | 443 | 2026-06-01 | 89 / 88 days |
+
+So **a request for the whole of 2024 answers Q4 of 2024** — nine months of the requested range are silently
+absent, and the caller is told nothing. The window is measured from `to`, not from today: four `to` values
+twenty months apart each produced their own 90-day window.
+
+Walking `from` backwards against a fixed `to=2026-08-28` on `splits-calendar` shows the edge exactly:
+
+| `from` | days before `to` | rows | earliest returned |
+|---|---|---|---|
+| 2026-06-29 | 60 | 628 | 2026-06-29 — honoured |
+| 2026-06-09 | 80 | 825 | 2026-06-09 — honoured |
+| 2026-06-01 | 88 | 946 | 2026-06-01 — honoured |
+| 2026-05-30 | 90 | 947 | 2026-05-31 |
+| 2026-05-20 | 100 | 947 | 2026-05-31 — saturated |
+| 2026-04-30 | 120 | 947 | 2026-05-31 — saturated |
+| 2026-03-01 | 180 | 947 | 2026-05-31 — saturated |
+
+Past 90 days the answer stops changing: same row count, same earliest date, however far back you ask.
+
+**This is the same failure as the row cap and a different mechanism, which matters for the defence.** Both drop
+rows from the front of the range without saying so. But 737 rows is nowhere near 4000, so a row-count test can
+never see this one — only comparing the earliest returned date against the requested `from` can.
+
+**`ipos-disclosure` and `ipos-prospectus` do not do this.** Both answered the full range asked for:
+
+| path | request | rows | span returned |
+|---|---|---|---|
+| `ipos-disclosure` | 2024-01-01 .. 2024-12-31 | **25,689** | 2024-01-02 .. 2024-12-31 |
+| `ipos-prospectus` | 2024-01-01 .. 2024-12-31 | 1,048 | 2024-01-04 .. 2024-12-31 |
+| `ipos-disclosure` | 2020-01-01 .. 2026-08-28 | **123,678** | whole range |
+| `ipos-prospectus` | 2020-01-01 .. 2026-08-28 | 15,726 | whole range |
+
+Neither is capped and neither is paginated — a wide range returns the whole matching set in one response.
+123,678 rows is a payload concern rather than a truncation one, and the opposite failure mode from the two
+above: the caller gets everything they asked for and may not want it.
+
+**Three of the five date-ranged paths in this slice therefore truncate**, by two different mechanisms:
+`dividends-calendar` by a 4000-row cap, `splits-calendar` and `ipos-calendar` by a 90-day window.
+
+One observation recorded without an explanation, because it appears only on already-truncated responses: a
+`dividends-calendar` request with `to=2025-06-30` returned a latest date of 2025-07-01, and `to=2026-03-31`
+returned 2026-04-01. Four narrow windows that came back **under** the cap — one day, two days, three days —
+returned nothing past `to` and nothing before `from`. So the boundary overshoot is a property of the truncated
+responses only, and is one more reason not to trust a truncated one about its own extent.
 
 ## Parameters that are accepted and ignored
 
@@ -198,12 +251,18 @@ Surveyed over the row counts shown. Fields not listed were populated in every ro
 Two different conventions for "no value" appear in the same slice: the dividend paths send an **empty string**,
 `ipos-calendar` sends **JSON null**. Over half of `dividends-calendar`'s rows have no declaration date.
 
-## `splitType` says nothing in two different ways
+## `splitType` is null on 16 of 961 rows, and that is the whole of it
 
-Across 961 `splits-calendar` rows, `splitType` took four values: `stock-split`, `stock-dividend`, `spin-off`,
-and the literal string **`"None"`** — on top of being JSON-null in 16 rows. A caller checking for null misses
-the `"None"` rows and vice versa. This is the same `"None"` sentinel measured on the SEC filing paths in the
-previous slice.
+Across 961 `splits-calendar` rows, `splitType` took three string values — `stock-split` ×934,
+`stock-dividend` ×10, `spin-off` ×1 — and was **JSON-null on 16**. Nothing else.
+
+**Correction, 2026-08-28 (re-measured while planning).** This section first read that `splitType` also took
+the literal string `"None"`, "the same `"None"` sentinel measured on the SEC filing paths in the previous
+slice". That was wrong, and it was wrong by conflation rather than by observation: the `"None"` sentinel is
+real, and it is on the *classification* paths of the previous slice, where `symbol` reads `"None"`. Re-measured
+field by field over all 961 rows on all five fields, the string `"None"` appears **zero times anywhere in the
+response**. The "four values" in the cardinality table below is correct only if JSON-null is counted as one of
+the four, which is how it is now written.
 
 ## Low-cardinality string fields, and why none becomes an enum
 
@@ -213,7 +272,7 @@ previous slice.
 | `dividends-calendar` | `frequency` | **8** | Quarterly, Semi-Annual, Monthly, Annual, Weekly, Irregular, Special, Bi-Weekly |
 | `grades` | `action` | 3 | maintain, downgrade, upgrade *(lower case)* |
 | `grades` | `newGrade` | **20** | Buy, Outperform, Overweight, Neutral, Hold, Market Perform, Equal Weight, Underweight, … |
-| `splits-calendar` | `splitType` | 4 | stock-split, None, stock-dividend, spin-off |
+| `splits-calendar` | `splitType` | 4 | stock-split ×934, **JSON-null ×16**, stock-dividend ×10, spin-off ×1 |
 | `ipos-calendar` | `actions` | 2 | Expected, Priced |
 | `ipos-calendar` | `exchange` | 2 | NASDAQ, NYSE |
 
@@ -230,14 +289,50 @@ Only these fields arrive as JSON strings; everything else is a real number or bo
 | `dividends` | `symbol`, `date`, `recordDate`, `paymentDate`, `declarationDate`, `frequency` |
 | `price-target-summary` | `symbol`, **`publishers`** |
 | `ratings-snapshot` | `symbol`, `rating` |
-| `ipos-calendar` | `symbol`, `date`, `daa`, `company`, `exchange`, `actions` |
+| `ipos-calendar` | `symbol`, `date`, `daa`, `company`, `exchange`, `actions`, **`priceRange`** |
 | `ipos-prospectus` | `symbol`, `acceptedDate`, `filingDate`, `ipoDate`, `cik`, `form`, `url` |
 
 `cik` arrives zero-padded to ten characters (`"0001610590"`), matching every other path in this SDK.
 
 `numerator` and `denominator` on the split paths are JSON numbers and were **whole in 961 of 961 rows** —
 including awkward real-world ratios like 707/500 and 729/1000 from non-US listings. No fractional value was
-observed.
+observed. Their largest measured values are 1,011,977 and 1,000,000, comfortably inside `int`.
+
+## Four numeric fields exceed `int`, and three arrive with a fractional part
+
+**Added while planning, 2026-08-28**, from a magnitude sweep over every numeric field on all fourteen paths.
+It was run because `priceRange` had been mistyped, and it found more:
+
+| path | field | observed range | verdict |
+|---|---|---|---|
+| `ipos-calendar` | `marketCap` | 15,000,000 .. **74,999,999,925** | **exceeds `int`** |
+| `ipos-calendar` | `shares` | 1,875,000 .. 555,555,555 | fits `int`, but a share count |
+| `ipos-prospectus` | `pricePublicTotal` | 0 .. **74,999,999,925** | **exceeds `int`**, 13 of 165 fractional |
+| `ipos-prospectus` | `proceedsBeforeExpensesTotal` | 0 .. **74,499,999,925** | **exceeds `int`**, 18 of 165 fractional |
+| `ipos-prospectus` | `discountsAndCommissionsTotal` | 0 .. 500,000,000 | 11 of 165 fractional |
+| `ipos-prospectus` | `pricePublicPerShare` | 0.12 .. 12,183,292 | 51 of 165 fractional |
+
+`int.MaxValue` is 2,147,483,647, so `marketCap`, `pricePublicTotal` and `proceedsBeforeExpensesTotal` overflow
+it by a factor of about 35. An `int?` property does not read such a value as null — `System.Text.Json` throws,
+and because `FmpTransport` does not wrap `DeserializeAsync`, one row would cost the whole response.
+
+Two fields on `dividends-calendar` mix integer and fractional JSON in the same column — `adjDividend` arrived
+as an integer on 32 of 622 rows and as a float on 590 — which `decimal?` reads either way.
+
+## `ipos-calendar.priceRange` is a formatted string
+
+**Corrected while planning, 2026-08-28.** The JSON-types table above first omitted `priceRange` from
+`ipos-calendar`'s string-typed fields, because it is null on 441 of 450 rows and the nine populated ones were
+not typed. They are strings, all nine:
+
+```
+"5.00 - 7.00"   "10.00"   "15 - 17"   "8.00 - 10.00"   "11.25 - 13.25"   "16.00 - 18.00"   "15.00 - 17.00"
+```
+
+Six are ranges and three are single prices, so the field is not a number in either form — it is the same kind
+of formatted string as `SecProfile.FiftyTwoWeekRange` measured in the previous slice. Typed `decimal?` it would
+read **null on all 450 rows**: null on the 441 that are null, and null on the nine that are not, with nothing
+in the data to show the difference.
 
 ## `publishers` is a string containing JSON
 
