@@ -170,4 +170,119 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
                 .With("from", from).With("to", to).With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListSecFiling, ct);
     }
+
+    /// <summary>Filings for one symbol over a date range — <c>stable/sec-filings-search/symbol</c>.
+    ///
+    /// <para>Every form type, not just 8-Ks: measured 2026-08-28, AAPL over 2025 answered 80 rows including
+    /// <c>8-K</c>, <c>4</c>, <c>25-NSE</c> and <c>10-K</c>.</para>
+    ///
+    /// <para><b><paramref name="from"/> and <paramref name="to"/> are required, and that is FMP's rule rather
+    /// than a choice made here.</b> The endpoint reveals its requirements one at a time: <c>symbol</c> alone
+    /// answers 400 "Invalid or missing query parameter - from", and <c>symbol</c> with <c>from</c> answers the
+    /// same for <c>to</c>. An optional parameter would ship a signature whose default can only fail, so the
+    /// compiler enforces what FMP would otherwise charge a call to tell you.</para>
+    ///
+    /// <para><b>The range filters <see cref="SecFiling.AcceptedDate"/>.</b> Measured on the sibling form-type
+    /// path 2026-08-28: 398 rows over a five-day window, of which 7 carried a <c>FilingDate</c> outside
+    /// it.</para>
+    ///
+    /// <para>No <see cref="SecFiling.HasFinancials"/> on this path — the field is absent from the payload, so it
+    /// binds null on every row.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="from">Start of the range, inclusive. Required.</param>
+    /// <param name="to">End of the range, inclusive. Required.</param>
+    /// <param name="page">Zero-based page index.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Empty for an unknown symbol. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative,
+    /// <paramref name="limit"/> is out of range, or <paramref name="to"/> is earlier than
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SecFiling>> SearchBySymbolAsync(
+        string symbol, LocalDate from, LocalDate to, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return SearchAsync("stable/sec-filings-search/symbol", "symbol", symbol, from, to, page, limit, ct);
+    }
+
+    /// <summary>Filings for one Central Index Key over a date range — <c>stable/sec-filings-search/cik</c>.
+    ///
+    /// <para>The same rows as <see cref="SearchBySymbolAsync"/> where both identify the same filer: measured
+    /// 2026-08-28, <c>symbol=AAPL</c> and <c>cik=0000320193</c> over 2025 returned byte-identical bodies of 80
+    /// rows, and the unpadded <c>320193</c> returned the same 80.</para>
+    ///
+    /// <para>Reach for this one when the filer has no ticker — most SEC registrants do not.</para></summary>
+    /// <param name="cik">The SEC Central Index Key, padded or unpadded.</param>
+    /// <param name="from">Start of the range, inclusive. Required — see
+    /// <see cref="SearchBySymbolAsync"/>.</param>
+    /// <param name="to">End of the range, inclusive. Required.</param>
+    /// <param name="page">Zero-based page index.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is null, empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">As <see cref="SearchBySymbolAsync"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SecFiling>> SearchByCikAsync(
+        string cik, LocalDate from, LocalDate to, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        return SearchAsync("stable/sec-filings-search/cik", "cik", cik, from, to, page, limit, ct);
+    }
+
+    /// <summary>Every filing of one form type across the market over a date range —
+    /// <c>stable/sec-filings-search/form-type</c>.
+    ///
+    /// <para><paramref name="formType"/> is EDGAR's own spelling — <c>"10-K"</c>, <c>"8-K"</c>, <c>"4"</c>,
+    /// <c>"25-NSE"</c>. Not validated here and not an enum, for the reason on
+    /// <see cref="SecFiling.FormType"/>: EDGAR defines hundreds and a value this SDK has never seen must not
+    /// cost the caller the call.</para>
+    ///
+    /// <para>Whole-market and therefore wide: measured 2026-08-28, <c>10-K</c> over one January month answered
+    /// 398 rows, and over a recent 90-day window it filled the default page. Page it, or narrow the
+    /// range.</para></summary>
+    /// <param name="formType">The EDGAR form type, spelled as EDGAR spells it.</param>
+    /// <param name="from">Start of the range, inclusive. Required — see
+    /// <see cref="SearchBySymbolAsync"/>.</param>
+    /// <param name="to">End of the range, inclusive. Required.</param>
+    /// <param name="page">Zero-based page index.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="formType"/> is null, empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">As <see cref="SearchBySymbolAsync"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SecFiling>> SearchByFormTypeAsync(
+        string formType, LocalDate from, LocalDate to, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(formType);
+        return SearchAsync("stable/sec-filings-search/form-type", "formType", formType, from, to, page, limit, ct);
+    }
+
+    /// <summary>The body the three <c>sec-filings-search/*</c> paths share: one required identifier, one
+    /// required range, and the page-size cap.
+    ///
+    /// <para>Extracted rather than written three times, which is the trigger #29 named when it left the
+    /// duplicated <c>Batch</c> helper alone at two call sites. The two feeds above are still written out for the
+    /// same reason: they are two.</para></summary>
+    private Task<IReadOnlyList<SecFiling>> SearchAsync(
+        string path, string parameter, string value, LocalDate from, LocalDate to, int page, int limit,
+        CancellationToken ct)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxSecFilingPageSize);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest(path)
+                .With(parameter, value).With("from", from).With("to", to).With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListSecFiling, ct);
+    }
 }

@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "JVA",
+    "cik": "0001007019",
+    "filingDate": "2025-01-31 00:00:00",
+    "acceptedDate": "2025-01-31 17:25:25",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/1007019/000149315225004500/0001493152-25-004500-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1007019/000149315225004500/form10-k.htm"
+  },
+  {
+    "symbol": "ISRG",
+    "cik": "0001035267",
+    "filingDate": "2025-01-31 00:00:00",
+    "acceptedDate": "2025-01-31 17:20:49",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/1035267/000103526725000017/0001035267-25-000017-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1035267/000103526725000017/isrg-20241231.htm"
+  },
+  {
+    "symbol": "INTC",
+    "cik": "0000050863",
+    "filingDate": "2025-01-31 00:00:00",
+    "acceptedDate": "2025-01-31 17:13:51",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/50863/000005086325000009/0000050863-25-000009-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/50863/000005086325000009/intc-20241228.htm"
+  },
+  {
+    "symbol": "CCZ",
+    "cik": "0001166691",
+    "filingDate": "2025-01-31 00:00:00",
+    "acceptedDate": "2025-01-31 16:10:33",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/1166691/000116669125000011/0001166691-25-000011-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1166691/000116669125000011/cmcsa-20241231.htm"
+  },
+  {
+    "symbol": "CMCSA",
+    "cik": "0001166691",
+    "filingDate": "2025-01-31 00:00:00",
+    "acceptedDate": "2025-01-31 16:10:33",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/1166691/000116669125000011/0001166691-25-000011-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1166691/000116669125000011/cmcsa-20241231.htm"
+  }
+]

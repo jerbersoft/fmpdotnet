@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "filingDate": "2025-12-05 00:00:00",
+    "acceptedDate": "2025-12-05 16:31:42",
+    "formType": "8-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000114036125044561/0001140361-25-044561-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/320193/000114036125044561/ef20060722_8k.htm"
+  },
+  {
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "filingDate": "2025-11-14 00:00:00",
+    "acceptedDate": "2025-11-14 18:30:15",
+    "formType": "4",
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000146235625000012/0001462356-25-000012-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/320193/000146235625000012/xslF345X05/wk-form4_1763163012.xml"
+  },
+  {
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "filingDate": "2025-11-14 00:00:00",
+    "acceptedDate": "2025-11-14 16:10:12",
+    "formType": "25-NSE",
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000135445725001138/0001354457-25-001138-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/320193/000135445725001138/xslF25X02/primary_doc.xml"
+  },
+  {
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "filingDate": "2025-11-12 00:00:00",
+    "acceptedDate": "2025-11-12 18:30:10",
+    "formType": "4",
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000163198225000011/0001631982-25-000011-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/320193/000163198225000011/xslF345X05/wk-form4_1762990206.xml"
+  },
+  {
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "filingDate": "2025-10-31 00:00:00",
+    "acceptedDate": "2025-10-31 06:01:26",
+    "formType": "10-K",
+    "link": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/0000320193-25-000079-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/aapl-20250927.htm"
+  }
+]

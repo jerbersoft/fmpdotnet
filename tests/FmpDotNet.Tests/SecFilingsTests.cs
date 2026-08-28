@@ -239,4 +239,152 @@ public class SecFilingsTests
 
         Assert.Contains("limit=1000", handler.Requests.Single().Query);
     }
+
+    // ---- the three searches ------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task The_search_paths_omit_has_financials_entirely()
+    {
+        // The one-field difference that decides whether this is one record or two. On the two feeds the field is
+        // present and sometimes null; here it is absent from the payload, so `null` means "this endpoint does not
+        // say" rather than "FMP says no". Both read as null in C#, which is why the distinction lives in the
+        // documentation on SecFiling.HasFinancials and in this test rather than in the type.
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("sec-filings-search-symbol.AAPL.json")));
+
+        var rows = await endpoints.SearchBySymbolAsync(
+            "AAPL", new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31));
+
+        Assert.Equal(5, rows.Count);
+        Assert.All(rows, r => Assert.Null(r.HasFinancials));
+        Assert.Equal(["HasFinancials"], Binding.Unbound(rows[0]));
+    }
+
+    [Fact]
+    public async Task A_search_row_binds_its_seven_fields_and_its_form_types_vary()
+    {
+        // formType is a raw string and not an enum for exactly this reason: one symbol over one year returned
+        // "8-K", "4", "25-NSE" and "10-K" in five rows. EDGAR defines hundreds more.
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("sec-filings-search-symbol.AAPL.json")));
+
+        var rows = await endpoints.SearchBySymbolAsync(
+            "AAPL", new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31));
+
+        Assert.Equal("AAPL", rows[0].Symbol);
+        Assert.Equal("0000320193", rows[0].Cik);
+        Assert.Equal(new LocalDate(2025, 12, 5), rows[0].FilingDate);
+        Assert.Equal(Instant.FromUtc(2025, 12, 5, 21, 31, 42), rows[0].AcceptedDate);
+        Assert.Equal(["8-K", "4", "25-NSE", "4", "10-K"], rows.Select(r => r.FormType));
+    }
+
+    [Fact]
+    public async Task Searching_by_symbol_and_by_cik_answers_the_same_rows()
+    {
+        // Measured 2026-08-28: sec-filings-search/symbol?symbol=AAPL and sec-filings-search/cik?cik=0000320193
+        // over the same range returned byte-identical bodies, and the unpadded CIK answered the same 80 rows as
+        // the padded one. The two fixtures are the same file for that reason, and this asserts it rather than
+        // leaving a reader to wonder whether one was copied by mistake.
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("sec-filings-search-symbol.AAPL.json")),
+            StubHandler.Json(Binding.Fixture("sec-filings-search-cik.AAPL.json")));
+        var from = new LocalDate(2025, 1, 1);
+        var to = new LocalDate(2025, 12, 31);
+
+        var bySymbol = await endpoints.SearchBySymbolAsync("AAPL", from, to);
+        var byCik = await endpoints.SearchByCikAsync("0000320193", from, to);
+
+        Assert.Equal(bySymbol, byCik);
+    }
+
+    [Fact]
+    public async Task Each_search_sends_its_own_path_and_its_own_parameter()
+    {
+        var (endpoints, handler) = Build(
+            StubHandler.Json("[]"), StubHandler.Json("[]"), StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 1, 1);
+        var to = new LocalDate(2025, 1, 31);
+
+        await endpoints.SearchBySymbolAsync("AAPL", from, to);
+        await endpoints.SearchByCikAsync("320193", from, to);
+        await endpoints.SearchByFormTypeAsync("10-K", from, to, page: 1, limit: 25);
+
+        Assert.Equal("/stable/sec-filings-search/symbol", handler.Requests[0].AbsolutePath);
+        Assert.Contains("symbol=AAPL", handler.Requests[0].Query);
+        Assert.Contains("from=2025-01-01", handler.Requests[0].Query);
+        Assert.Contains("to=2025-01-31", handler.Requests[0].Query);
+
+        Assert.Equal("/stable/sec-filings-search/cik", handler.Requests[1].AbsolutePath);
+        Assert.Contains("cik=320193", handler.Requests[1].Query);
+
+        Assert.Equal("/stable/sec-filings-search/form-type", handler.Requests[2].AbsolutePath);
+        Assert.Contains("formType=10-K", handler.Requests[2].Query);
+        Assert.Contains("page=1", handler.Requests[2].Query);
+        Assert.Contains("limit=25", handler.Requests[2].Query);
+    }
+
+    [Fact]
+    public async Task A_form_type_search_returns_many_issuers_for_one_form()
+    {
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("sec-filings-search-form-type.10-K.json")));
+
+        var rows = await endpoints.SearchByFormTypeAsync(
+            "10-K", new LocalDate(2025, 1, 1), new LocalDate(2025, 1, 31));
+
+        Assert.All(rows, r => Assert.Equal("10-K", r.FormType));
+        Assert.Equal(4, rows.Select(r => r.Cik).Distinct().Count());
+        // CCZ and CMCSA are the same accession under two tickers, the way SBC and SBCWW are on the 8-K feed.
+        Assert.Equal(rows[3].Link, rows[4].Link);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Every_search_refuses_a_blank_value_before_spending_a_call(string blank)
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 1, 1);
+        var to = new LocalDate(2025, 1, 31);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.SearchBySymbolAsync(blank, from, to));
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.SearchByCikAsync(blank, from, to));
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.SearchByFormTypeAsync(blank, from, to));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Every_search_refuses_a_backwards_range()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 1, 31);
+        var to = new LocalDate(2025, 1, 1);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchBySymbolAsync("AAPL", from, to));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchByCikAsync("320193", from, to));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchByFormTypeAsync("10-K", from, to));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Every_search_refuses_a_limit_above_the_cap()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 1, 1);
+        var to = new LocalDate(2025, 1, 31);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchBySymbolAsync("AAPL", from, to, limit: 1001));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchByCikAsync("320193", from, to, limit: 5000));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchByFormTypeAsync("10-K", from, to, page: -1));
+
+        Assert.Empty(handler.Requests);
+    }
 }
