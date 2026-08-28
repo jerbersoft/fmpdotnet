@@ -82,6 +82,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<HolderAnalytics>))]
 [JsonSerializable(typeof(List<HolderIndustryBreakdown>))]
 [JsonSerializable(typeof(List<HolderPerformance>))]
+[JsonSerializable(typeof(List<IndustryOwnershipSummary>))]
+[JsonSerializable(typeof(List<InstitutionalFiling>))]
 [JsonSerializable(typeof(List<SymbolPositions>))]
 // The five below were built for the *-bulk CSV surface and are registered here because their per-symbol JSON
 // twins carry the identical field set, measured 2026-08-27. Every property still carries [JsonPropertyName], but

@@ -232,6 +232,83 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
         return rows.Count > 0 ? rows[0] : null;
     }
 
+    /// <summary>The largest page <see cref="GetLatestFilingsAsync"/> and
+    /// <c>GetBeneficialOwnershipAsync</c> will ask for, measured rather than documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, for the same reason as
+    /// <see cref="SecFilingsEndpoints.MaxSecFilingPageSize"/>: measured 2026-08-28,
+    /// <c>institutional-ownership/latest?limit=2000</c> answered exactly 1,000 rows with HTTP 200 and nothing
+    /// in the body to say the request had been trimmed. The feed paginates, so a caller who asks for 2,000 and
+    /// advances <c>page</c> by 2,000 reads half the archive and is never told.</para>
+    ///
+    /// <para><b>Not the cap for <see cref="GetHolderAnalyticsAsync"/></b>, which clamps at 100 — see
+    /// <see cref="MaxHolderAnalyticsPageSize"/>. One constant for the whole group would have let a caller ask
+    /// that path for 1,000 rows and receive 100 in silence.</para>
+    ///
+    /// <para><b>On <c>GetBeneficialOwnershipAsync</c> this is a sibling-derived bound rather than a
+    /// measured one.</b> No query on that path produced a result set large enough to provoke a clamp — the
+    /// widest found was 180 rows, and <c>limit=2000</c> for AAPL answered its whole 99-row set. The guard is
+    /// applied there because an unbounded <c>limit</c> is worse than a conservative one, not because 1,000 was
+    /// observed to be its ceiling.</para></summary>
+    public const int MaxOwnershipPageSize = 1000;
+
+    /// <summary>Total 13F-reported value by industry for one quarter, across the whole market —
+    /// <c>stable/institutional-ownership/industry-summary</c>.
+    ///
+    /// <para>394 rows per quarter, measured 2026-08-28, one per SIC industry. Takes no filer and no symbol: it
+    /// is the market's whole 13F universe cut one way.</para>
+    ///
+    /// <para><b>This is the path whose values are fractional</b> — 53 of those 394 rows — which is why every
+    /// money field in this group is <c>decimal?</c>. See
+    /// <see cref="IndustryOwnershipSummary.IndustryValue"/>.</para></summary>
+    /// <param name="year">The calendar year of the quarter end. Not range-checked.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4. Required by FMP.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per industry, unpaged. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is outside 1 to 4.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryOwnershipSummary>> GetIndustrySummaryAsync(
+        int year, int quarter, CancellationToken ct = default)
+    {
+        ThrowIfQuarterOutOfRange(quarter);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/industry-summary")
+                .With("year", year).With("quarter", quarter),
+            FmpJsonContext.Default.ListIndustryOwnershipSummary, ct);
+    }
+
+    /// <summary>The whole-market feed of 13F filings as they arrive, newest first —
+    /// <c>stable/institutional-ownership/latest</c>.
+    ///
+    /// <para>Every filer, every quarter, new submissions and amendments alike:
+    /// <see cref="InstitutionalFiling.FormType"/> carried <c>13F-HR</c>, <c>13F-HR/A</c>, <c>13F-NT</c> and
+    /// <c>13F-NT/A</c> in the measured page. Use it to notice that a filer has reported; use
+    /// <see cref="GetHoldingsAsync"/> to read what they reported.</para>
+    ///
+    /// <para><b>The two dates on the row are spelled differently from the rest of this group and mean different
+    /// things.</b> See <see cref="InstitutionalFiling.FilingDate"/> and
+    /// <see cref="InstitutionalFiling.AcceptedDate"/>.</para></summary>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
+    /// error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxOwnershipPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative, or
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxOwnershipPageSize"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<InstitutionalFiling>> GetLatestFilingsAsync(
+        int page = 0, int limit = 100, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxOwnershipPageSize);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/latest").With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListInstitutionalFiling, ct);
+    }
+
     /// <summary>Rejects a quarter FMP could only answer with an error.
     ///
     /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it
