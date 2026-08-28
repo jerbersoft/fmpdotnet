@@ -20,9 +20,13 @@ namespace FmpDotNet.SmokeTests;
 /// upstream actually said instead of a sanitised summary of it.</para></param>
 /// <param name="Set">Properties populated on at least one returned row.</param>
 /// <param name="Unset">Properties null, empty or blank on every returned row.</param>
+/// <param name="Rows">How many rows came back, or 0 for any outcome other than <see cref="Probe.Rows"/>. Not
+/// written to a baseline — a row count changes daily and recording one would make every run drift against the
+/// last. It is here for the one assertion that has to be about volume rather than shape: see
+/// <c>OrdinaryEndpointShapeTests.The_classification_universe_still_comes_back_whole</c>.</param>
 public sealed record Observation(
     string Group, string Method, string Outcome, string? Detail,
-    IReadOnlyList<string> Set, IReadOnlyList<string> Unset)
+    IReadOnlyList<string> Set, IReadOnlyList<string> Unset, int Rows = 0)
 {
     /// <summary>How this endpoint is named in a baseline file and in a failure message.</summary>
     public string Name => $"{Group}.{Method}";
@@ -156,7 +160,7 @@ internal static class Probe
         foreach (var property in Fields(ElementType(method.ReturnType)))
             (rows.Any(row => Populated(property.GetValue(row))) ? set : unset).Add(property.Name);
 
-        return new Observation(group, method.Name, Rows, $"{rows.Count} rows", set, unset);
+        return new Observation(group, method.Name, Rows, $"{rows.Count} rows", set, unset, rows.Count);
     }
 
     /// <summary>Calls the method and materialises whatever it answers into a flat list of rows.</summary>
@@ -308,6 +312,9 @@ internal static class Probe
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,
                 "name" => LiveApi.AcquirerNameQuery,
+                "company" => LiveApi.CompanyNameQuery,
+                "formType" => LiveApi.FormType,
+                "sicCode" => LiveApi.SicCode,
                 _ => LiveApi.Symbol,
             };
 
@@ -319,7 +326,15 @@ internal static class Probe
         // and the sweep is measuring shape rather than depth.
         if (type == typeof(ChartInterval)) return ChartInterval.OneHour;
 
-        if (type == typeof(LocalDate)) return LiveApi.SettledWeekday;
+        // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
+        // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
+        // sparse. See LiveApi.RangeStart for the measurement that forced this.
+        if (type == typeof(LocalDate))
+            return parameter.Name switch
+            {
+                "from" => LiveApi.RangeStart,
+                _ => LiveApi.SettledWeekday,
+            };
         if (type == typeof(FiscalPeriod)) return FiscalPeriod.Annual;
         // Q1 rather than Annual: the bulk statement family is published per fiscal quarter, and the annual file
         // for SettledYear is not complete until every issuer has filed. A quarter a year old is settled.

@@ -83,6 +83,22 @@ internal static class LiveApi
         _ => Today.PlusDays(-7),
     };
 
+    /// <summary>The start of the range every date-ranged probe asks for — ninety days before
+    /// <see cref="SettledWeekday"/>.
+    ///
+    /// <para><b>Named rather than falling out of the <c>LocalDate</c> type case, because that case is silently
+    /// wrong for anything sparse.</b> <c>Probe.Argument</c> dispatched <c>LocalDate</c> on type alone, so
+    /// <c>from</c> and <c>to</c> both became <see cref="SettledWeekday"/> — a range of one day. Measured
+    /// 2026-08-28, <c>sec-filings-search/symbol?symbol=AAPL</c> over a single settled weekday answered
+    /// <b>0 rows</b>; the same call over ninety days answered <b>7</b>. An endpoint that answers zero records
+    /// <c>outcome empty</c> with no properties, and matches that baseline every week thereafter — the silent
+    /// green this suite exists to prevent.</para>
+    ///
+    /// <para>Ninety days rather than a year: it is enough for one issuer's Form 4s and 8-Ks to appear, and short
+    /// enough that the whole-market probes it also widens — the earnings and economic calendars — stay a
+    /// download rather than an outage.</para></summary>
+    public static LocalDate RangeStart => SettledWeekday.PlusDays(-90);
+
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 
@@ -150,4 +166,33 @@ internal static class LiveApi
     /// which all nine fields are populated at least once — everything the baseline records — while <c>Bank</c>
     /// answers 233 rows and an 84 KB response for the same information.</para></summary>
     public const string AcquirerNameQuery = "Apple";
+
+    /// <summary>The name the SEC company search is probed with.
+    ///
+    /// <para>Named rather than falling out of the default string case, for the reason recorded on
+    /// <see cref="Exchange"/>: <c>sec-filings-company-search/name</c> matches company names, so
+    /// <c>company=AAPL</c> would answer an empty array with HTTP 200 and record <c>rows 0</c> as the baseline.
+    /// <c>"Apple"</c> answered 52 rows on 2026-08-28. Separate from <see cref="AcquirerNameQuery"/> although
+    /// both spell the same word — they are probing different endpoints, and a future change to one must not
+    /// silently move the other.</para></summary>
+    public const string CompanyNameQuery = "Apple";
+
+    /// <summary>The EDGAR form type the form-type filing search is probed with.
+    ///
+    /// <para><c>"10-K"</c> because it is filed by every domestic issuer, so any window of ninety days contains
+    /// some — measured 2026-08-28, a recent ninety-day window filled the default page of 100 rows. An
+    /// unrecognised form type answers an empty array with HTTP 200 rather than an error.</para></summary>
+    public const string FormType = "10-K";
+
+    /// <summary>The SIC code the classification search is probed with — <c>"3571"</c>, "ELECTRONIC COMPUTERS".
+    ///
+    /// <para>Chosen to agree with <see cref="Symbol"/> and <see cref="Cik"/>: <c>industry-classification-search</c>
+    /// takes all three and narrows on them, and measured 2026-08-28,
+    /// <c>symbol=AAPL&amp;cik=320193&amp;sicCode=3571</c> answered one row. A SIC code that contradicted the
+    /// other two would answer nothing and record an empty baseline.</para>
+    ///
+    /// <para>Four characters, which is how the classification paths spell it —
+    /// <c>standard-industrial-classification-list</c> strips the leading zero on codes below 1000 and this one
+    /// has none, so the two agree here.</para></summary>
+    public const string SicCode = "3571";
 }

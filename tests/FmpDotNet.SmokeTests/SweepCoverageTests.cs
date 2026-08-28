@@ -88,4 +88,42 @@ public class SweepCoverageTests
 
         Assert.Equal("Apple", Probe.Argument(name));
     }
+
+    [Fact]
+    public void The_sweep_asks_the_filing_searches_for_a_range_wider_than_one_day()
+    {
+        // Probe.Argument dispatches LocalDate on TYPE alone, so `from` and `to` both became SettledWeekday and
+        // the three sec-filings-search paths were probed over a single day. Measured 2026-08-28:
+        // sec-filings-search/symbol?symbol=AAPL over 2026-08-21..2026-08-21 answered 0 rows, while the same call
+        // over 2026-05-30..2026-08-28 answered 7. A zero-row answer records `outcome empty` with no properties,
+        // and every run after it agrees — the endpoint would be probed weekly and never checked.
+        var search = typeof(Endpoints.SecFilingsEndpoints)
+            .GetMethod(nameof(Endpoints.SecFilingsEndpoints.SearchBySymbolAsync))!;
+        var from = (NodaTime.LocalDate)Probe.Argument(search.GetParameters()[1]);
+        var to = (NodaTime.LocalDate)Probe.Argument(search.GetParameters()[2]);
+
+        Assert.True(NodaTime.Period.DaysBetween(from, to) >= 60,
+            $"The sweep would probe the filing searches over {NodaTime.Period.DaysBetween(from, to)} day(s). "
+            + "A short window answers zero rows and records an empty baseline that agrees with itself forever.");
+    }
+
+    [Fact]
+    public void The_sweep_asks_each_new_search_for_a_value_of_its_own_kind()
+    {
+        // The string arm of Probe.Argument ends in `_ => LiveApi.Symbol`, so an unrecognised parameter name is
+        // NOT an error — it silently becomes "AAPL". company=AAPL, formType=AAPL and sicCode=AAPL each answer
+        // HTTP 200 with an empty array rather than an error, so the other coverage test in this file cannot see
+        // the problem: the argument IS synthesisable, it is just meaningless. Same failure LiveApi.Exchange and
+        // LiveApi.AcquirerNameQuery were written for.
+        var filings = typeof(Endpoints.SecFilingsEndpoints);
+
+        Assert.Equal("Apple", Probe.Argument(
+            filings.GetMethod(nameof(Endpoints.SecFilingsEndpoints.FindCompanyByNameAsync))!.GetParameters()[0]));
+        Assert.Equal("10-K", Probe.Argument(
+            filings.GetMethod(nameof(Endpoints.SecFilingsEndpoints.SearchByFormTypeAsync))!.GetParameters()[0]));
+        Assert.Equal("3571", Probe.Argument(
+            typeof(Endpoints.SearchEndpoints)
+                .GetMethod(nameof(Endpoints.SearchEndpoints.FindIndustryClassificationAsync))!
+                .GetParameters()[2]));
+    }
 }

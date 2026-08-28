@@ -35,4 +35,26 @@ public sealed class OrdinaryEndpointShapeTests(OrdinarySweepFixture sweep) : ICl
         if (ShapeAssertions.Updated(live, Baseline.Path(File), Heading)) return;
         ShapeAssertions.BaselineDescribesTheApi(live, Baseline.Path(File));
     }
+
+    [LiveFact]
+    public async Task The_classification_universe_still_comes_back_whole()
+    {
+        // The tripwire for FMP fixing the all-industry-classification pagination anomaly.
+        // GetAllIndustryClassificationsAsync sends page=1 because that is the ONLY route to rows 1,001 onward:
+        // page 0 caps at 1,000 however large a limit is sent, and the dataset is 25,952 rows. If FMP ever makes
+        // page=1 mean "the second page", this method starts answering a handful of rows — with the same shape,
+        // the same fields populated, and nothing at all for the two baseline comparisons to notice. The row
+        // count is the only thing that can catch it.
+        //
+        // No extra request: this reads the count off the sweep the fixture has already run.
+        var live = await sweep.ObservationsAsync();
+        var observed = live.Single(o => o.Name == "Directory.GetAllIndustryClassificationsAsync");
+
+        Assert.Equal(Probe.Rows, observed.Outcome);
+        Assert.True(observed.Rows > Endpoints.DirectoryEndpoints.MaxIndustryClassificationPageSize,
+            $"stable/all-industry-classification?page=1 answered {observed.Rows} rows. It answered 25,952 on "
+            + "2026-08-28, and page 0 caps at 1,000 — so anything at or below the cap means the anomaly this "
+            + "method depends on has been fixed and callers are now silently reading a fraction of the data. "
+            + "See DirectoryEndpoints.GetAllIndustryClassificationsAsync.");
+    }
 }
