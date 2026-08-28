@@ -99,6 +99,25 @@ internal static class LiveApi
     /// download rather than an outage.</para></summary>
     public static LocalDate RangeStart => SettledWeekday.PlusDays(-90);
 
+    /// <summary>The start of the week-long window the five new date-ranged Calendar probes ask for.
+    ///
+    /// <para><b>Named rather than reusing <see cref="SettledWeekday"/> for both ends, because a one-day window
+    /// is one quiet week away from an empty baseline on the sparsest of them.</b> Measured 2026-08-28 with
+    /// <c>to=2026-08-21</c>: over a single day, <c>ipos-prospectus</c> answered <b>1 row</b>,
+    /// <c>ipos-calendar</c> 5 and <c>splits-calendar</c> 12. An endpoint that answers zero records
+    /// <c>outcome empty</c> with no properties and matches that baseline every week thereafter — the silent
+    /// green this suite exists to prevent, and the same failure <see cref="Exchange"/> and <see cref="Cik"/>
+    /// were named for.</para>
+    ///
+    /// <para>Over seven days the same five answered 1652, 40, 34, 764 and 8. Seven and not fourteen because of
+    /// the other direction: <c>dividends-calendar</c> caps at 4000 rows and answered 3249 over a fortnight —
+    /// 81% of the cap — against 1652 over a week. A baseline recorded from a truncated response would normalise
+    /// truncation as that endpoint's healthy state.</para>
+    ///
+    /// <para>Not used for <c>GetEarningsCalendarAsync</c> or for the economic calendar; both measured a 7-day
+    /// window as unsafe on their own endpoints and keep <see cref="SettledWeekday"/>.</para></summary>
+    public static LocalDate CalendarWeekStart => SettledWeekday.PlusDays(-6);
+
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 

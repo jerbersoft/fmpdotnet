@@ -159,4 +159,59 @@ public class SweepCoverageTests
                 .GetMethod(nameof(Endpoints.SearchEndpoints.FindIndustryClassificationAsync))!
                 .GetParameters()[2]));
     }
+
+    [Fact]
+    public void The_sweep_gives_the_five_new_calendars_a_week_and_the_earnings_calendar_a_day()
+    {
+        // Probe.Argument dispatches `from` on the declaring type, and every date-ranged CalendarEndpoints method
+        // used to get LiveApi.SettledWeekday for both ends -- a one-day window. Measured 2026-08-28 with
+        // to=2026-08-21, one day answers: dividends 331, splits 12, ipos-calendar 5, ipos-disclosure 116, and
+        // ipos-prospectus ONE. A single quiet week takes that last one to zero, which records `outcome empty`
+        // as its baseline and then agrees with itself for ever.
+        //
+        // Seven days answers 1652 / 40 / 34 / 764 / 8 -- all comfortably non-zero, and the dividend calendar at
+        // 41% of its 4000-row cap rather than the 81% a fortnight would give it.
+        //
+        // GetEarningsCalendarAsync is the deliberate exception and stays at one day: its own doc measures a
+        // 7-day peak-season window at 3676 rows, 92% of the same cap. Narrowing it was the previous slice's
+        // fix and widening it here would undo that.
+        var calendar = typeof(Endpoints.CalendarEndpoints);
+        var weekly = new[]
+        {
+            nameof(Endpoints.CalendarEndpoints.GetDividendsCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetSplitsCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoDisclosuresAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoProspectusesAsync),
+        };
+
+        foreach (var name in weekly)
+        {
+            var method = calendar.GetMethod(name)!;
+            var from = (NodaTime.LocalDate)Probe.Argument(method.GetParameters()[0]);
+            var to = (NodaTime.LocalDate)Probe.Argument(method.GetParameters()[1]);
+
+            Assert.Equal(6, NodaTime.Period.DaysBetween(from, to));
+        }
+
+        var earnings = calendar.GetMethod(nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync))!;
+        Assert.Equal(
+            LiveApi.SettledWeekday,
+            (NodaTime.LocalDate)Probe.Argument(earnings.GetParameters()[0]));
+    }
+
+    [Fact]
+    public void The_sweep_never_widens_a_window_that_was_narrowed_because_it_truncates()
+    {
+        // The regression guard for the two endpoints whose own documentation measures a wide window as unsafe.
+        // A future change that collapsed the `from` arm back to one rule per declaring type would widen both of
+        // these, and nothing else in the suite would notice until the next scheduled live run.
+        var earnings = typeof(Endpoints.CalendarEndpoints)
+            .GetMethod(nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync))!.GetParameters()[0];
+        var economic = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync))!.GetParameters()[0];
+
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(earnings));
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(economic));
+    }
 }
