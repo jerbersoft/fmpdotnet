@@ -1552,8 +1552,19 @@ Expected: PASS. Two converter facts and three binding facts.
 - [ ] **Step 8: Mutation-check both converters**
 
 Swap `NullableEasternInstantJsonConverter` for `NullableFmpInstantJsonConverter` on `AcceptedDate` and re-run.
-Expected: `The_accepted_date_is_read_as_eastern_wall_clock_not_as_utc` and
-`Filing_date_cannot_be_derived_from_accepted_date` both fail. This is the single most valuable mutation in the slice: the two converters read the same wire format, differ by one identifier, and the wrong one produces plausible values. Restore.
+Expected: **exactly one test fails — `The_accepted_date_is_read_as_eastern_wall_clock_not_as_utc`.** This is the
+single most valuable mutation in the slice: the two converters read the same wire format, differ by one
+identifier, and the wrong one produces plausible values. Restore.
+
+`Filing_date_cannot_be_derived_from_accepted_date` does **not** fail under this mutation, and that is correct
+rather than a gap. Its acceptance assertion reads the instant back out through
+`InZone(DateTimeZoneProviders.Tzdb["America/New_York"]).Date`, so it round-trips through the same zone it
+came in by. Work it through on the fixture's own rows: `2024-03-01 22:47:48` read as Eastern is
+`2024-03-02T03:47:48Z`, which is 2024-03-01 in New York; read as UTC it is `2024-03-01T22:47:48Z`, which is
+17:47 EST — still 2024-03-01 in New York. Every captured row is a 22:xx acceptance, and a five-hour shift
+does not cross midnight from there. That test exists to pin the `filingDate` overshoot, not the zone, and
+it should not be rewritten to catch a zone bug: the test above already owns that job, and giving one test
+two jobs makes a future failure ambiguous about which trap fired.
 
 Then swap `NullableDateAtMidnightJsonConverter` for `NullableLocalDateJsonConverter` on `FilingDate`. This compiles — both converters are `JsonConverter<LocalDate?>` and the property is `LocalDate?`, which is exactly why the mistake is worth a test rather than a code review.
 Expected: `A_filing_date_loses_its_dummy_midnight` and `Filing_date_cannot_be_derived_from_accepted_date` fail with every `FilingDate` null, because `LocalDatePattern.Iso` rejects the trailing time and the converter answers null rather than throwing. Restore.
