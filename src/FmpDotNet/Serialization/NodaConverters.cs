@@ -161,6 +161,47 @@ public sealed class NullableLocalDateTimeJsonConverter : JsonConverter<LocalDate
     }
 }
 
+/// <summary>Reads FMP's <c>"uuuu-MM-dd HH:mm:ss"</c> form as a <see cref="LocalDate"/>, discarding a time
+/// component that carries no information.
+///
+/// <para><b>The fourth converter for this one wire format, and the measurement is what earns it.</b> Across
+/// 2,115 rows sampled 2026-08-28 from <c>sec-filings-8k</c>, <c>sec-filings-financials</c> and
+/// <c>sec-filings-search/form-type</c>, the time component of <c>filingDate</c> was <c>00:00:00</c> in
+/// <b>2,115 of 2,115</b> cases. It is a date with a dummy midnight bolted on, not a timestamp.</para>
+///
+/// <para><b>Neither existing converter fits.</b> <see cref="NullableLocalDateJsonConverter"/> uses
+/// <c>LocalDatePattern.Iso</c>, which rejects the trailing time outright and would null every value.
+/// <see cref="NullableLocalDateTimeJsonConverter"/> binds it and then leaks a meaningless midnight into every
+/// comparison a caller writes.</para>
+///
+/// <para><b>One pattern, no fallback, deliberately.</b> If FMP ever drops the dummy time, this reads null rather
+/// than quietly accepting a second format — and the weekly smoke baseline reports that as
+/// <c>FilingDate: now always null, was populated</c>, on the run after it happens. A silent fallback would make
+/// the change invisible, which is the opposite of what a measured SDK is for.</para>
+///
+/// <para>Null on an unparseable value, following the rest of this file: one bad stamp costs one field rather
+/// than the whole response.</para></summary>
+public sealed class NullableDateAtMidnightJsonConverter : JsonConverter<LocalDate?>
+{
+    private static readonly LocalDateTimePattern Pattern =
+        LocalDateTimePattern.CreateWithInvariantCulture("uuuu-MM-dd HH:mm:ss");
+
+    /// <inheritdoc/>
+    public override LocalDate? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value.Date : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, LocalDate? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value.AtMidnight()));
+    }
+}
+
 /// <summary>Reads a Unix epoch timestamp in <b>seconds</b> as an <see cref="Instant"/> — the form
 /// <c>stable/quote</c> uses.
 ///

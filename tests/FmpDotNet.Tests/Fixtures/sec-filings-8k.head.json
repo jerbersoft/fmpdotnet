@@ -1,0 +1,52 @@
+[
+  {
+    "symbol": "SUNE",
+    "cik": "0000022701",
+    "filingDate": "2024-03-04 00:00:00",
+    "acceptedDate": "2024-03-01 22:47:48",
+    "formType": "8-K",
+    "hasFinancials": null,
+    "link": "https://www.sec.gov/Archives/edgar/data/22701/000089710124000091/0000897101-24-000091-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/22701/000089710124000091/pegy240248_8k.htm"
+  },
+  {
+    "symbol": "CGBDL",
+    "cik": "0001544206",
+    "filingDate": "2024-03-04 00:00:00",
+    "acceptedDate": "2024-03-01 22:45:43",
+    "formType": "8-K",
+    "hasFinancials": null,
+    "link": "https://www.sec.gov/Archives/edgar/data/1544206/000154420624000016/0001544206-24-000016-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1544206/000154420624000016/csl-20240301.htm"
+  },
+  {
+    "symbol": "SLE",
+    "cik": "0001621672",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 22:27:32",
+    "formType": "8-K",
+    "hasFinancials": null,
+    "link": "https://www.sec.gov/Archives/edgar/data/1621672/000143774924006324/0001437749-24-006324-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1621672/000143774924006324/slgg20240301_8k.htm"
+  },
+  {
+    "symbol": "SBCWW",
+    "cik": "0001930313",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 22:22:15",
+    "formType": "8-K",
+    "hasFinancials": null,
+    "link": "https://www.sec.gov/Archives/edgar/data/1930313/000149315224008595/0001493152-24-008595-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1930313/000149315224008595/form8-k.htm"
+  },
+  {
+    "symbol": "SBC",
+    "cik": "0001930313",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 22:22:15",
+    "formType": "8-K",
+    "hasFinancials": null,
+    "link": "https://www.sec.gov/Archives/edgar/data/1930313/000149315224008595/0001493152-24-008595-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1930313/000149315224008595/form8-k.htm"
+  }
+]
