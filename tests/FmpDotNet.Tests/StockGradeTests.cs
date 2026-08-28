@@ -103,9 +103,11 @@ public class StockGradeTests
         Assert.Equal(9, consensus.Sell);
         Assert.Equal(0, consensus.StrongSell);
         Assert.Equal("Buy", consensus.Consensus);
-        // StrongSell is a real zero, not an absent field -- so it shows as unbound and must not be read as
-        // "FMP does not know".
-        Assert.Equal(["StrongSell"], Binding.Unbound(consensus));
+        // Every field bound, including strongSell. A real zero is not an absent field: Binding.Unbound flags
+        // null, blank and empty collections, and correctly leaves a numeric 0 alone. Paired with the assertion
+        // above that StrongSell is 0, this says the zero arrived and was read as a zero rather than as "FMP
+        // does not know".
+        Assert.Empty(Binding.Unbound(consensus));
     }
 
     [Fact]
