@@ -85,9 +85,22 @@ Seven. Each is a ruling made against the spec text, with the evidence that force
 
 **7. The sweep's date range is widened from one day to ninety, because a one-day range makes three of the twelve endpoints record nothing.** `Probe.Argument` dispatches `LocalDate` on type alone, so `from` and `to` both become `LiveApi.SettledWeekday` — a range of one day. Measured 2026-08-28: `sec-filings-search/symbol?symbol=AAPL&from=2026-08-21&to=2026-08-21` returns **0 rows**, while the same call over 2026-05-30..2026-08-28 returns **7**. A zero-row answer records `outcome empty` with no properties, and every later run agrees with it — the exact silent-green failure `LiveApi.Exchange` and `LiveApi.Cik` were written to prevent, arriving through the date synthesiser instead. Task 10 gives `from` its own arm. This also widens the window for five already-shipped endpoints (`Chart.GetDailyAsync` ×4, `Chart.GetIntradayAsync`, `Company.GetHistoricalMarketCapAsync`, `Calendar.GetEarningsCalendarAsync`, `Economics.GetCalendarAsync`), all of which record `outcome rows` today and will continue to; the baseline is re-recorded in Task 11 regardless.
 
-## A finding this plan does NOT act on
+## A finding this plan got wrong, and what replaced it
 
-`CalendarEndpoints.GetEarningsCalendarAsync(LocalDate from, LocalDate to, …)` has **no backwards-range guard**, while the three other date-ranged endpoint groups all do. After Task 4 the fix is one line. It is not taken here: it changes the behaviour of a shipped public method from "returns whatever FMP answers" to "throws", which is a scope decision for the maintainer rather than a rider on a coverage slice. Recorded here so it is not rediscovered.
+This section originally read: "`CalendarEndpoints.GetEarningsCalendarAsync` has **no backwards-range guard**, while the three other date-ranged endpoint groups all do… It is not taken here: it changes the behaviour of a shipped public method from 'returns whatever FMP answers' to 'throws', which is a scope decision for the maintainer."
+
+**That was false, and Task 4's implementer caught it.** `CalendarEndpoints.cs:139` carries a guard — a *fourth* copy, and the only one worded differently:
+
+| | condition | `ParamName` | message |
+|---|---|---|---|
+| Chart, Company, Economics | `to < from` | `nameof(to)` | `'to' must not be earlier than 'from' ({start:uuuu-MM-dd}).` |
+| **Calendar** | `to < from` | `nameof(to)` | `The range end must not precede its start; 'from' was {from:uuuu-MM-dd}.` |
+
+So the codebase held **four** copies of one rule, one of which had already drifted in wording — which is a sharper argument for promoting the guard than the three-copy count the spec reasoned from, not a weaker one.
+
+The recorded objection is void: the method already throws, so redirecting it changes no caller from "gets rows" to "gets an exception". What remains is a message string, on a method whose exception type, parameter name and trigger condition are all unchanged, and which no test pins — grepped across the whole test tree; `CalendarEndpointsTests.cs:495` asserts the exception type only. Leaving one stray copy beside a freshly-promoted shared helper is worse than the state before it, because the stray then looks deliberate.
+
+**Ruling: Task 4 redirects `CalendarEndpoints.GetEarningsCalendarAsync` too, and `DateRange`'s own documentation says four rather than three.** Cost if wrong: a caller who string-matches that one exception message breaks — which no message contract supports, and this SDK has not been published, so no such caller exists.
 
 ---
 
