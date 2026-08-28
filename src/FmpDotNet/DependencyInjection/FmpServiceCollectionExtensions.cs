@@ -126,6 +126,7 @@ public static class FmpServiceCollectionExtensions
         services.TryAddTransient<AnalystEndpoints>();
         services.TryAddTransient<EconomicsEndpoints>();
         services.TryAddTransient<SearchEndpoints>();
+        services.TryAddTransient<SecFilingsEndpoints>();
         services.TryAddTransient<QuoteEndpoints>();
         services.TryAddTransient<ChartEndpoints>();
         services.TryAddTransient<BulkEndpoints>();

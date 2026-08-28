@@ -9,7 +9,8 @@ namespace FmpDotNet;
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
-    SearchEndpoints search, QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
+    SearchEndpoints search, SecFilingsEndpoints secFilings, QuoteEndpoints quote, ChartEndpoints chart,
+    BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -41,6 +42,14 @@ public sealed class FmpClient(
     /// <para>The complement to <see cref="Directory"/>: that answers "everything FMP knows" as a multi-megabyte
     /// download, this answers a question about the universe and returns only the matches.</para></summary>
     public SearchEndpoints Search { get; } = search;
+
+    /// <summary>What companies have filed with the SEC, and who the filers are — EDGAR registrant profiles,
+    /// the 8-K and financial-statement filing feeds, and filing search by symbol, CIK or form type.
+    ///
+    /// <para>Three of the twelve paths FMP documents under this heading are reference lists rather than
+    /// filings, and are on <see cref="Directory"/> and <see cref="Search"/> instead. See
+    /// <see cref="SecFilingsEndpoints"/>.</para></summary>
+    public SecFilingsEndpoints SecFilings { get; } = secFilings;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.
