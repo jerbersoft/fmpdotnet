@@ -113,4 +113,82 @@ public sealed class AnalystEndpoints(FmpTransport transport)
             .With("limit", limit)
             .With("page", page);
     }
+
+    /// <summary>Every analyst rating action on one symbol, newest first, from <c>stable/grades</c>.
+    ///
+    /// <para><b>This returns the whole series and there is no way to ask for less.</b> Measured 2026-08-28,
+    /// <c>symbol=AAPL</c> answered <b>1,791 rows</b>; so did <c>limit=5</c>, <c>limit=10000</c> and
+    /// <c>page=1</c> — the last with a byte-identical first row. The count varies by symbol (MSFT 967, BRK-B
+    /// 93), so it is the whole set each time rather than a cap. Neither <c>limit</c> nor <c>page</c> is offered
+    /// here, because offering a parameter FMP discards would let a caller believe they had narrowed something.
+    /// Take from the head of the returned list instead.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored too</b>, measured the same day: 1,791 rows with and
+    /// without <c>from=2024-01-01&amp;to=2024-12-31</c>. Filter on <see cref="StockGrade.Date"/> at the call
+    /// site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<StockGrade>> GetGradesAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/grades").With("symbol", symbol),
+            FmpJsonContext.Default.ListStockGrade, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>The current spread of analyst opinion on one symbol, from <c>stable/grades-consensus</c>.
+    /// Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para><b>This is not the newest row of <see cref="GetGradeHistoryAsync"/>.</b> Measured for AAPL the same
+    /// minute on 2026-08-28, this endpoint's counts total 112 analysts and the newest historical row totals 47,
+    /// with differently shaped distributions. See <see cref="GradeConsensus"/> for the numbers. They are
+    /// different populations, and joining or reconciling them is not something this SDK does for you.</para>
+    ///
+    /// <para>FMP sends one row in an array; this unwraps it, as
+    /// <see cref="CompanyEndpoints.GetProfileAsync"/> does. An unknown-but-well-formed symbol answers an empty
+    /// array with HTTP 200 rather than a 404, which surfaces here as <see langword="null"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<GradeConsensus?> GetGradeConsensusAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/grades-consensus").With("symbol", symbol),
+            FmpJsonContext.Default.ListGradeConsensus, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Monthly snapshots of analyst ratings for one symbol, newest first, from
+    /// <c>stable/grades-historical</c>.
+    ///
+    /// <para><b><paramref name="limit"/> is omitted by default, and without it you get everything</b> — 92 rows
+    /// for AAPL measured 2026-08-28, unchanged by <c>limit=10000</c>, back to 2018. Rows are dated the first of
+    /// each month.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored</b>, measured the same day: 92 rows with and without a
+    /// 2024 range. Filter on <see cref="GradeHistory.Date"/> at the call site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Newest N months, or null for the whole history. Must be positive when
+    /// given.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<GradeHistory>> GetGradeHistoryAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/grades-historical").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListGradeHistory, ct).ConfigureAwait(false);
+    }
 }

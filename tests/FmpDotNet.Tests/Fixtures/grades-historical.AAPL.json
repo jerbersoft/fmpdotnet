@@ -1,0 +1,7 @@
+[
+ {"symbol": "AAPL", "date": "2026-08-01", "analystRatingsStrongBuy": 6, "analystRatingsBuy": 22, "analystRatingsHold": 14, "analystRatingsSell": 3, "analystRatingsStrongSell": 2},
+ {"symbol": "AAPL", "date": "2026-07-01", "analystRatingsStrongBuy": 6, "analystRatingsBuy": 23, "analystRatingsHold": 17, "analystRatingsSell": 2, "analystRatingsStrongSell": 2},
+ {"symbol": "AAPL", "date": "2026-06-01", "analystRatingsStrongBuy": 7, "analystRatingsBuy": 23, "analystRatingsHold": 16, "analystRatingsSell": 2, "analystRatingsStrongSell": 2},
+ {"symbol": "AAPL", "date": "2026-05-01", "analystRatingsStrongBuy": 7, "analystRatingsBuy": 25, "analystRatingsHold": 16, "analystRatingsSell": 1, "analystRatingsStrongSell": 2},
+ {"symbol": "AAPL", "date": "2026-04-01", "analystRatingsStrongBuy": 7, "analystRatingsBuy": 25, "analystRatingsHold": 15, "analystRatingsSell": 1, "analystRatingsStrongSell": 1}
+]
