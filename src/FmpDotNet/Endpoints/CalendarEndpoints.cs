@@ -161,4 +161,94 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
         return new EarningsCalendarResult(kept, rows.Count, from, to, earliest);
     }
+
+    /// <summary>Every dividend FMP holds for one symbol, newest first, from <c>stable/dividends</c>.
+    ///
+    /// <para><b><paramref name="limit"/> is omitted by default, and without it you get everything.</b> Measured
+    /// 2026-08-28, AAPL answers <b>92 rows</b> with no limit and the same 92 with <c>limit=10000</c> — the whole
+    /// history, back to 1987. A default of 100 would have quietly cut a longer one.</para>
+    ///
+    /// <para><b>There is no date range on this method, because the endpoint ignores one.</b> Measured the same
+    /// day: <c>symbol=AAPL</c> answers 92 rows, and <c>symbol=AAPL&amp;from=2024-01-01&amp;to=2024-12-31</c>
+    /// answers the same 92. Offering the parameters would let a caller believe a filter happened. Use
+    /// <see cref="GetDividendsCalendarAsync"/> for a date range, or filter
+    /// <see cref="Dividend.Date"/> at the call site.</para>
+    ///
+    /// <para>An unknown symbol answers <c>[]</c> with HTTP 200 rather than a 404, which the transport surfaces
+    /// as an empty list — never null.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it — hyphenated for class shares (<c>BRK-B</c>, not
+    /// <c>BRK.B</c>).</param>
+    /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<Dividend>> GetDividendsAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/dividends").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListDividend, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Every dividend event FMP has in a date range, across all symbols, from
+    /// <c>stable/dividends-calendar</c>.
+    ///
+    /// <para><b>The response is silently capped at 4000 rows, and the truncation eats the front of the
+    /// range.</b> Measured 2026-08-28: <c>from=2025-01-01&amp;to=2025-12-31</c> answered <b>exactly 4000</b>
+    /// rows whose earliest date was <b>2025-12-29</b> — a request for a year, answered with its last three days,
+    /// and a caller reading <c>rows[0]</c> is handed December believing they hold January. One month behaves the
+    /// same way: June 2025 answered 4000 rows starting 2025-06-26. <c>limit=10000</c> was accepted and ignored.
+    /// There is no cursor, so the SDK cannot page around it and can only report it — which is what
+    /// <see cref="CalendarResult{T}"/> is for, and the returned list is one.</para>
+    ///
+    /// <para><b>A safe width cannot be read off the calendar.</b> Density measured 340 rows on 2025-11-20, 673
+    /// on 2025-03-14 and 876 on 2025-06-02, so the cap falls somewhere between five and eleven days depending on
+    /// the season. A six-day window returned 2147 rows and was complete; a thirty-day window was not. That
+    /// season-dependence is exactly why this method reports rather than guesses a chunk size.</para>
+    ///
+    /// <code>
+    /// var rows = await fmp.Calendar.GetDividendsCalendarAsync(from, to);
+    /// if (rows is CalendarResult&lt;Dividend&gt; { LikelyTruncated: true }) { /* narrow the range and retry */ }
+    /// </code>
+    ///
+    /// <para>Rows whose <c>date</c> cannot be parsed are dropped, for the reason recorded on this class: on a
+    /// calendar the date is half the row's identity. <see cref="CalendarResult{T}.RowsReturned"/> against
+    /// <see cref="CalendarResult{T}.Count"/> says how many, and the truncation tells are computed on the raw
+    /// response before any of that happens.</para></summary>
+    /// <param name="from">First day of the range, inclusive.</param>
+    /// <param name="to">Last day of the range, inclusive. May equal <paramref name="from"/>.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A <see cref="CalendarResult{T}"/> of <see cref="Dividend"/> — the rows in wire order, which is
+    /// <b>not</b> sorted, carrying the row count FMP actually returned so the caller can tell a complete answer
+    /// from a truncated one.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<Dividend>> GetDividendsCalendarAsync(
+        LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        DateRange.ThrowIfBackwards(from, to);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/dividends-calendar").With("from", from).With("to", to),
+            FmpJsonContext.Default.ListDividend, ct).ConfigureAwait(false);
+
+        // Taken from the raw response, before the filter below can move it.
+        LocalDate? earliest = null;
+        foreach (var row in rows)
+            if (row?.Date is { } date && (earliest is null || date < earliest)) earliest = date;
+
+        var kept = new List<Dividend>(rows.Count);
+        foreach (var row in rows)
+            if (row is { Date: not null }) kept.Add(row);
+
+        // rowCap 4000, lookbackLimitDays null: the cap always fires first at 340-876 rows a day, so no window
+        // limit is observable on this path and asserting one would be inventing evidence.
+        return new CalendarResult<Dividend>(kept, rows.Count, from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
+    }
 }
