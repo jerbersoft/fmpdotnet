@@ -1,0 +1,27 @@
+[
+  {
+    "office": "Office of Life Sciences",
+    "sicCode": "100",
+    "industryTitle": "AGRICULTURAL PRODUCTION-CROPS"
+  },
+  {
+    "office": "Office of Life Sciences",
+    "sicCode": "200",
+    "industryTitle": "AGRICULTURAL PROD-LIVESTOCK & ANIMAL SPECIALTIES"
+  },
+  {
+    "office": "Office of Life Sciences",
+    "sicCode": "700",
+    "industryTitle": "AGRICULTURAL SERVICES"
+  },
+  {
+    "office": "Office of Life Sciences",
+    "sicCode": "800",
+    "industryTitle": "FORESTRY"
+  },
+  {
+    "office": "Office of Life Sciences",
+    "sicCode": "900",
+    "industryTitle": "FISHING, HUNTING AND TRAPPING"
+  }
+]

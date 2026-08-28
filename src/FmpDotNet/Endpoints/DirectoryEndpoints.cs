@@ -420,6 +420,94 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         }
     }
 
+    /// <summary>The largest page <c>stable/all-industry-classification</c> will serve, measured rather than
+    /// documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, for the same reason as
+    /// <see cref="CompanyEndpoints.MaxDelistedPageSize"/>: measured 2026-08-28, <c>limit=1000</c>,
+    /// <c>limit=5000</c>, <c>limit=26000</c> and <c>limit=30000</c> all answered exactly 1,000 rows with HTTP 200
+    /// and nothing in the body to say the request had been trimmed.
+    /// <see cref="GetIndustryClassificationsAsync(int, CancellationToken)"/> therefore rejects a larger
+    /// <c>limit</c> rather than passing it on to be clamped — a caller who asks for 5,000 and gets 1,000 has no
+    /// way to tell which happened.</para></summary>
+    public const int MaxIndustryClassificationPageSize = 1000;
+
+    /// <summary>One capped page of <c>stable/all-industry-classification</c> — every SEC registrant FMP knows,
+    /// with its SIC code and business address.
+    ///
+    /// <para><b>There is no <c>page</c> parameter, and that is not an oversight.</b> Measured 2026-08-28: page 0
+    /// honours <c>limit</c> and caps at 1,000 rows, while <b>every non-zero page answers the entire 25,952-row
+    /// universe</b> — byte-identical across page numbers, ignoring <c>limit</c> entirely. There is no page index
+    /// that advances through the data, so exposing one would be exposing a control that does not control
+    /// anything. The two behaviours FMP actually has are modelled as two methods: this one, and
+    /// <see cref="GetAllIndustryClassificationsAsync(CancellationToken)"/>.</para>
+    ///
+    /// <para>This method reaches the first 1,000 rows and no further. If you need the rest, you need the other
+    /// one — there is no walk that gets there from here.</para></summary>
+    /// <param name="limit">Rows to ask for, 1 to <see cref="MaxIndustryClassificationPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Up to <paramref name="limit"/> rows in FMP's order. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is outside 1 to
+    /// <see cref="MaxIndustryClassificationPageSize"/> — see that constant for why the upper bound is enforced
+    /// here rather than silently clamped upstream.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> GetIndustryClassificationsAsync(
+        int limit = 100, CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxIndustryClassificationPageSize);
+        return transport.GetListAsync(
+            new FmpRequest("stable/all-industry-classification").With("page", 0).With("limit", limit),
+            FmpJsonContext.Default.ListIndustryClassification, ct);
+    }
+
+    /// <summary>Every row of <c>stable/all-industry-classification</c> in one response — 25,952 registrants,
+    /// about 7.3 MB, measured 2026-08-28.
+    ///
+    /// <para><b>This method depends on a bug, deliberately, and this paragraph is the whole justification.</b>
+    /// The endpoint's <c>page</c> parameter does not paginate: page 0 caps at 1,000 rows however large a
+    /// <c>limit</c> is sent, and any non-zero page returns the complete dataset ignoring <c>limit</c>.
+    /// <c>page=1</c>, <c>page=2</c>, <c>page=1&amp;limit=10</c> and <c>page=1</c> with no limit each answered the
+    /// same 25,952 rows and the same 7,288,535 bytes. Since the data is 25,952 rows and the only paged route
+    /// stops at 1,000, the anomaly is the <b>only</b> way to reach rows 1,001 onward. The choice is between
+    /// depending on it and leaving 96% of the dataset unreachable.</para>
+    ///
+    /// <para><b>If FMP fixes it, this method silently returns 5 rows instead of 25,952</b> — the row shape would
+    /// not change, so nothing about the response would look wrong. The smoke suite carries a row-count assertion
+    /// for exactly that, because it is the only thing that can catch it.</para>
+    ///
+    /// <para>One request, but a large one. <see cref="GetIndustryClassificationsAsync(int, CancellationToken)"/>
+    /// is there for a caller who only wants a taste of the shape.</para></summary>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every classified registrant FMP knows, in FMP's order. Never <see langword="null"/>.</returns>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> GetAllIndustryClassificationsAsync(
+        CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/all-industry-classification").With("page", 1),
+            FmpJsonContext.Default.ListIndustryClassification, ct);
+
+    /// <summary>The SIC vocabulary — <c>stable/standard-industrial-classification-list</c>, a fixed 444 rows
+    /// measured 2026-08-28.
+    ///
+    /// <para><b>No parameters, because the endpoint has none that work.</b> It answered all 444 rows for every
+    /// combination of <c>page</c> and <c>limit</c> tried. A signature that accepted either would let a caller
+    /// believe they had asked for five rows while holding 444.</para>
+    ///
+    /// <para>This is the authoritative spelling of the <c>sicCode</c> and <c>industryTitle</c> values that come
+    /// back on <see cref="IndustryClassification"/> — with one catch that will silently break a join. See
+    /// <see cref="SicCodeEntry.SicCode"/>: this endpoint strips a leading zero and the classification endpoints
+    /// do not.</para></summary>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>All 444 SIC codes with their review offices. Never <see langword="null"/>.</returns>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SicCodeEntry>> GetSicCodesAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/standard-industrial-classification-list"),
+            FmpJsonContext.Default.ListSicCodeEntry, ct);
+
     /// <summary>Unwraps the two directory row shapes into <see cref="CompanySymbol"/>. Written once so the pair
     /// cannot drift apart on the judgement calls below, the same way <see cref="Labels{T}"/> serves the
     /// vocabularies.

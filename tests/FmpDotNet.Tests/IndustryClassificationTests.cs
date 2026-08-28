@@ -1,6 +1,8 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 
 namespace FmpDotNet.Tests;
 
@@ -114,5 +116,125 @@ public class IndustryClassificationTests
 
         Assert.All(rows, r => Assert.Equal(10, r.Cik!.Length));
         Assert.StartsWith("0000", rows[0].Cik);
+    }
+
+    // ---- fmp.Directory -----------------------------------------------------------------------------------------
+
+    private static (DirectoryEndpoints Endpoints, StubHandler Handler) BuildDirectory(
+        params HttpResponseMessage[] responses)
+    {
+        var handler = new StubHandler(responses);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new DirectoryEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task One_page_of_classifications_sends_page_zero_and_the_limit()
+    {
+        var (endpoints, handler) = BuildDirectory(
+            StubHandler.Json(Binding.Fixture("all-industry-classification.head.json")));
+
+        var rows = await endpoints.GetIndustryClassificationsAsync(limit: 5);
+
+        Assert.Equal(5, rows.Count);
+        var uri = handler.Requests.Single();
+        Assert.Equal("/stable/all-industry-classification", uri.AbsolutePath);
+        Assert.Contains("page=0", uri.Query);
+        Assert.Contains("limit=5", uri.Query);
+    }
+
+    [Fact]
+    public async Task The_whole_universe_is_reached_by_sending_page_one_and_no_limit()
+    {
+        // The anomaly this method exists for, measured 2026-08-28. page=0 honours `limit` but caps at 1,000 rows,
+        // and the dataset is 25,952 — so rows 1,001 onward are reachable only through page>=1, which ignores
+        // `limit` entirely and answers the whole universe. page=1, page=2, page=1&limit=10 and page=1 with no
+        // limit all returned the same 25,952 rows and the same 7,288,535 bytes, byte-identical.
+        var (endpoints, handler) = BuildDirectory(
+            StubHandler.Json(Binding.Fixture("all-industry-classification.head.json")));
+
+        await endpoints.GetAllIndustryClassificationsAsync();
+
+        var uri = handler.Requests.Single();
+        Assert.Equal("/stable/all-industry-classification", uri.AbsolutePath);
+        Assert.Contains("page=1", uri.Query);
+        Assert.DoesNotContain("limit=", uri.Query);
+    }
+
+    [Theory]
+    [InlineData(1001)]
+    [InlineData(5000)]
+    [InlineData(30000)]
+    public async Task A_limit_above_the_measured_cap_is_refused_rather_than_clamped_by_fmp(int limit)
+    {
+        // Measured 2026-08-28: limit=1000, 5000, 26000 and 30000 all answered exactly 1,000 rows on page 0, with
+        // HTTP 200 and nothing in the body to say the request had been trimmed. A caller who asked for 5,000 and
+        // believed they had it would be short by four fifths and never told.
+        var (endpoints, handler) = BuildDirectory(StubHandler.Json("[]"));
+
+        var error = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetIndustryClassificationsAsync(limit));
+
+        Assert.Equal("limit", error.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-5)]
+    public async Task A_non_positive_limit_is_refused(int limit)
+    {
+        var (endpoints, handler) = BuildDirectory(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetIndustryClassificationsAsync(limit));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public void The_classification_cap_is_the_measured_one()
+    {
+        Assert.Equal(1000, DirectoryEndpoints.MaxIndustryClassificationPageSize);
+    }
+
+    [Fact]
+    public async Task The_sic_list_takes_no_parameters_at_all()
+    {
+        // Measured 2026-08-28: the endpoint answered all 444 rows for every combination of page and limit tried,
+        // so a `limit` parameter would be a control that controls nothing.
+        var (endpoints, handler) = BuildDirectory(
+            StubHandler.Json(Binding.Fixture("standard-industrial-classification-list.head.json")));
+
+        var rows = await endpoints.GetSicCodesAsync();
+
+        Assert.Equal(5, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("Office of Life Sciences", rows[0].Office);
+        Assert.Equal("100", rows[0].SicCode);
+        Assert.Equal("AGRICULTURAL PRODUCTION-CROPS", rows[0].IndustryTitle);
+
+        var uri = handler.Requests.Single();
+        Assert.Equal("/stable/standard-industrial-classification-list", uri.AbsolutePath);
+        Assert.Equal("?apikey=k", uri.Query);
+    }
+
+    [Fact]
+    public async Task The_sic_list_strips_a_leading_zero_that_the_classification_paths_keep()
+    {
+        // The join trap, pinned. SIC 0100 is "AGRICULTURAL PRODUCTION-CROPS"; this endpoint calls it "100" while
+        // all-industry-classification carries four-character codes. A caller joining the two on string equality
+        // silently matches nothing for every code below 1000, and nothing in either payload says why.
+        var (endpoints, _) = BuildDirectory(
+            StubHandler.Json(Binding.Fixture("standard-industrial-classification-list.head.json")));
+
+        var rows = await endpoints.GetSicCodesAsync();
+
+        Assert.All(rows, r => Assert.Equal(3, r.SicCode!.Length));
     }
 }
