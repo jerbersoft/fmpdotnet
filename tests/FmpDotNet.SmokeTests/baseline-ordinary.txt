@@ -3,7 +3,7 @@
 # The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
 # them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
 #
-# Measured 2026-08-27. Regenerate — after checking the diff is drift and not
+# Measured 2026-08-28. Regenerate — after checking the diff is drift and not
 # a break — with:
 #
 #     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
@@ -336,6 +336,16 @@ outcome rows
 set Name
 set Symbol
 
+[Directory.GetAllIndustryClassificationsAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
 [Directory.GetCikListAsync]
 outcome rows
 set Cik
@@ -400,8 +410,24 @@ set Symbol
 [Directory.GetIndustriesAsync]
 outcome rows
 
+[Directory.GetIndustryClassificationsAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
 [Directory.GetSectorsAsync]
 outcome rows
+
+[Directory.GetSicCodesAsync]
+outcome rows
+set IndustryTitle
+set Office
+set SicCode
 
 [Directory.GetStockListAsync]
 outcome rows
@@ -771,6 +797,16 @@ set ExchangeFullName
 set Name
 set Symbol
 
+[Search.FindIndustryClassificationAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
 [Search.GetExchangeVariantsAsync]
 outcome rows
 set Address
@@ -827,6 +863,167 @@ set Price
 set Sector
 set Symbol
 set Volume
+
+[SecFilings.FindCompanyByCikAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
+[SecFilings.FindCompanyByNameAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
+[SecFilings.FindCompanyBySymbolAsync]
+outcome rows
+set BusinessAddress
+set Cik
+set IndustryTitle
+set Name
+set PhoneNumber
+set SicCode
+set Symbol
+
+[SecFilings.Get8KFilingsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set FilingDate
+set FinalLink
+set FormType
+set HasFinancials
+set Link
+set Symbol
+
+[SecFilings.GetFilingsWithFinancialsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set FilingDate
+set FinalLink
+set FormType
+set HasFinancials
+set Link
+set Symbol
+
+[SecFilings.GetProfileAsync]
+outcome rows
+set AssetType
+set BusinessAddress
+set Ceo
+set Cik
+set City
+set Country
+set Description
+set Employees
+set Exchange
+set FiftyTwoWeekRange
+set FiscalYearEnd
+set IpoDate
+set IsActive
+set IsAdr
+set IsEtf
+set IsFund
+set Isin
+set MailingAddress
+set MarketSector
+set OpenFigiComposite
+set PhoneNumber
+set PostalCode
+set PriceCurrency
+set RegistrantName
+set SecFilingsUrl
+set SicCode
+set SicDescription
+set SicGroup
+set State
+set StateLocation
+set StateOfIncorporation
+set Symbol
+set TaxIdentificationNumber
+set Website
+null SecurityType
+
+[SecFilings.GetProfileByCikAsync]
+outcome rows
+set AssetType
+set BusinessAddress
+set Ceo
+set Cik
+set City
+set Country
+set Description
+set Employees
+set Exchange
+set FiftyTwoWeekRange
+set FiscalYearEnd
+set IpoDate
+set IsActive
+set IsAdr
+set IsEtf
+set IsFund
+set Isin
+set MailingAddress
+set MarketSector
+set OpenFigiComposite
+set PhoneNumber
+set PostalCode
+set PriceCurrency
+set RegistrantName
+set SecFilingsUrl
+set SicCode
+set SicDescription
+set SicGroup
+set State
+set StateLocation
+set StateOfIncorporation
+set Symbol
+set TaxIdentificationNumber
+set Website
+null SecurityType
+
+[SecFilings.SearchByCikAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set FilingDate
+set FinalLink
+set FormType
+set Link
+set Symbol
+null HasFinancials
+
+[SecFilings.SearchByFormTypeAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set FilingDate
+set FinalLink
+set FormType
+set Link
+set Symbol
+null HasFinancials
+
+[SecFilings.SearchBySymbolAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set FilingDate
+set FinalLink
+set FormType
+set Link
+set Symbol
+null HasFinancials
 
 [Statements.GetBalanceSheetAsReportedAsync]
 outcome rows

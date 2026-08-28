@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**114 of FMP's 243 endpoint paths are modelled.**
+**126 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -192,6 +192,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/actively-trading-list` | `GetActivelyTradingAsync` |
+| `stable/all-industry-classification` | `GetAllIndustryClassificationsAsync`, `GetIndustryClassificationsAsync` |
 | `stable/available-countries` | `GetCountriesAsync` |
 | `stable/available-exchanges` | `GetExchangesAsync` |
 | `stable/available-industries` | `GetIndustriesAsync` |
@@ -204,6 +205,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/financial-statement-symbol-list` | `GetFinancialStatementSymbolsAsync` |
 | `stable/forex-list` | `GetForexListAsync` |
 | `stable/index-list` | `GetIndexListAsync` |
+| `stable/standard-industrial-classification-list` | `GetSicCodesAsync` |
 | `stable/stock-list` | `GetStockListAsync` |
 | `stable/symbol-change` | `GetSymbolChangesAsync` |
 
@@ -239,12 +241,27 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/company-screener` | `ScreenAsync` |
+| `stable/industry-classification-search` | `FindIndustryClassificationAsync` |
 | `stable/search-cik` | `FindByCikAsync` |
 | `stable/search-cusip` | `FindByCusipAsync` |
 | `stable/search-exchange-variants` | `GetExchangeVariantsAsync` |
 | `stable/search-isin` | `FindByIsinAsync` |
 | `stable/search-name` | `FindByNameAsync` |
 | `stable/search-symbol` | `FindBySymbolAsync` |
+
+`fmp.SecFilings`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/sec-filings-8k` | `Get8KFilingsAsync` |
+| `stable/sec-filings-company-search/cik` | `FindCompanyByCikAsync` |
+| `stable/sec-filings-company-search/name` | `FindCompanyByNameAsync` |
+| `stable/sec-filings-company-search/symbol` | `FindCompanyBySymbolAsync` |
+| `stable/sec-filings-financials` | `GetFilingsWithFinancialsAsync` |
+| `stable/sec-filings-search/cik` | `SearchByCikAsync` |
+| `stable/sec-filings-search/form-type` | `SearchByFormTypeAsync` |
+| `stable/sec-filings-search/symbol` | `SearchBySymbolAsync` |
+| `stable/sec-profile` | `GetProfileAsync`, `GetProfileByCikAsync` |
 
 `fmp.Statements`
 
@@ -282,12 +299,13 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **142 paths
-remain**, of which **135 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **117 paths
+remain**, of which **110 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest groups are Company (13), SEC Filings (12), Senate
-(12), Market Performance (11) and News (10); ETF & Mutual Funds and Technical Indicators carry 9 apiece, Form 13F
-8, and Analyst and Calendar 7 each.
+spread the way FMP's own section headings suggest: the largest groups are Form 13F & Insider Trades (14) and
+Analyst & Calendar (14), then Senate & House (12) and Economics/Transcripts/ESG/COT (12), Market Performance (11),
+News (10) and Fundraisers & DCF (10); ETF & Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9
+apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -295,10 +313,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as twelve actionable issues under the epic, each 9 to 14 paths and each carrying the
-measured path list for its group. Company (13 paths) is not the largest — the Form 13F/Insider Trades issue and
-the Analyst/Calendar issue are each 14 — but it is the one a trading consumer needs next, so it is the natural
-next slice rather than long-tail work.
+That remainder is tracked as eleven issues under the epic, ten of them actionable, each 9 to 14 paths and each
+carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
+against the 243-path inventory: 126 modelled plus 117 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
