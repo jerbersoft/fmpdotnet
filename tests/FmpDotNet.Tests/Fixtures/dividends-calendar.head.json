@@ -1,0 +1,57 @@
+[
+ {
+  "symbol": "001231.SZ",
+  "date": "2026-08-25",
+  "recordDate": "2026-08-24",
+  "paymentDate": "2026-08-25",
+  "declarationDate": "",
+  "adjDividend": 0.15,
+  "dividend": 0.15,
+  "yield": 0.7173601147776184,
+  "frequency": "Annual"
+ },
+ {
+  "symbol": "0018.HK",
+  "date": "2026-08-25",
+  "recordDate": "2026-08-27",
+  "paymentDate": "2026-09-10",
+  "declarationDate": "",
+  "adjDividend": 0.01,
+  "dividend": 0.01,
+  "yield": 4.651162790697675,
+  "frequency": "Annual"
+ },
+ {
+  "symbol": "0027.HK",
+  "date": "2026-08-25",
+  "recordDate": "2026-08-26",
+  "paymentDate": "2026-09-15",
+  "declarationDate": "",
+  "adjDividend": 0.9,
+  "dividend": 0.9,
+  "yield": 4.605641911341393,
+  "frequency": "Semi-Annual"
+ },
+ {
+  "symbol": "0150.HK",
+  "date": "2026-08-25",
+  "recordDate": "2026-08-26",
+  "paymentDate": "2026-09-04",
+  "declarationDate": "",
+  "adjDividend": 0.0018,
+  "dividend": 0.0018,
+  "yield": 5.42483660130719,
+  "frequency": "Annual"
+ },
+ {
+  "symbol": "0237.HK",
+  "date": "2026-08-25",
+  "recordDate": "2026-08-27",
+  "paymentDate": "2026-09-16",
+  "declarationDate": "",
+  "adjDividend": 0.05,
+  "dividend": 0.05,
+  "yield": 3.652968036529681,
+  "frequency": "Semi-Annual"
+ }
+]

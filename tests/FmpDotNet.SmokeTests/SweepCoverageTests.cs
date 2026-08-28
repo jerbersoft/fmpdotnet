@@ -7,18 +7,18 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All seven checks below are pure
+/// still ask it something worth answering.) All nine checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining four pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining six pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
 /// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
 /// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
-/// calendars need a narrow one — so a probe that runs without error but never asks a meaningful question doesn't
-/// slip back in unnoticed.</para>
+/// calendars need a narrow one, and a single day where five calendars need a week — so a probe that runs
+/// without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
 /// arguments by parameter name, so an endpoint added with a parameter named or typed in a way
@@ -158,5 +158,60 @@ public class SweepCoverageTests
             typeof(Endpoints.SearchEndpoints)
                 .GetMethod(nameof(Endpoints.SearchEndpoints.FindIndustryClassificationAsync))!
                 .GetParameters()[2]));
+    }
+
+    [Fact]
+    public void The_sweep_gives_the_five_new_calendars_a_week_and_the_earnings_calendar_a_day()
+    {
+        // Probe.Argument dispatches `from` on the declaring type, and every date-ranged CalendarEndpoints method
+        // used to get LiveApi.SettledWeekday for both ends -- a one-day window. Measured 2026-08-28 with
+        // to=2026-08-21, one day answers: dividends 331, splits 12, ipos-calendar 5, ipos-disclosure 116, and
+        // ipos-prospectus ONE. A single quiet week takes that last one to zero, which records `outcome empty`
+        // as its baseline and then agrees with itself for ever.
+        //
+        // Seven days answers 1652 / 40 / 34 / 764 / 8 -- all comfortably non-zero, and the dividend calendar at
+        // 41% of its 4000-row cap rather than the 81% a fortnight would give it.
+        //
+        // GetEarningsCalendarAsync is the deliberate exception and stays at one day: its own doc measures a
+        // 7-day peak-season window at 3676 rows, 92% of the same cap. Narrowing it was the previous slice's
+        // fix and widening it here would undo that.
+        var calendar = typeof(Endpoints.CalendarEndpoints);
+        var weekly = new[]
+        {
+            nameof(Endpoints.CalendarEndpoints.GetDividendsCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetSplitsCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoCalendarAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoDisclosuresAsync),
+            nameof(Endpoints.CalendarEndpoints.GetIpoProspectusesAsync),
+        };
+
+        foreach (var name in weekly)
+        {
+            var method = calendar.GetMethod(name)!;
+            var from = (NodaTime.LocalDate)Probe.Argument(method.GetParameters()[0]);
+            var to = (NodaTime.LocalDate)Probe.Argument(method.GetParameters()[1]);
+
+            Assert.Equal(6, NodaTime.Period.DaysBetween(from, to));
+        }
+
+        var earnings = calendar.GetMethod(nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync))!;
+        Assert.Equal(
+            LiveApi.SettledWeekday,
+            (NodaTime.LocalDate)Probe.Argument(earnings.GetParameters()[0]));
+    }
+
+    [Fact]
+    public void The_sweep_never_widens_a_window_that_was_narrowed_because_it_truncates()
+    {
+        // The regression guard for the two endpoints whose own documentation measures a wide window as unsafe.
+        // A future change that collapsed the `from` arm back to one rule per declaring type would widen both of
+        // these, and nothing else in the suite would notice until the next scheduled live run.
+        var earnings = typeof(Endpoints.CalendarEndpoints)
+            .GetMethod(nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync))!.GetParameters()[0];
+        var economic = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync))!.GetParameters()[0];
+
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(earnings));
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(economic));
     }
 }

@@ -38,6 +38,106 @@ set SgaExpenseHigh
 set SgaExpenseLow
 set Symbol
 
+[Analyst.GetGradeConsensusAsync]
+outcome rows
+set Buy
+set Consensus
+set Hold
+set Sell
+set StrongBuy
+set StrongSell
+set Symbol
+
+[Analyst.GetGradeHistoryAsync]
+outcome rows
+set AnalystRatingsBuy
+set AnalystRatingsHold
+set AnalystRatingsSell
+set AnalystRatingsStrongBuy
+set AnalystRatingsStrongSell
+set Date
+set Symbol
+
+[Analyst.GetGradesAsync]
+outcome rows
+set Action
+set Date
+set GradingCompany
+set NewGrade
+set PreviousGrade
+set Symbol
+
+[Analyst.GetPriceTargetConsensusAsync]
+outcome rows
+set Symbol
+set TargetConsensus
+set TargetHigh
+set TargetLow
+set TargetMedian
+
+[Analyst.GetPriceTargetSummaryAsync]
+outcome rows
+set AllTimeAvgPriceTarget
+set AllTimeCount
+set LastMonthAvgPriceTarget
+set LastMonthCount
+set LastQuarterAvgPriceTarget
+set LastQuarterCount
+set LastYearAvgPriceTarget
+set LastYearCount
+set Publishers
+set Symbol
+
+[Analyst.GetRatingAsync]
+outcome rows
+set DebtToEquityScore
+set DiscountedCashFlowScore
+set OverallScore
+set PriceToBookScore
+set PriceToEarningsScore
+set Rating
+set ReturnOnAssetsScore
+set ReturnOnEquityScore
+set Symbol
+null Date
+
+[Analyst.GetRatingHistoryAsync]
+outcome rows
+set Date
+set DebtToEquityScore
+set DiscountedCashFlowScore
+set OverallScore
+set PriceToBookScore
+set PriceToEarningsScore
+set Rating
+set ReturnOnAssetsScore
+set ReturnOnEquityScore
+set Symbol
+
+[Calendar.GetDividendsAsync]
+outcome rows
+set AdjDividend
+set Date
+set DeclarationDate
+set DividendAmount
+set Frequency
+set PaymentDate
+set RecordDate
+set Symbol
+set Yield
+
+[Calendar.GetDividendsCalendarAsync]
+outcome rows
+set AdjDividend
+set Date
+set DeclarationDate
+set DividendAmount
+set Frequency
+set PaymentDate
+set RecordDate
+set Symbol
+set Yield
+
 [Calendar.GetEarningsAsync]
 outcome rows
 set Date
@@ -61,6 +161,60 @@ set PeriodEnding
 set ReportTime
 set RevenueActual
 set RevenueEstimated
+set Symbol
+
+[Calendar.GetIpoCalendarAsync]
+outcome rows
+set Actions
+set Company
+set Daa
+set Date
+set Exchange
+set MarketCap
+set Shares
+set Symbol
+null PriceRange
+
+[Calendar.GetIpoDisclosuresAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set EffectivenessDate
+set FilingDate
+set Form
+set Symbol
+set Url
+
+[Calendar.GetIpoProspectusesAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set DiscountsAndCommissionsPerShare
+set DiscountsAndCommissionsTotal
+set FilingDate
+set Form
+set IpoDate
+set PricePublicPerShare
+set PricePublicTotal
+set ProceedsBeforeExpensesPerShare
+set ProceedsBeforeExpensesTotal
+set Symbol
+set Url
+
+[Calendar.GetSplitsAsync]
+outcome rows
+set Date
+set Denominator
+set Numerator
+set SplitType
+set Symbol
+
+[Calendar.GetSplitsCalendarAsync]
+outcome rows
+set Date
+set Denominator
+set Numerator
+set SplitType
 set Symbol
 
 [Chart.GetDividendAdjustedAsync]

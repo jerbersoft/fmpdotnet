@@ -3,15 +3,27 @@ using FmpDotNet.Serialization;
 
 namespace FmpDotNet.Endpoints;
 
-/// <summary>FMP's analyst coverage group — what the sell side expects, as opposed to what a company reported.
+/// <summary>FMP's analyst coverage group — sell-side opinion about a company (estimates, grades, price
+/// targets) alongside FMP's own algorithmic scoring of its reported fundamentals (ratings).
 ///
-/// <para>Everything here is a <b>forecast</b>. The statement endpoints on <see cref="StatementEndpoints"/> answer
-/// periods that have ended; this group answers periods that have not, and the two must not be joined as though
-/// they were the same kind of fact.</para></summary>
+/// <para><see cref="GetEstimatesAsync"/> is the only forecast in this group — see the warning on that method
+/// before joining it to anything else. <see cref="GetGradesAsync"/> is a dated log of past analyst actions,
+/// upgrades, downgrades and initiations, not a projection of anything future.
+/// <see cref="GetGradeHistoryAsync"/> is monthly historical snapshots of the analyst-count distribution and
+/// <see cref="GetGradeConsensusAsync"/> the current one; <see cref="GetPriceTargetConsensusAsync"/> and
+/// <see cref="GetPriceTargetSummaryAsync"/> summarise targets analysts have already published. And
+/// <see cref="GetRatingAsync"/>/<see cref="GetRatingHistoryAsync"/> are not sell-side opinion at all: they are
+/// FMP's own score, computed over reported fundamentals rather than solicited from analysts — see
+/// <see cref="CompanyRating"/> for the overall score and its six DCF/ROE/ROA/debt-to-equity/P/E/P/B
+/// components.</para></summary>
 public sealed class AnalystEndpoints(FmpTransport transport)
 {
     /// <summary>Sell-side consensus estimates for one symbol's future fiscal periods, from
     /// <c>stable/analyst-estimates</c>.
+    ///
+    /// <para><b>This is the one forecast in <see cref="AnalystEndpoints"/>.</b> It answers fiscal periods that
+    /// have not ended, where <see cref="StatementEndpoints"/> answers periods that have, and the two must not be
+    /// joined as though they were the same kind of fact.</para>
     ///
     /// <para><b>Rows come back descending — furthest future first — so <paramref name="limit"/> returns the N
     /// furthest-out estimates, not the next N.</b> This is the opposite of what a caller reaching for
@@ -112,5 +124,193 @@ public sealed class AnalystEndpoints(FmpTransport transport)
             .With("period", period.ToQueryValue())
             .With("limit", limit)
             .With("page", page);
+    }
+
+    /// <summary>Every analyst rating action on one symbol, newest first, from <c>stable/grades</c>.
+    ///
+    /// <para><b>This returns the whole series and there is no way to ask for less.</b> Measured 2026-08-28,
+    /// <c>symbol=AAPL</c> answered <b>1,791 rows</b>; so did <c>limit=5</c>, <c>limit=10000</c> and
+    /// <c>page=1</c> — the last with a byte-identical first row. The count varies by symbol (MSFT 967, BRK-B
+    /// 93), so it is the whole set each time rather than a cap. Neither <c>limit</c> nor <c>page</c> is offered
+    /// here, because offering a parameter FMP discards would let a caller believe they had narrowed something.
+    /// Take from the head of the returned list instead.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored too</b>, measured the same day: 1,791 rows with and
+    /// without <c>from=2024-01-01&amp;to=2024-12-31</c>. Filter on <see cref="StockGrade.Date"/> at the call
+    /// site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<StockGrade>> GetGradesAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/grades").With("symbol", symbol),
+            FmpJsonContext.Default.ListStockGrade, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>The current spread of analyst opinion on one symbol, from <c>stable/grades-consensus</c>.
+    /// Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para><b>This is not the newest row of <see cref="GetGradeHistoryAsync"/>.</b> Measured for AAPL the same
+    /// minute on 2026-08-28, this endpoint's counts total 112 analysts and the newest historical row totals 47,
+    /// with differently shaped distributions. See <see cref="GradeConsensus"/> for the numbers. They are
+    /// different populations, and joining or reconciling them is not something this SDK does for you.</para>
+    ///
+    /// <para>FMP sends one row in an array; this unwraps it, as
+    /// <see cref="CompanyEndpoints.GetProfileAsync"/> does. An unknown-but-well-formed symbol answers an empty
+    /// array with HTTP 200 rather than a 404, which surfaces here as <see langword="null"/>.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<GradeConsensus?> GetGradeConsensusAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/grades-consensus").With("symbol", symbol),
+            FmpJsonContext.Default.ListGradeConsensus, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Monthly snapshots of analyst ratings for one symbol, newest first, from
+    /// <c>stable/grades-historical</c>.
+    ///
+    /// <para><b><paramref name="limit"/> is omitted by default, and without it you get everything</b> — 92 rows
+    /// for AAPL measured 2026-08-28, unchanged by <c>limit=10000</c>, back to 2018. Rows are dated the first of
+    /// each month.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored</b>, measured the same day: 92 rows with and without a
+    /// 2024 range. Filter on <see cref="GradeHistory.Date"/> at the call site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Newest N months, or null for the whole history. Must be positive when
+    /// given.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<GradeHistory>> GetGradeHistoryAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/grades-historical").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListGradeHistory, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Where analyst price targets on one symbol sit, from <c>stable/price-target-consensus</c>.
+    /// Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para>One row, unwrapped as <see cref="CompanyEndpoints.GetProfileAsync"/> does. An
+    /// unknown-but-well-formed symbol answers an empty array with HTTP 200, not a 404.</para>
+    ///
+    /// <para><c>from</c>, <c>to</c> and <c>limit</c> are not offered: this endpoint answers a single current
+    /// summary and has nothing to page or filter.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<PriceTargetConsensus?> GetPriceTargetConsensusAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/price-target-consensus").With("symbol", symbol),
+            FmpJsonContext.Default.ListPriceTargetConsensus, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Analyst price-target activity on one symbol over four windows, from
+    /// <c>stable/price-target-summary</c>. Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para><b>"Unknown" is the <see langword="null"/> this method returns, not a zero inside a row.</b>
+    /// Measured 2026-08-28: an uncovered symbol answers <c>[]</c> and this method returns
+    /// <see langword="null"/> outright, while a covered symbol sends all ten fields and a zero inside one of its
+    /// windows is a measured zero — no analyst activity in that window. Read the remarks on
+    /// <see cref="PriceTargetSummary"/> for the figures, and still gate every average on its matching count: a
+    /// real zero count still makes the paired average meaningless.</para>
+    ///
+    /// <para><see cref="PriceTargetSummary.Publishers"/> arrives as a string containing a JSON array and is
+    /// parsed into a list; this is the same shape and now the same type as the whole-universe
+    /// <see cref="BulkEndpoints.StreamPriceTargetSummariesAsync"/> returns.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<PriceTargetSummary?> GetPriceTargetSummaryAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/price-target-summary").With("symbol", symbol),
+            FmpJsonContext.Default.ListPriceTargetSummary, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>FMP's current letter rating for one symbol, from <c>stable/ratings-snapshot</c>. Returns
+    /// <see langword="null"/> when FMP has no rating.
+    ///
+    /// <para><b>The returned row carries no date</b> — this endpoint sends none, so
+    /// <see cref="CompanyRating.Date"/> is always null here. Use <see cref="GetRatingHistoryAsync"/> if you need
+    /// to know when a rating applied.</para>
+    ///
+    /// <para>One row, unwrapped as <see cref="CompanyEndpoints.GetProfileAsync"/> does. An
+    /// unknown-but-well-formed symbol answers an empty array with HTTP 200, not a 404.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<CompanyRating?> GetRatingAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/ratings-snapshot").With("symbol", symbol),
+            FmpJsonContext.Default.ListCompanyRating, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>FMP's rating for one symbol over time, newest first, from <c>stable/ratings-historical</c>.
+    ///
+    /// <para><b><paramref name="limit"/> defaults to 100, and that is deliberately <i>not</i> what FMP does.</b>
+    /// Measured 2026-08-28: with no <c>limit</c> this endpoint answers <b>exactly one row</b> — from a path
+    /// named "historical". Passing FMP's default through faithfully would be useless to a caller, so this method
+    /// sends 100 unless told otherwise. The measured ladder, for anyone choosing a value: <c>limit=5</c> → 5,
+    /// <c>100</c> → 100, <c>1000</c> → 1000, <c>5000</c> → 5000, <c>10000</c> → <b>6292</b>, <c>50000</c> →
+    /// 6292. That last figure is AAPL's whole series, not a cap — it stops growing because the data does. There
+    /// is therefore no maximum page size to enforce here.</para>
+    ///
+    /// <para>This is the only <c>limit</c> in this endpoint group with a non-null default. The dividend, split
+    /// and grade-history methods all leave theirs null, because those endpoints answer the whole series when the
+    /// parameter is absent and a default would silently truncate it.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored</b>, measured the same day: 1000 rows with and without a
+    /// 2024 range. The series is per trading day. Filter on <see cref="CompanyRating.Date"/> at the call
+    /// site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Newest N rows. Defaults to 100 rather than to FMP's own default of one. Must be
+    /// positive.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<CompanyRating>> GetRatingHistoryAsync(
+        string symbol, int limit = 100, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/ratings-historical").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListCompanyRating, ct).ConfigureAwait(false);
     }
 }

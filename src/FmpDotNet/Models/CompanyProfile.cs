@@ -47,11 +47,29 @@ public sealed record CompanyProfile
     /// <summary>Fractional price change on the session — <c>-0.14178</c> means -0.14178%, not -14%.</summary>
     [JsonPropertyName("changePercentage")] public decimal? ChangePercentage { get; init; }
 
-    /// <summary>Session volume.</summary>
-    [JsonPropertyName("volume")] public long? Volume { get; init; }
+    /// <summary>Session volume.
+    ///
+    /// <para><b><see langword="decimal"/> and not <see langword="long"/>, because FMP serves this fractional on
+    /// some symbols and not on others, with no way to tell which in advance.</b> Measured live 2026-08-28 across
+    /// fifteen symbols: four came back fractional — <c>PRTA</c> <c>269557.44003</c>, <c>PRDO</c>
+    /// <c>394291.08578</c>, <c>BAC</c> <c>19757648.08675</c>, <c>RIVN</c> <c>31548435.12699</c> — and the rest
+    /// (<c>AAPL</c>, <c>NVDA</c>, <c>TSLA</c>, <c>F</c>, <c>PLTR</c>, <c>SOFI</c>, <c>NIO</c>, <c>GME</c>,
+    /// <c>AMC</c>, <c>BBAI</c>, <c>MRV.TO</c>) were integral. It is not even a fixed property of a symbol:
+    /// <c>AAPL</c> itself answered <c>24580543.97571</c> at 15:03 ET and an integral volume twelve minutes later
+    /// the same session. Read as <see langword="long"/> — which this was until that measurement — a fractional
+    /// row does not become <see langword="null"/>: <c>System.Text.Json</c> throws <c>JsonException</c>, and
+    /// <c>FmpTransport</c> does not wrap <c>DeserializeAsync</c>, so the one fractional row costs the whole
+    /// 36-field response. Not the same figure as <see cref="BulkCompanyProfile.Volume"/>, a separate measurement
+    /// on a separate endpoint.</para></summary>
+    [JsonPropertyName("volume")] public decimal? Volume { get; init; }
 
-    /// <summary>Average daily volume.</summary>
-    [JsonPropertyName("averageVolume")] public long? AverageVolume { get; init; }
+    /// <summary>Average daily volume.
+    ///
+    /// <para><see langword="decimal"/> rather than <see langword="long"/>. Integral on all fifteen symbols
+    /// sampled 2026-08-28 alongside <see cref="Volume"/> — no fraction was observed here — but widened for the
+    /// same reason <see cref="BulkCompanyProfile.AverageVolume"/> already is: an averaged figure has no promise
+    /// of being whole, and the type is cheaper to widen now than after a caller has stored it.</para></summary>
+    [JsonPropertyName("averageVolume")] public decimal? AverageVolume { get; init; }
 
     /// <summary>Reporting currency, ISO 4217.</summary>
     [JsonPropertyName("currency")] public string? Currency { get; init; }

@@ -1,0 +1,7 @@
+[
+ {"symbol": "GAME", "date": "2026-08-24", "numerator": 1, "denominator": 8, "splitType": null},
+ {"symbol": "BIAF", "date": "2026-08-24", "numerator": 1, "denominator": 15, "splitType": null},
+ {"symbol": "5863.TWO", "date": "2026-08-25", "numerator": 51, "denominator": 50, "splitType": "stock-dividend"},
+ {"symbol": "MAZAYA.KW", "date": "2026-08-24", "numerator": 51, "denominator": 50, "splitType": "stock-dividend"},
+ {"symbol": "GOODY.IS", "date": "2026-07-02", "numerator": 5629, "denominator": 1000, "splitType": "spin-off"}
+]

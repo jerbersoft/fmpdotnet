@@ -1,0 +1,7 @@
+[
+ {"symbol": "AAPL", "date": "2026-08-17", "gradingCompany": "Rothschild & Co", "previousGrade": "Neutral", "newGrade": "Buy", "action": "upgrade"},
+ {"symbol": "AAPL", "date": "2026-08-10", "gradingCompany": "Jefferies", "previousGrade": "Hold", "newGrade": "Underperform", "action": "downgrade"},
+ {"symbol": "AAPL", "date": "2026-08-04", "gradingCompany": "China Renaissance", "previousGrade": "Buy", "newGrade": "Hold", "action": "downgrade"},
+ {"symbol": "AAPL", "date": "2026-07-31", "gradingCompany": "Goldman Sachs", "previousGrade": "Buy", "newGrade": "Buy", "action": "maintain"},
+ {"symbol": "AAPL", "date": "2026-07-31", "gradingCompany": "Barclays", "previousGrade": "Underweight", "newGrade": "Underweight", "action": "maintain"}
+]

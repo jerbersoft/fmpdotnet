@@ -330,24 +330,47 @@ internal static class Probe
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
         // sparse. See LiveApi.RangeStart for the measurement that forced this.
         //
-        // `from` is then dispatched a second time, on the parameter's DECLARING TYPE, because RangeStart's
-        // ninety days is not one safe width for every date-ranged endpoint — it is safe only for the endpoints
-        // that were measured to tolerate it. CalendarEndpoints.GetEarningsCalendarAsync's own doc records
-        // day-at-a-time as "the only chunk width measured to be safe": a 31-day window in a heavy month
-        // silently truncated at exactly 4000 rows, eating the front of the range with no signal in the body.
-        // EconomicsEndpoints.GetEconomicCalendarAsync's own doc measured a 6-month window returning 535 rows —
-        // FEWER than the 3-month window it wholly contains — and a −3-to-+12-month window returning 0; "the
-        // widest range verified intact here is one week." A 91-day `from` is guaranteed truncated on the first
-        // and lands in non-monotonic, unverified territory on the second, so those two get the narrow,
-        // already-settled window instead. Every other `from` — the three sec-filings-search paths this was
-        // written for, plus the per-symbol chart and market-cap methods — is unaffected by width and keeps
-        // RangeStart.
+        // `from` is then dispatched a second time, on the parameter's DECLARING TYPE and, within
+        // CalendarEndpoints, on the METHOD NAME, because RangeStart's ninety days is not one safe width for
+        // every date-ranged endpoint — it is safe only for the endpoints that were measured to tolerate it, and
+        // "the endpoints that were measured to tolerate it" turns out to need three answers rather than two.
+        // CalendarEndpoints.GetEarningsCalendarAsync's own doc records day-at-a-time as "the only chunk width
+        // measured to be safe": a 31-day window in a heavy month silently truncated at exactly 4000 rows,
+        // eating the front of the range with no signal in the body. EconomicsEndpoints.GetEconomicCalendarAsync's
+        // own doc measured a 6-month window returning 535 rows — FEWER than the 3-month window it wholly
+        // contains — and a −3-to-+12-month window returning 0; "the widest range verified intact here is one
+        // week." A 91-day `from` is guaranteed truncated on the first and lands in non-monotonic, unverified
+        // territory on the second, so those two keep the narrow, already-settled window. The other five
+        // date-ranged CalendarEndpoints methods are sparse enough that even the narrow window is thin — measured
+        // 2026-08-28, a single day answered 1 row on ipos-prospectus — so they get LiveApi.CalendarWeekStart, a
+        // week wide, instead. Every other `from` — the three sec-filings-search paths this was written for, plus
+        // the per-symbol chart and market-cap methods — is unaffected by width and keeps RangeStart.
         if (type == typeof(LocalDate))
             return parameter.Name switch
             {
-                "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
-                    || parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
+                // The economic calendar's own doc: "the widest range verified intact here is one week", after a
+                // 6-month window returned FEWER rows than the 3-month window it contains and a -3-to-+12-month
+                // window returned 0. A week sits exactly on that boundary with no margin, so it keeps the day.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
                     => LiveApi.SettledWeekday,
+
+                // The earnings calendar is the deliberate exception among the Calendar methods, and this arm
+                // MUST come before the general one below. Its own doc records day-at-a-time as "the only chunk
+                // width measured to be safe": a 7-day peak-season window returned 3676 rows against a 4000-row
+                // cap, and a 31-day window returned exactly 4000. Narrowing it was the previous slice's fix.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
+                    && parameter.Member.Name == nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync)
+                    => LiveApi.SettledWeekday,
+
+                // The five other date-ranged Calendar methods are sparse enough that a single day is thin and
+                // getting thinner: measured 2026-08-28, one day answered 1 row on ipos-prospectus and 5 on
+                // ipos-calendar. A week answers 8 and 34, and keeps dividends-calendar at 41% of its cap rather
+                // than the 81% a fortnight would give it. See LiveApi.CalendarWeekStart.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
+                    => LiveApi.CalendarWeekStart,
+
+                // Everything else -- the three sec-filings-search paths this dispatch was written for, plus the
+                // per-symbol chart and market-cap methods -- is unaffected by width and keeps the 90-day range.
                 "from" => LiveApi.RangeStart,
                 _ => LiveApi.SettledWeekday,
             };

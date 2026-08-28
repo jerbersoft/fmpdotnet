@@ -10,12 +10,13 @@ namespace FmpDotNet.Models;
 /// into one type is the obvious move — and it is wrong for three measured reasons, each of which would cost a
 /// caller something:</para>
 /// <list type="number">
-/// <item><description><b>The same name means a different number.</b> <c>volume</c> on <c>stable/profile</c> is the
-/// session's share count and <see cref="CompanyProfile.Volume"/> types it <see langword="long"/>. On
-/// <c>profile-bulk</c> the same column arrives fractional — <c>73305.59636</c> on <c>PRTA</c> and
-/// <c>60854.19398</c> on <c>PRDO</c>, measured 2026-08-26 — because it is an <i>averaged</i> figure despite the
-/// name. One type would have to widen both to <see langword="decimal"/> and lose the fact that the per-symbol
-/// endpoint really does return whole shares, or narrow both and throw away the fractions. See
+/// <item><description><b>The same name measures a different thing.</b> <c>volume</c> on <c>stable/profile</c>
+/// is a session figure; on <c>profile-bulk</c> the same column is an average over a recent window, not a single
+/// session's count — measured 2026-08-26 fractional on every row sampled, <c>73305.59636</c> on <c>PRTA</c> and
+/// <c>60854.19398</c> on <c>PRDO</c>. Both are now <see langword="decimal"/>: <c>stable/profile</c>'s own copy is
+/// fractional too, on four of fifteen symbols sampled 2026-08-28 and not predictably on any one of them — see
+/// <see cref="CompanyProfile.Volume"/>. The type no longer tells the two figures apart, which is exactly why the
+/// shared name is the trap: one property called <c>Volume</c> on each type, naming two different quantities. See
 /// <see cref="Volume"/>.</description></item>
 /// <item><description><b>The two are read by different machinery.</b> <see cref="CompanyProfile"/> is deserialised
 /// from JSON through the source-generated <c>FmpJsonContext</c> and carries a <c>[JsonPropertyName]</c> on every
@@ -50,10 +51,12 @@ public sealed record BulkCompanyProfile
 
     /// <summary>Market capitalisation, in <see cref="Currency"/>.
     ///
-    /// <para><see langword="decimal"/> rather than the <see langword="long"/> that
-    /// <see cref="CompanyProfile.MarketCap"/> uses. CSV carries no integer/float distinction to preserve, and the
-    /// repo's rule is that money is <see langword="decimal"/>; a value that arrived as <c>3.4e10</c> would parse
-    /// here and throw there.</para></summary>
+    /// <para><see langword="decimal"/>, the same type <see cref="CompanyProfile.MarketCap"/> uses — but reached
+    /// by a different route, and the distinction is worth keeping. That one was <see langword="long"/> until a
+    /// live measurement forced it wider; this one has always been <see langword="decimal"/> because CSV carries
+    /// no integer/float distinction to preserve, and the repo's rule is that money is
+    /// <see langword="decimal"/>. No fractional <c>marketCap</c> has been measured on <c>profile-bulk</c>
+    /// itself.</para></summary>
     public decimal? MarketCap { get; init; }
 
     /// <summary>Beta against the broad market. <c>0</c> is a real measured value (<c>MRV.TO</c>), not an absent
@@ -84,9 +87,10 @@ public sealed record BulkCompanyProfile
     /// clean while doing it.
     ///
     /// <para>The fractions say what the figure is: an <i>average</i> over some recent window, not the volume of a
-    /// single session, despite sharing the name of <see cref="CompanyProfile.Volume"/>, which on the per-symbol
-    /// JSON endpoint is the session count. Do not compare the two across the two endpoints as though they measured
-    /// the same thing.</para></summary>
+    /// single session. <see cref="CompanyProfile.Volume"/> shares the name but is not reliably clean either —
+    /// measured 2026-08-28, the per-symbol figure arrives fractional on some symbols and integral on others, with
+    /// no way to predict which from the symbol alone. Do not compare the two across the two endpoints as though
+    /// they measured the same thing.</para></summary>
     public decimal? Volume { get; init; }
 
     /// <summary>Average daily volume. Integral on all three measured rows, but <see langword="decimal"/> for the
