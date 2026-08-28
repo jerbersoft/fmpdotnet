@@ -761,7 +761,31 @@ In `src/FmpDotNet/Endpoints/DirectoryEndpoints.cs`, insert immediately after `St
 Run: `dotnet test tests/FmpDotNet.Tests --filter FullyQualifiedName~IndustryClassificationTests`
 Expected: PASS, including the two `[Theory]`s (five cases between them). Counts reported by the runner are cases, not methods.
 
-- [ ] **Step 6: Mutation-check the pagination decision**
+- [ ] **Step 6: Restore the cref Task 1 could not compile**
+
+`GetSicCodesAsync` now exists, so the placeholder Task 1 was forced to leave in
+`src/FmpDotNet/Models/IndustryClassification.cs` can become a real reference. Replace
+
+```csharp
+/// combination of <c>page</c> and <c>limit</c> tried — see <c>DirectoryEndpoints.GetSicCodesAsync</c>, added in a
+/// later task on this same slice.</para></summary>
+/// <remarks>A <c>&lt;c&gt;</c> span rather than a <c>&lt;see cref&gt;</c> because the method does not exist yet:
+/// an unresolved cref is CS1574, and <c>TreatWarningsAsErrors</c> makes that a build error. Task 2 promotes it
+/// to a real cref once <c>GetSicCodesAsync</c> is there to point at.</remarks>
+```
+
+with
+
+```csharp
+/// combination of <c>page</c> and <c>limit</c> tried — see
+/// <see cref="Endpoints.DirectoryEndpoints.GetSicCodesAsync(CancellationToken)"/>.</para></summary>
+```
+
+Both the `<remarks>` block and the "added in a later task" clause describe scaffolding rather than the
+type, and neither survives. The compiler checks the restoration for free: an unresolved cref is CS1574,
+which `TreatWarningsAsErrors` turns into a build error, so a green build IS the assertion here.
+
+- [ ] **Step 7: Mutation-check the pagination decision**
 
 Change `GetAllIndustryClassificationsAsync` to send `.With("page", 0)` and re-run.
 Expected: `The_whole_universe_is_reached_by_sending_page_one_and_no_limit` fails on the `page=1` assertion. Restore.
@@ -769,7 +793,7 @@ Expected: `The_whole_universe_is_reached_by_sending_page_one_and_no_limit` fails
 Then add `.With("limit", MaxIndustryClassificationPageSize)` to `GetAllIndustryClassificationsAsync` and re-run.
 Expected: the same test fails on `Assert.DoesNotContain("limit=", …)`. This is the mutation worth pinning: a `limit` on the anomaly path looks harmless and is not — it is what a maintainer would add if they mistook this for an ordinary paged endpoint. Restore.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/FmpDotNet/Endpoints/DirectoryEndpoints.cs \
