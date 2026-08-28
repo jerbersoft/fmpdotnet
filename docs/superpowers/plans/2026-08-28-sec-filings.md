@@ -2066,7 +2066,7 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para><b>Two families here, and they do not share a row shape.</b>
 /// <see cref="GetProfileAsync(string, CancellationToken)"/> answers a registrant;
-/// <see cref="Get8KFilingsAsync"/> and its neighbours answer filings; the three <c>FindCompany*</c> methods
+/// <c>Get8KFilingsAsync</c> and its neighbours answer filings; the three <c>FindCompany*</c> methods
 /// answer the same classification row <see cref="DirectoryEndpoints"/> and <see cref="SearchEndpoints"/> serve,
 /// which is why they return <see cref="IndustryClassification"/> rather than a type of their own.</para>
 ///
@@ -2514,12 +2514,38 @@ Append to `src/FmpDotNet/Endpoints/SecFilingsEndpoints.cs`, after `GetProfileByC
 Run: `dotnet test tests/FmpDotNet.Tests --filter FullyQualifiedName~SecFilingsTests`
 Expected: PASS. The two `[Theory]`s add six cases; the runner reports cases, not methods.
 
-- [ ] **Step 6: Mutation-check the cap**
+- [ ] **Step 6: Restore the cref Task 6 could not compile**
+
+`Get8KFilingsAsync` now exists, so the placeholder in the `SecFilingsEndpoints` class summary can become a
+real reference. In `src/FmpDotNet/Endpoints/SecFilingsEndpoints.cs`, replace
+
+```csharp
+/// <c>Get8KFilingsAsync</c> and its neighbours answer filings; the three <c>FindCompany*</c> methods
+```
+
+with
+
+```csharp
+/// <see cref="Get8KFilingsAsync(LocalDate?, LocalDate?, int, int, CancellationToken)"/> and its neighbours
+/// answer filings; the three <c>FindCompany*</c> methods
+```
+
+Leave the surrounding `<c>FindCompany*</c>` alone: it is a wildcard standing for three methods, not a
+reference to one, so it stays a code span permanently. The compiler checks the restoration for free — an
+unresolved cref is CS1574, which `TreatWarningsAsErrors` turns into a build error, so a green build IS the
+assertion.
+
+**This is the second instance of one mistake, and the plan has now been swept for a third.** Task 1 carried
+a cref to `DirectoryEndpoints.GetSicCodesAsync`, which Task 2 creates; Task 6 carried this one. Every
+`<see cref>` in every task was checked against the task that first defines its target — these two were the
+only forward references, and both are now paired with a restoration step.
+
+- [ ] **Step 7: Mutation-check the cap**
 
 Change `ThrowIfGreaterThan(limit, MaxSecFilingPageSize)` to `ThrowIfGreaterThan(limit, 10_000)` on `Get8KFilingsAsync` only, and re-run.
 Expected: `A_limit_above_the_measured_cap_is_refused_on_both_feeds` fails on the first assertion for all three inline values, and passes for the second — which is the point of checking both feeds in one test rather than one each. Restore.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/FmpDotNet/Endpoints/SecFilingsEndpoints.cs \
