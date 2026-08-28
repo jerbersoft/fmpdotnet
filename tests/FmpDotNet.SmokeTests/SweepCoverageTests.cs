@@ -2,10 +2,12 @@ namespace FmpDotNet.SmokeTests;
 
 /// <summary>Checks that the sweep can still reach every endpoint — without a key, and without a request.
 ///
-/// <para><b>These are the only tests in this project that are not gated on <c>FMP_API_KEY</c>, and that is
-/// deliberate.</b> The live suite runs on a schedule; a defect introduced on a Tuesday would otherwise sit
-/// unnoticed until the next scheduled run, and would surface then as an exception inside a sweep rather than as
-/// a compile-time-shaped complaint about the thing that actually changed. All seven checks below are pure
+/// <para><b>Not one of these is gated on <c>FMP_API_KEY</c>, and that is deliberate.</b> The live suite runs on
+/// a schedule; a defect introduced on a Tuesday would otherwise sit unnoticed until the next scheduled run, and
+/// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
+/// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
+/// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
+/// still ask it something worth answering.) All seven checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
