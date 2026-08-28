@@ -1,7 +1,7 @@
 # Form 13F and Insider Trades — measurements
 
 Every fact the design will rest on, with the date it was measured. Measured against the live API on
-**2026-08-28** across eight probe passes, **76 captured responses**, all ordinary JSON endpoints. No `*-bulk`
+**2026-08-28** across eleven probe passes, **99 captured responses**, all ordinary JSON endpoints. No `*-bulk`
 path was touched.
 
 Issue [#36](https://github.com/herbertsabanal/fmpdotnet/issues/36) lists fourteen paths. All fourteen were
@@ -35,20 +35,26 @@ Every 400 carried the same wording as the previous slices: `Query Error: Invalid
 
 ## The required parameters arrive one at a time
 
-A 400 names exactly one missing parameter. Satisfying it can produce a second 400 naming the next. Four paths
-needed two rounds to reach 200, and one needed three:
+A 400 names exactly one missing parameter. Satisfying it produces the next 400 until all are present. Five
+paths require a full quarter coordinate, and four of them take three rounds to get there:
 
 | path | round 1 | round 2 | round 3 |
 |---|---|---|---|
-| `extract` | `cik` | `year` | — (quarter not demanded, see below) |
-| `holder-industry-breakdown` | `cik` | `year` | — |
-| `extract-analytics/holder` | `symbol` | `year` | — |
-| `symbol-positions-summary` | `symbol` | `year` | — |
+| `extract` | `cik` | `year` | `quarter` |
+| `holder-industry-breakdown` | `cik` | `year` | `quarter` |
+| `extract-analytics/holder` | `symbol` | `year` | `quarter` |
+| `symbol-positions-summary` | `symbol` | `year` | `quarter` |
 | `industry-summary` | `year` | `quarter` | — |
 
-**`quarter` is demanded only by `industry-summary`.** The other four reached 200 on `cik`/`symbol` + `year`
-alone. `quarter` was supplied on every probe in this pass, so what those four return *without* it is not
-measured — the design should not assume it is optional until that is checked.
+**`quarter` is required on all five, and none of the five is optional.** Verified by omission on 2026-08-28:
+`extract?cik=0001067983&year=2026` returns `400 Query Error: Invalid or missing query parameter - quarter`, as
+do `holder-industry-breakdown`, `extract-analytics/holder` and `symbol-positions-summary` with `year` supplied
+and `quarter` withheld.
+
+> **Corrected.** The first pass recorded `quarter` as "demanded only by `industry-summary`", reasoning that the
+> other four reached 200 without a third 400. They reached 200 because every probe supplied `year` and
+> `quarter` together — the third round was never provoked. The reading was an inference from a chain that had
+> already been satisfied, not a measurement. The design takes `year` and `quarter` as required on all five.
 
 ## `dates` is the discovery endpoint for the other seven
 
@@ -84,6 +90,44 @@ rejected, so nothing in the response tells the caller they were ignored.
 Contrast `insider-trading/latest` and `institutional-ownership/latest`, where `limit` **is** honoured:
 `limit=200` returned 200 rows, `limit=1000` returned 1000. **The 100 rows a bare call returns is a default, not
 a cap.** `page=1` on `insider-trading/latest` returned 100 rows.
+
+**All fourteen were then tested with `limit=3`** (2026-08-28). It splits the group almost evenly, and the split
+does not follow any obvious rule — it must be carried per path:
+
+| honours `limit` | ignores `limit` |
+|---|---|
+| `institutional-ownership/latest` | `institutional-ownership/dates` (53) |
+| `institutional-ownership/extract-analytics/holder` | `institutional-ownership/extract` (4177) |
+| `acquisition-of-beneficial-ownership` | `institutional-ownership/holder-industry-breakdown` (24) |
+| `insider-trading/latest` | `institutional-ownership/holder-performance-summary` (53) |
+| `insider-trading/search` | `institutional-ownership/industry-summary` (363) |
+| | `insider-trading/reporting-name` (133) |
+| | `insider-trading/statistics` (94) |
+
+Row counts in parentheses are what came back when 3 was asked for. `symbol-positions-summary` returns exactly
+one row and `insider-trading-transaction-type` a fixed list of 18, so `limit` is moot on both and was not
+tested.
+
+**Design consequence: only the five that honour it get a `limit` parameter.** Offering a parameter on the
+other nine would ship a control that does nothing, which is worse than not offering it — the caller cannot
+tell from the response that it was dropped.
+
+### `page` splits differently from `limit`, so it is a separate question
+
+Each of the five was called twice at `limit=5`, once at `page=0` and once at `page=1`, and the two responses
+compared (2026-08-28):
+
+| path | `page` |
+|---|---|
+| `institutional-ownership/latest` | honoured — different rows |
+| `institutional-ownership/extract-analytics/holder` | honoured — different rows |
+| `insider-trading/latest` | honoured — different rows |
+| `insider-trading/search` | honoured — different rows |
+| `acquisition-of-beneficial-ownership` | **ignored — byte-identical responses** |
+
+`acquisition-of-beneficial-ownership` honours `limit` and ignores `page`. Nothing about honouring one predicts
+honouring the other, which is why both were measured per path rather than inferred from the group. **It gets
+`limit` and no `page`.**
 
 ## Four numeric fields would silently become null, and seven overflow `int`
 
@@ -373,10 +417,11 @@ Across all fourteen paths, every field falls into one of five shapes:
 
 Stated plainly rather than inferred:
 
-- **Whether `quarter` is optional on the four paths that did not demand it.** Every probe supplied it.
-- **Whether `limit`/`page` are honoured on the eleven paths other than `extract`, `insider-trading/latest` and
-  `institutional-ownership/latest`.** Only those three were tested for it.
-- **The upper bound of `limit`.** 1000 was honoured; nothing larger was tried.
+- **The upper bound of `limit`.** 1000 was honoured; nothing larger was tried, so the constant the design
+  exposes for it is a measured floor, not a discovered ceiling.
+- **Whether the nine paths that ignore `limit` also ignore `page`.** Only `extract` was tested for `page`
+  among them (ignored). The design offers neither parameter on any of the nine, so the gap does not reach the
+  public surface.
 - **Whether `marketValue`, `value` or `performance` are *ever* fractional.** 7,946 rows say no. The
   `industryValue` evidence says the family does it, which is why the design types them `decimal?` anyway —
   that is a deliberate choice under uncertainty, not a measurement.
