@@ -191,4 +191,51 @@ public sealed class AnalystEndpoints(FmpTransport transport)
             new FmpRequest("stable/grades-historical").With("symbol", symbol).With("limit", limit),
             FmpJsonContext.Default.ListGradeHistory, ct).ConfigureAwait(false);
     }
+
+    /// <summary>Where analyst price targets on one symbol sit, from <c>stable/price-target-consensus</c>.
+    /// Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para>One row, unwrapped as <see cref="CompanyEndpoints.GetProfileAsync"/> does. An
+    /// unknown-but-well-formed symbol answers an empty array with HTTP 200, not a 404.</para>
+    ///
+    /// <para><c>from</c>, <c>to</c> and <c>limit</c> are not offered: this endpoint answers a single current
+    /// summary and has nothing to page or filter.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<PriceTargetConsensus?> GetPriceTargetConsensusAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/price-target-consensus").With("symbol", symbol),
+            FmpJsonContext.Default.ListPriceTargetConsensus, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>Analyst price-target activity on one symbol over four windows, from
+    /// <c>stable/price-target-summary</c>. Returns <see langword="null"/> when FMP has no coverage.
+    ///
+    /// <para><b>A zero count and a zero average are indistinguishable from "unknown" in this payload</b> — read
+    /// the remarks on <see cref="PriceTargetSummary"/> and gate every average on its matching count.</para>
+    ///
+    /// <para><see cref="PriceTargetSummary.Publishers"/> arrives as a string containing a JSON array and is
+    /// parsed into a list; this is the same shape and now the same type as the whole-universe
+    /// <see cref="BulkEndpoints.StreamPriceTargetSummariesAsync"/> returns.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<PriceTargetSummary?> GetPriceTargetSummaryAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/price-target-summary").With("symbol", symbol),
+            FmpJsonContext.Default.ListPriceTargetSummary, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
 }

@@ -420,3 +420,71 @@ public sealed class BusinessAddressJsonConverter : JsonConverter<string>
         return raw[2..^2].Replace("', '", ", ", StringComparison.Ordinal);
     }
 }
+
+/// <summary>Reads <c>price-target-summary</c>'s <c>publishers</c> field, which is a <b>string containing a JSON
+/// array</b>, into the list it describes.
+///
+/// <para>Measured 2026-08-28, AAPL answered:</para>
+///
+/// <code>
+/// "publishers": "[\"StreetInsider\",\"Benzinga\",\"Pulse 2.0\",\"MarketWatch\",\"Investing\",\"Barrons\",\"Investor's Business Daily\"]"
+/// </code>
+///
+/// <para><b>A real parse is safe here, and that is not true of every double-encoded field in this SDK.</b>
+/// <see cref="BusinessAddressJsonConverter"/> deals with a stringified <i>Python</i> list built by naive
+/// formatting, where an apostrophe inside an element breaks the encoding and a parse fails on it. This one is
+/// genuine JSON: the apostrophe in <c>Investor's Business Daily</c> sits inside a double-quoted JSON string and
+/// is correctly escaped, so <c>JsonSerializer</c> reads it back exactly.</para>
+///
+/// <para>It binds to <see cref="IReadOnlyList{T}"/> of <see cref="string"/> so that the ordinary path and
+/// <see cref="Models.BulkPriceTargetSummary.Publishers"/> agree about the type of this field; before this
+/// converter they would not have.</para>
+///
+/// <para><b>Empty and null mean different things, deliberately.</b> An empty list is FMP saying there are no
+/// publishers — 874 of 5,277 rows on the bulk path measured 2026-08-26 — and <see langword="null"/> is this SDK
+/// saying the field could not be read. Collapsing the two would turn a format change upstream into a silent,
+/// universal "no publishers".</para>
+///
+/// <para>Deserialisation goes through <see cref="FmpJsonContext"/> rather than a reflection-based overload,
+/// because this assembly declares <c>IsAotCompatible</c> and a reflecting <c>Deserialize</c> would fail the
+/// build on IL2026/IL3050.</para></summary>
+public sealed class PublisherListJsonConverter : JsonConverter<IReadOnlyList<string>>
+{
+    /// <inheritdoc/>
+    public override IReadOnlyList<string>? Read(
+        ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        // Guarded from the start, unlike BusinessAddressJsonConverter, which shipped without this and had it
+        // added by review. Utf8JsonReader.GetString() throws on anything but String, PropertyName or Null, and
+        // the realistic trigger is FMP fixing the double-encoding: if `publishers` ever arrives as a real JSON
+        // array, an unguarded read costs the WHOLE response, since FmpTransport does not wrap DeserializeAsync.
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            // Skip() rather than an early return alone: for StartArray/StartObject the reader is positioned at
+            // the OPENING token only, and System.Text.Json's VerifyRead demands the converter leave it past the
+            // matching close token -- otherwise it throws its own JsonException ("read too much or not enough")
+            // in place of the one this guard exists to avoid. Skip() is a correct no-op on the scalar tokens
+            // (Number, True, False, Null) that also reach this branch.
+            reader.Skip();
+            return null;
+        }
+
+        var raw = reader.GetString();
+        if (raw is null) return null;
+        if (raw.Length == 0) return [];
+
+        try
+        {
+            return JsonSerializer.Deserialize(raw, FmpJsonContext.Default.ListString);
+        }
+        catch (JsonException)
+        {
+            return null;   // unreadable, which is not the same as empty
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, IReadOnlyList<string> value, JsonSerializerOptions options)
+        => writer.WriteStringValue(
+            JsonSerializer.Serialize(new List<string>(value), FmpJsonContext.Default.ListString));
+}
