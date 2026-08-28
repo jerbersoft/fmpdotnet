@@ -81,3 +81,126 @@ public sealed record IpoCalendarEntry
     /// <see cref="MarketCapitalization.MarketCap"/>.</para></summary>
     [JsonPropertyName("marketCap")] public decimal? MarketCap { get; init; }
 }
+
+/// <summary>One EDGAR filing marking a registration as effective, from <c>stable/ipos-disclosure</c>.
+///
+/// <para><b>Every field was populated on every row measured</b> — 8,856 rows on 2026-08-28 — so this record has
+/// no measured absent value, which is unusual in this SDK and worth stating rather than leaving to be
+/// discovered.</para>
+///
+/// <para><b>One filing appears once per share class it covers.</b> All five rows of the captured page share a
+/// CIK, a form and a URL under five different tickers: a single <c>CERT</c> covering five classes of one fund.
+/// A caller deduplicating on <see cref="Url"/> collapses five real rows into one.</para>
+///
+/// <para><b>The three dates are plain dates, not timestamps.</b> All three were 10 characters on all 8,856 rows
+/// — read the note on <see cref="AcceptedDate"/> before reaching for a converter.</para></summary>
+public sealed record IpoDisclosure
+{
+    /// <summary>The ticker the filing covers.</summary>
+    [JsonPropertyName("symbol")] public string? Symbol { get; init; }
+
+    /// <summary>When the filing was made.</summary>
+    [JsonPropertyName("filingDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? FilingDate { get; init; }
+
+    /// <summary>When EDGAR accepted the filing, <b>as a plain date</b>.
+    ///
+    /// <para><b>This is not the same kind of value as <see cref="SecFiling.AcceptedDate"/>, despite the
+    /// identical field name.</b> That one is a 19-character <c>uuuu-MM-dd HH:mm:ss</c> EDGAR wall clock in US
+    /// Eastern, read through <see cref="NullableEasternInstantJsonConverter"/>. This one was <b>10 characters on
+    /// all 8,856 rows</b> measured 2026-08-28 — there is no time of day in it at all. Pointing the Eastern
+    /// converter at this field would answer <see langword="null"/> for every row and never throw, which is the
+    /// silent kind of wrong.</para></summary>
+    [JsonPropertyName("acceptedDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? AcceptedDate { get; init; }
+
+    /// <summary>When the registration became effective.</summary>
+    [JsonPropertyName("effectivenessDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? EffectivenessDate { get; init; }
+
+    /// <summary>The filer's SEC Central Index Key, zero-padded to ten characters — <c>"0001040674"</c>. A
+    /// string and never a number: parsing it loses the padding EDGAR uses.</summary>
+    [JsonPropertyName("cik")] public string? Cik { get; init; }
+
+    /// <summary>The EDGAR form type — <c>CERT</c> on the captured page.</summary>
+    [JsonPropertyName("form")] public string? Form { get; init; }
+
+    /// <summary>Direct link to the filing on <c>sec.gov</c>. Shared across every row of the same filing.</summary>
+    [JsonPropertyName("url")] public string? Url { get; init; }
+}
+
+/// <summary>One prospectus filing and the offering economics on it, from <c>stable/ipos-prospectus</c>.
+///
+/// <para><b>Every field was populated on every one of the 165 rows measured</b> on 2026-08-28.</para>
+///
+/// <para><b>The money fields are reported exactly as FMP sent them, including where that is absurd.</b> One
+/// captured row carries a price of 300 per share against a total of 273; another repeats 10,709,298 across
+/// three unrelated fields. The SDK does not correct, flag or drop them — a plausibility rule here would be the
+/// SDK inventing a fact, and the values are what a caller needs to see in order to judge them.</para>
+///
+/// <para>Every date here is a plain 10-character date, as on <see cref="IpoDisclosure"/>, and
+/// <see cref="AcceptedDate"/> can fall a day <i>before</i> <see cref="FilingDate"/>.</para></summary>
+public sealed record IpoProspectus
+{
+    /// <summary>The ticker the prospectus covers.</summary>
+    [JsonPropertyName("symbol")] public string? Symbol { get; init; }
+
+    /// <summary>When EDGAR accepted the filing, as a plain date. See the note on
+    /// <see cref="IpoDisclosure.AcceptedDate"/>: this is not the Eastern timestamp the SEC filing paths carry,
+    /// and it can precede <see cref="FilingDate"/> by a day.</summary>
+    [JsonPropertyName("acceptedDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? AcceptedDate { get; init; }
+
+    /// <summary>When the prospectus was filed.</summary>
+    [JsonPropertyName("filingDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? FilingDate { get; init; }
+
+    /// <summary>The issuer's original IPO date, which can be decades before the filing — <c>1989-03-02</c> and
+    /// <c>2000-06-22</c> both appear against 2026 filings. This is a follow-on prospectus feed as much as a
+    /// new-issue one.</summary>
+    [JsonPropertyName("ipoDate")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? IpoDate { get; init; }
+
+    /// <summary>The filer's SEC Central Index Key, zero-padded to ten characters.</summary>
+    [JsonPropertyName("cik")] public string? Cik { get; init; }
+
+    /// <summary>Offering price per share to the public.</summary>
+    [JsonPropertyName("pricePublicPerShare")] public decimal? PricePublicPerShare { get; init; }
+
+    /// <summary>Total offering value to the public.
+    ///
+    /// <para><b><see langword="decimal"/> and never a narrower type:</b> measured to <b>74,999,999,925</b>
+    /// across 165 rows on 2026-08-28, about thirty-five times <see cref="int"/>'s ceiling, and fractional on 13
+    /// of those rows. An <see cref="int"/> here throws rather than reading null, costing the whole
+    /// response.</para></summary>
+    [JsonPropertyName("pricePublicTotal")] public decimal? PricePublicTotal { get; init; }
+
+    /// <summary>Underwriting discounts and commissions per share.</summary>
+    [JsonPropertyName("discountsAndCommissionsPerShare")]
+    public decimal? DiscountsAndCommissionsPerShare { get; init; }
+
+    /// <summary>Total underwriting discounts and commissions. Measured to 500,000,000.</summary>
+    [JsonPropertyName("discountsAndCommissionsTotal")]
+    public decimal? DiscountsAndCommissionsTotal { get; init; }
+
+    /// <summary>Proceeds to the issuer per share, before expenses.</summary>
+    [JsonPropertyName("proceedsBeforeExpensesPerShare")]
+    public decimal? ProceedsBeforeExpensesPerShare { get; init; }
+
+    /// <summary>Total proceeds to the issuer before expenses. Measured to <b>74,499,999,925</b> — see
+    /// <see cref="PricePublicTotal"/> for why this is <see langword="decimal"/>.</summary>
+    [JsonPropertyName("proceedsBeforeExpensesTotal")]
+    public decimal? ProceedsBeforeExpensesTotal { get; init; }
+
+    /// <summary>The EDGAR form type — <c>424B4</c> and <c>S-1/A</c> on the captured page.</summary>
+    [JsonPropertyName("form")] public string? Form { get; init; }
+
+    /// <summary>Direct link to the filing on <c>sec.gov</c>.</summary>
+    [JsonPropertyName("url")] public string? Url { get; init; }
+}

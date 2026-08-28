@@ -381,4 +381,58 @@ public sealed class CalendarEndpoints(FmpTransport transport)
         return new CalendarResult<IpoCalendarEntry>(
             kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
+
+    /// <summary>Effectiveness filings for registrations in a date range, from <c>stable/ipos-disclosure</c>.
+    ///
+    /// <para><b>This path answers the whole range asked for, and that is the thing to plan for.</b> Measured
+    /// 2026-08-28: 2024-01-01 to 2024-12-31 returned <b>25,689 rows</b> spanning 2024-01-02 to 2024-12-31, and
+    /// 2020-01-01 to 2026-08-28 returned <b>123,678</b>. It is neither capped nor paginated, so a wide range is
+    /// a single large response rather than a truncated one — the opposite failure mode from
+    /// <see cref="GetIpoCalendarAsync"/>, and the reason this method returns a plain list with no truncation
+    /// signal on it. There is nothing to report; there is a payload to budget for.</para>
+    ///
+    /// <para><b>One filing appears once per share class it covers</b>, sharing a CIK, form and URL across
+    /// several tickers — so the row count is not a filing count.</para></summary>
+    /// <param name="from">First day of the range, inclusive.</param>
+    /// <param name="to">Last day of the range, inclusive.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<IpoDisclosure>> GetIpoDisclosuresAsync(
+        LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        DateRange.ThrowIfBackwards(from, to);
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/ipos-disclosure").With("from", from).With("to", to),
+            FmpJsonContext.Default.ListIpoDisclosure, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Prospectus filings and their offering economics in a date range, from
+    /// <c>stable/ipos-prospectus</c>.
+    ///
+    /// <para>Like <see cref="GetIpoDisclosuresAsync"/>, this answers the whole range asked for and is neither
+    /// capped nor paginated — 1,048 rows for a full 2024, 15,726 for 2020 to 2026 — so it returns a plain list
+    /// with no truncation signal. Smaller than its sibling by roughly twenty-five to one.</para>
+    ///
+    /// <para><b>It is a follow-on feed as much as a new-issue one:</b>
+    /// <see cref="IpoProspectus.IpoDate"/> ran back to 1989 against 2026 filings in the measured sample. And the
+    /// money fields are reported exactly as sent — read the remarks on <see cref="IpoProspectus"/> before
+    /// treating them as arithmetically consistent.</para></summary>
+    /// <param name="from">First day of the range, inclusive.</param>
+    /// <param name="to">Last day of the range, inclusive.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<IpoProspectus>> GetIpoProspectusesAsync(
+        LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        DateRange.ThrowIfBackwards(from, to);
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/ipos-prospectus").With("from", from).With("to", to),
+            FmpJsonContext.Default.ListIpoProspectus, ct).ConfigureAwait(false);
+    }
 }

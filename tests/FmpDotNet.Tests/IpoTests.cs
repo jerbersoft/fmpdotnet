@@ -172,6 +172,188 @@ public class IpoTests
         Assert.False(result.AtRowCap);
     }
 
+    // ---- ipos-disclosure ----------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_captured_disclosure_row_binds_all_seven_of_its_fields()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("ipos-disclosure.head.json"));
+
+        var rows = await endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.Equal(5, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("HLPPX", rows[0].Symbol);
+        Assert.Equal("0001040674", rows[0].Cik);
+        Assert.Equal("CERT", rows[0].Form);
+        Assert.Equal(Day(2026, 8, 28), rows[0].FilingDate);
+        Assert.Equal(Day(2026, 8, 28), rows[0].AcceptedDate);
+        Assert.Equal(Day(2026, 8, 28), rows[0].EffectivenessDate);
+        Assert.EndsWith("FRUT082826.pdf", rows[0].Url);
+    }
+
+    [Fact]
+    public async Task One_filing_appears_once_per_share_class_it_covers()
+    {
+        // All five captured rows share a CIK, a form and a URL under five different tickers. A caller
+        // deduplicating on `url` would collapse five real rows into one.
+        var (endpoints, _) = Build(Binding.Fixture("ipos-disclosure.head.json"));
+
+        var rows = await endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.Single(rows.Select(r => r.Url).Distinct());
+        Assert.Equal(5, rows.Select(r => r.Symbol).Distinct().Count());
+    }
+
+    [Fact]
+    public void The_cik_keeps_its_leading_zeros_because_it_is_a_string()
+    {
+        var row = JsonSerializer.Deserialize(
+            """[{"cik":"0001040674"}]""", FmpJsonContext.Default.ListIpoDisclosure)![0];
+
+        Assert.Equal("0001040674", row.Cik);
+    }
+
+    [Fact]
+    public async Task The_disclosure_path_sends_both_bounds()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.Equal("stable/ipos-disclosure", handler.Requests.Single().AbsolutePath.TrimStart('/'));
+        Assert.Equal("?from=2026-08-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+    }
+
+    [Fact]
+    public async Task The_disclosure_path_returns_a_plain_list_because_no_truncation_was_measured()
+    {
+        // The opposite ruling from the three calendars, from the same kind of evidence: a full 2024 answered
+        // 25,689 rows spanning 2024-01-02 to 2024-12-31 -- the whole year, nothing clamped. Wrapping this in a
+        // CalendarResult would offer a truncation signal that has nothing to report.
+        var (endpoints, _) = Build(Binding.Fixture("ipos-disclosure.head.json"));
+
+        var rows = await endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.IsNotType<CalendarResult<IpoDisclosure>>(rows);
+    }
+
+    // ---- ipos-prospectus ----------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_captured_prospectus_row_binds_all_thirteen_of_its_fields()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("ipos-prospectus.head.json"));
+
+        var rows = await endpoints.GetIpoProspectusesAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.Equal(5, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("CHEK", rows[0].Symbol);
+        Assert.Equal("0001610590", rows[0].Cik);
+        Assert.Equal("424B4", rows[0].Form);
+        Assert.Equal(Day(2026, 8, 27), rows[0].AcceptedDate);
+        Assert.Equal(Day(2026, 8, 27), rows[0].FilingDate);
+        Assert.Equal(Day(2015, 2, 16), rows[0].IpoDate);
+        Assert.Equal(6.5m, rows[0].PricePublicPerShare);
+        Assert.Equal(10_000_003m, rows[0].PricePublicTotal);
+        Assert.Equal(0.39m, rows[0].DiscountsAndCommissionsPerShare);
+        Assert.Equal(600_000.18m, rows[0].DiscountsAndCommissionsTotal);
+        Assert.Equal(6.11m, rows[0].ProceedsBeforeExpensesPerShare);
+        Assert.Equal(9_400_002.82m, rows[0].ProceedsBeforeExpensesTotal);
+    }
+
+    [Fact]
+    public async Task An_accepted_date_can_precede_its_filing_date_and_the_sdk_does_not_correct_it()
+    {
+        // AVCO in the captured page: accepted 2026-08-24, filed 2026-08-25. The two are independent fields and
+        // nothing here orders them.
+        var (endpoints, _) = Build(Binding.Fixture("ipos-prospectus.head.json"));
+
+        var rows = await endpoints.GetIpoProspectusesAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        var avco = Assert.Single(rows, r => r.Symbol == "AVCO");
+        Assert.Equal(Day(2026, 8, 24), avco.AcceptedDate);
+        Assert.Equal(Day(2026, 8, 25), avco.FilingDate);
+        Assert.True(avco.AcceptedDate < avco.FilingDate);
+    }
+
+    [Fact]
+    public async Task The_money_fields_are_reported_exactly_as_sent_however_implausible()
+    {
+        // AVCO: 300 per share against a total of 273. QDMI: 10,709,298 repeated across three unrelated fields.
+        // Both are what FMP sent, and neither is corrected, flagged or dropped -- the alternative would be the
+        // SDK inventing a plausibility rule it cannot justify.
+        var (endpoints, _) = Build(Binding.Fixture("ipos-prospectus.head.json"));
+
+        var rows = await endpoints.GetIpoProspectusesAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        var avco = Assert.Single(rows, r => r.Symbol == "AVCO");
+        Assert.Equal(300m, avco.PricePublicPerShare);
+        Assert.Equal(273m, avco.PricePublicTotal);
+    }
+
+    [Fact]
+    public void A_prospectus_total_beyond_int_binds_rather_than_throwing()
+    {
+        // Measured maxima across 165 rows on 2026-08-28: pricePublicTotal 74,999,999,925 and
+        // proceedsBeforeExpensesTotal 74,499,999,925, both about thirty-five times int.MaxValue. Same rule and
+        // same failure mode as IpoCalendarEntry.MarketCap: an int? would throw, not read null.
+        var row = JsonSerializer.Deserialize(
+            """[{"symbol":"BIG","pricePublicTotal":74999999925,"proceedsBeforeExpensesTotal":74499999925}]""",
+            FmpJsonContext.Default.ListIpoProspectus)![0];
+
+        Assert.Equal(74_999_999_925m, row.PricePublicTotal);
+        Assert.Equal(74_499_999_925m, row.ProceedsBeforeExpensesTotal);
+    }
+
+    [Fact]
+    public void Every_date_on_both_filing_feeds_is_a_plain_ten_character_date_not_an_eastern_timestamp()
+    {
+        // The trap this pair shares with the SEC filing paths, in the other direction. SecFiling.AcceptedDate
+        // reads a 19-character "uuuu-MM-dd HH:mm:ss" Eastern wall clock; every date-shaped field here was 10
+        // characters on all 8,856 disclosure rows and all 165 prospectus rows measured 2026-08-28. Pointing
+        // NullableEasternInstantJsonConverter at these would answer null for every row and never throw.
+        var disclosure = JsonSerializer.Deserialize(
+            """[{"filingDate":"2026-08-26","acceptedDate":"2026-08-26","effectivenessDate":"2026-08-26"}]""",
+            FmpJsonContext.Default.ListIpoDisclosure)![0];
+        var prospectus = JsonSerializer.Deserialize(
+            """[{"filingDate":"2026-05-29","acceptedDate":"2026-05-29","ipoDate":"1989-03-02"}]""",
+            FmpJsonContext.Default.ListIpoProspectus)![0];
+
+        Assert.Equal(Day(2026, 8, 26), disclosure.AcceptedDate);
+        Assert.Equal(Day(2026, 8, 26), disclosure.EffectivenessDate);
+        Assert.Equal(Day(2026, 5, 29), prospectus.AcceptedDate);
+        Assert.Equal(Day(1989, 3, 2), prospectus.IpoDate);
+    }
+
+    [Fact]
+    public async Task The_prospectus_path_sends_both_bounds()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIpoProspectusesAsync(Day(2026, 8, 1), Day(2026, 8, 28));
+
+        Assert.Equal("stable/ipos-prospectus", handler.Requests.Single().AbsolutePath.TrimStart('/'));
+        Assert.Equal("?from=2026-08-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+    }
+
+    [Theory]
+    [InlineData("disclosures")]
+    [InlineData("prospectuses")]
+    public async Task A_backwards_range_is_refused_on_both_filing_feeds(string which)
+    {
+        var (endpoints, handler) = Build();
+        Func<Task> call = which == "disclosures"
+            ? () => endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 28), Day(2026, 8, 1))
+            : () => endpoints.GetIpoProspectusesAsync(Day(2026, 8, 28), Day(2026, 8, 1));
+
+        var error = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(call);
+
+        Assert.Equal("to", error.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
     private static string SyntheticCalendar(int rowCount, LocalDate earliest)
     {
         var json = new System.Text.StringBuilder("[");

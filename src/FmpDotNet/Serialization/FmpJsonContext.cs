@@ -56,6 +56,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<Dividend>))]
 [JsonSerializable(typeof(List<StockSplit>))]
 [JsonSerializable(typeof(List<IpoCalendarEntry>))]
+[JsonSerializable(typeof(List<IpoDisclosure>))]
+[JsonSerializable(typeof(List<IpoProspectus>))]
 [JsonSerializable(typeof(List<Quote>))]
 [JsonSerializable(typeof(List<ShortQuote>))]
 [JsonSerializable(typeof(List<AftermarketTrade>))]
