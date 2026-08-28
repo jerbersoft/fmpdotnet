@@ -169,6 +169,16 @@ public class BeneficialOwnershipTests
     }
 
     [Fact]
+    public async Task A_blank_symbol_is_refused_with_ArgumentException()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetBeneficialOwnershipAsync("   "));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task A_null_symbol_is_refused_with_ArgumentNullException()
     {
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
