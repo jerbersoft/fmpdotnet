@@ -1,0 +1,7 @@
+[
+ {"symbol": "8011.T", "date": "2026-08-28", "numerator": 3, "denominator": 1, "splitType": "stock-split"},
+ {"symbol": "7649.T", "date": "2026-08-28", "numerator": 2, "denominator": 1, "splitType": "stock-split"},
+ {"symbol": "SPICEISLIN.BO", "date": "2026-08-28", "numerator": 5, "denominator": 1, "splitType": "stock-split"},
+ {"symbol": "9279.T", "date": "2026-08-28", "numerator": 2, "denominator": 1, "splitType": "stock-split"},
+ {"symbol": "CYCU", "date": "2026-08-28", "numerator": 1, "denominator": 8, "splitType": "stock-split"}
+]

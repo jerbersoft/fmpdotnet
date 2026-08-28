@@ -251,4 +251,89 @@ public sealed class CalendarEndpoints(FmpTransport transport)
         // limit is observable on this path and asserting one would be inventing evidence.
         return new CalendarResult<Dividend>(kept, rows.Count, from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
     }
+
+    /// <summary>Every split FMP holds for one symbol, newest first, from <c>stable/splits</c>.
+    ///
+    /// <para><b><paramref name="limit"/> is omitted by default, and without it you get everything.</b> AAPL's
+    /// whole history is five rows, back to 1987, measured 2026-08-28.</para>
+    ///
+    /// <para><b>There is no date range on this method, because the endpoint ignores one.</b> Measured the same
+    /// day: <c>symbol=AAPL</c> answers 5 rows with and without <c>from=2024-01-01&amp;to=2024-12-31</c> — and
+    /// AAPL had no split in 2024, so a filter that worked would have answered none. Use
+    /// <see cref="GetSplitsCalendarAsync"/> for a date range.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<StockSplit>> GetSplitsAsync(
+        string symbol, int? limit = null, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit is <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/splits").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListStockSplit, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Every split FMP has in a date range, across all symbols, from <c>stable/splits-calendar</c>.
+    ///
+    /// <para><b>This path will not reach more than 90 days back from <paramref name="to"/>, and it drops the
+    /// front of the range without saying so.</b> Measured 2026-08-28 against four different <c>to</c> values
+    /// spanning twenty months, each with <c>from</c> fixed at 2015-01-01, the earliest row returned was exactly
+    /// 90 days before <c>to</c> every time. <b>A request for the whole of 2024 answers Q4 of 2024</b> — 737 rows,
+    /// nine months missing. Walking <c>from</c> backwards against a fixed <c>to</c> shows the edge: −88 days is
+    /// honoured exactly, and −100, −120 and −180 all return the identical 947 rows with the identical earliest
+    /// date.</para>
+    ///
+    /// <para><b>No row count can see this.</b> 737 is nowhere near a cap, and no cap was measured on this path
+    /// at all — the widest range tried answered 947 rows. So
+    /// <see cref="CalendarResult{T}.AtRowCap"/> is structurally blind here and
+    /// <see cref="CalendarResult{T}.MissesStartOfRange"/> is what catches it, by comparing the earliest row
+    /// against the <c>from</c> that was asked for. That is a different mechanism from
+    /// <see cref="GetDividendsCalendarAsync"/>, which is row-capped instead, and the returned type reports which
+    /// one applies.</para>
+    ///
+    /// <para>Note that a span of <i>exactly</i> 90 days reads
+    /// <see cref="CalendarResult{T}.ExceedsLookbackLimit"/> as <see langword="false"/> and still loses a day —
+    /// −90 answered an earliest row of 2026-05-31 against a requested 2026-05-30. Read
+    /// <see cref="CalendarResult{T}.LikelyTruncated"/>, which is the union of the tells, rather than any one of
+    /// them.</para>
+    ///
+    /// <para>Rows whose <c>date</c> cannot be parsed are dropped, for the reason recorded on this
+    /// class.</para></summary>
+    /// <param name="from">First day of the range, inclusive. Anything more than 90 days before
+    /// <paramref name="to"/> is silently ignored — see above.</param>
+    /// <param name="to">Last day of the range, inclusive, and the anchor the 90-day window is measured
+    /// from.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <returns>A <see cref="CalendarResult{T}"/> of <see cref="StockSplit"/>, carrying the evidence needed to
+    /// tell a complete answer from a clamped one.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is before
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<StockSplit>> GetSplitsCalendarAsync(
+        LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        DateRange.ThrowIfBackwards(from, to);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/splits-calendar").With("from", from).With("to", to),
+            FmpJsonContext.Default.ListStockSplit, ct).ConfigureAwait(false);
+
+        LocalDate? earliest = null;
+        foreach (var row in rows)
+            if (row?.Date is { } date && (earliest is null || date < earliest)) earliest = date;
+
+        var kept = new List<StockSplit>(rows.Count);
+        foreach (var row in rows)
+            if (row is { Date: not null }) kept.Add(row);
+
+        // The opposite of the dividend calendar: no cap was measured here, and the clamp is a flat 90-day
+        // window from `to`.
+        return new CalendarResult<StockSplit>(kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+    }
 }
