@@ -19,13 +19,19 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para><b>Rows whose <c>date</c> cannot be parsed are dropped on five of the nine methods, and handed over
 /// unfiltered on the other four — check which group a method is in before relying on either behaviour.</b> The
-/// rule applies to <see cref="GetEarningsAsync"/> and to the four date-ranged methods that return dated rows in
-/// a <see cref="CalendarResult{T}"/>-shaped answer: <see cref="GetEarningsCalendarAsync"/>,
-/// <see cref="GetDividendsCalendarAsync"/>, <see cref="GetSplitsCalendarAsync"/> and
-/// <see cref="GetIpoCalendarAsync"/>. It does not apply to <see cref="GetDividendsAsync"/> or
-/// <see cref="GetSplitsAsync"/> — see the remarks on each for why a per-symbol path hands over every row
-/// instead — nor to <see cref="GetIpoDisclosuresAsync"/> and <see cref="GetIpoProspectusesAsync"/>, which apply
-/// no date-based filtering of any kind and return exactly what FMP sent.</para>
+/// rule applies to <see cref="GetEarningsAsync"/> and to the four date-ranged methods that report their own
+/// truncation: <see cref="GetEarningsCalendarAsync"/>, which answers through
+/// <see cref="EarningsCalendarResult"/>, and <see cref="GetDividendsCalendarAsync"/>,
+/// <see cref="GetSplitsCalendarAsync"/> and <see cref="GetIpoCalendarAsync"/>, which answer through
+/// <see cref="CalendarResult{T}"/>. It does not apply to <see cref="GetDividendsAsync"/> or
+/// <see cref="GetSplitsAsync"/> — see the remarks on each — nor to <see cref="GetIpoDisclosuresAsync"/> and
+/// <see cref="GetIpoProspectusesAsync"/>, which apply no date-based filtering of any kind and return exactly
+/// what FMP sent.</para>
+///
+/// <para><b>The split is not simply per-symbol against calendar, and no rule about a method's shape will
+/// predict it.</b> <see cref="GetEarningsAsync"/> is a per-symbol path and drops; its two newer per-symbol
+/// siblings do not. That is why this note lists the methods by name — the grouping is a record of what each one
+/// does, not a principle you can apply to the next one added.</para>
 ///
 /// <para>Reasoned once, here, for the five methods it applies to:</para>
 ///
@@ -199,11 +205,12 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     ///
     /// <para><b>Every row FMP sends is returned, undated ones included.</b> Unlike
     /// <see cref="GetDividendsCalendarAsync"/>, this method does not drop a row whose <c>date</c> will not parse.
-    /// On a per-symbol path the symbol is the row's identity, not the date: a dividend with an unparseable date
-    /// is still that symbol's dividend, so the SDK hands it over rather than deciding for the caller that it
-    /// should be dropped. On a calendar the date is half the row's identity instead, because the caller is
-    /// asking what happened in a range and an undated row cannot be placed in one — see the note on
-    /// <see cref="CalendarEndpoints"/>.</para></summary>
+    /// Here the symbol is the row's identity rather than the date: a dividend with an unparseable date is still
+    /// that symbol's dividend, so the SDK hands it over rather than deciding for the caller that it should be
+    /// dropped. On a calendar the date is half the identity instead, because the caller is asking what happened
+    /// in a range and an undated row cannot be placed in one. <b>Note this is a choice made per method, not a
+    /// property of per-symbol paths:</b> <see cref="GetEarningsAsync"/> is per-symbol and does drop. The note on
+    /// <see cref="CalendarEndpoints"/> lists which methods do which.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it — hyphenated for class shares (<c>BRK-B</c>, not
     /// <c>BRK.B</c>).</param>
     /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
@@ -291,10 +298,12 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="GetSplitsCalendarAsync"/> for a date range.</para>
     ///
     /// <para><b>Every row FMP sends is returned, undated ones included.</b> Unlike
-    /// <see cref="GetSplitsCalendarAsync"/>, this method does not drop a row whose <c>date</c> will not parse. On
-    /// a per-symbol path the symbol is the row's identity, not the date: a split with an unparseable date is
-    /// still that symbol's split, so the SDK hands it over rather than deciding for the caller that it should be
-    /// dropped — see the note on <see cref="CalendarEndpoints"/>.</para></summary>
+    /// <see cref="GetSplitsCalendarAsync"/>, this method does not drop a row whose <c>date</c> will not parse.
+    /// Here the symbol is the row's identity rather than the date: a split with an unparseable date is still
+    /// that symbol's split, so the SDK hands it over rather than deciding for the caller that it should be
+    /// dropped. <b>A choice made per method, not a property of per-symbol paths:</b>
+    /// <see cref="GetEarningsAsync"/> is per-symbol and does drop. The note on
+    /// <see cref="CalendarEndpoints"/> lists which methods do which.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
     /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
     /// <param name="ct">Cancellation token.</param>
