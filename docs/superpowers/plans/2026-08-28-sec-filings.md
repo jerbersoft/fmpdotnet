@@ -3718,6 +3718,20 @@ Two traps are pinned that the spec did not name, both found while planning: the 
 name matching that returns `APPLING PARTNERS, LLC` for `company=Apple`
 (`A_name_search_matches_loosely_and_leaves_unclassified_filers_blank`, Task 9).
 
-**Totals.** 61 new test methods across ten test files (four created, six modified), 13 fixtures, 12 paths, 14
+**Totals.** 66 new test methods across ten test files (four created, six modified), 13 fixtures, 12 paths, 14
 public methods, 4 records, 2 converters, 1 new facade, 1 promoted helper. The spec estimated 45–55 tests; the
 excess is the two unplanned traps above, the promoted guard's own tests, and the two keyless sweep guards.
+
+> **Counted after execution, not before.** The figure above was 61 when this plan was written. The extra five
+> are tests the reviews demanded and the plan did not foresee, and each closes a hole nothing else covered:
+> two "a limit exactly at the cap is accepted" boundary tests (Task 2's and Task 7's reviews — flipping
+> `ThrowIfGreaterThan` to `ThrowIfGreaterThanOrEqual` would otherwise leave the whole suite green while the
+> documented maximum threw); one non-string-token test on `BusinessAddressJsonConverter` (the whole-branch
+> review found the converter's "never throws" claim was false, and that a real JSON array would cost the
+> entire response); one boundary test on the third copy of the page-size guard, which the other two had and
+> it did not; and one keyless guard pinning that the sweep hands the two calendars a narrow date range rather
+> than the widened one their own measurements call unsafe.
+>
+> Composition, verified against the tree rather than asserted: 22 in `IndustryClassificationTests`, 22 in
+> `SecFilingsTests`, 15 in `SecProfileTests`, 3 in `DateRangeTests`, 3 added to `SweepCoverageTests` (4 → 7),
+> 1 added to `OrdinaryEndpointShapeTests` (2 → 3). 62 + 3 + 1 = 66.
