@@ -312,3 +312,51 @@ public sealed class TolerantDecimalJsonConverter : JsonConverter<decimal?>
         else writer.WriteNumberValue(value.Value);
     }
 }
+
+/// <summary>Normalises <c>businessAddress</c> so that one property means the same thing on all five paths that
+/// send it.
+///
+/// <para><b>Two encodings for one field, measured 2026-08-28.</b> <c>all-industry-classification</c> and
+/// <c>industry-classification-search</c> send a stringified Python list —
+/// <c>"['BANK OF AMERICA CORPORATE CENTER', 'CHARLOTTE NC 28255']"</c>, 1,000 of 1,000 rows sampled — while the
+/// three <c>sec-filings-company-search/*</c> paths send the same address for the same CIK as
+/// <c>"BANK OF AMERICA CORPORATE CENTER, CHARLOTTE NC 28255"</c>, 0 of 976 rows bracketed. The joined form is
+/// FMP's own: <c>", ".join(parts)</c> of the bracketed value reproduced the sibling path's string exactly on
+/// five of five randomly sampled CIKs, so this converter adopts a target FMP publishes rather than inventing
+/// one.</para>
+///
+/// <para><b>The transform is textual, not a parse, and the difference is load-bearing.</b> Of those 1,000
+/// values, 999 parse as a Python literal and one does not:
+/// <c>"['NO. 65', 'LN', '114', 'XISHI RD.', 'XI'AN VIL.', 'TAICHUNG CITY  ']"</c> (AGCC, CIK 0002060016), where
+/// <c>XI'AN</c> carries an unescaped apostrophe inside a single-quoted repr. The string was built by naive
+/// formatting rather than by a serialiser, so every apostrophe in an address — Xi'an, O'Brien, L'Oreal —
+/// reproduces the fault. Stripping the brackets and replacing <c>', '</c> handles that row correctly, because
+/// the apostrophe is not followed by a comma and a space. A real parse fails on it.</para>
+///
+/// <para><b>One direction only.</b> Splitting the joined form back into parts would be lossy: nineteen of the
+/// 1,000 sampled values carry a comma or a quote inside an element.</para>
+///
+/// <para>Anything that is not bracketed at both ends is returned exactly as sent. The converter never throws and
+/// never drops a value, which is also what makes it safe on the three paths that never bracket. Whitespace is
+/// not trimmed — <c>'TAICHUNG CITY  '</c> keeps its trailing spaces, because FMP sent them and trimming would be
+/// a second unmeasured transform riding on this one.</para></summary>
+public sealed class BusinessAddressJsonConverter : JsonConverter<string>
+{
+    /// <inheritdoc/>
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => Normalise(reader.GetString());
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
+
+    /// <summary>The transform itself, exposed so it can be tested without a serialiser around it.</summary>
+    internal static string? Normalise(string? raw)
+    {
+        if (raw is null) return null;
+        if (!raw.StartsWith("['", StringComparison.Ordinal) || !raw.EndsWith("']", StringComparison.Ordinal))
+            return raw;
+
+        return raw[2..^2].Replace("', '", ", ", StringComparison.Ordinal);
+    }
+}

@@ -62,6 +62,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<EndOfDayBar>))]
 [JsonSerializable(typeof(List<AdjustedEndOfDayBar>))]
 [JsonSerializable(typeof(List<IntradayBar>))]
+[JsonSerializable(typeof(List<IndustryClassification>))]
+[JsonSerializable(typeof(List<SicCodeEntry>))]
 // The five below were built for the *-bulk CSV surface and are registered here because their per-symbol JSON
 // twins carry the identical field set, measured 2026-08-27. Every property still carries [JsonPropertyName], but
 // measured 2026-08-27 only 108 of the 237 attributes across these five types are load-bearing — the TTM suffixes

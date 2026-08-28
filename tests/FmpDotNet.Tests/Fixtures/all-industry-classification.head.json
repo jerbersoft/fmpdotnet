@@ -1,0 +1,47 @@
+[
+  {
+    "symbol": "0Q16.L",
+    "name": "BANK OF AMERICA CORP /DE/",
+    "cik": "0000070858",
+    "sicCode": "6021",
+    "industryTitle": "NATIONAL COMMERCIAL BANKS",
+    "businessAddress": "['BANK OF AMERICA CORPORATE CENTER', 'CHARLOTTE NC 28255']",
+    "phoneNumber": "7043868486"
+  },
+  {
+    "symbol": "A",
+    "name": "AGILENT TECHNOLOGIES, INC.",
+    "cik": "0001090872",
+    "sicCode": "3826",
+    "industryTitle": "LABORATORY ANALYTICAL INSTRUMENTS",
+    "businessAddress": "['5301 STEVENS CREEK BLVD', 'SANTA CLARA CA 95051']",
+    "phoneNumber": "(408) 345-8886"
+  },
+  {
+    "symbol": "AA",
+    "name": "Alcoa Corp",
+    "cik": "0001675149",
+    "sicCode": "3334",
+    "industryTitle": "PRIMARY PRODUCTION OF  ALUMINUM",
+    "businessAddress": "['201 ISABELLA STREET', 'PITTSBURGH PA 15212']",
+    "phoneNumber": "412-315-2900"
+  },
+  {
+    "symbol": "AAAU",
+    "name": "Goldman Sachs Physical Gold ETF",
+    "cik": "0001708646",
+    "sicCode": "6221",
+    "industryTitle": "COMMODITY CONTRACTS BROKERS & DEALERS",
+    "businessAddress": "['240 GREENWICH STREET', '8TH FLOOR', 'NEW YORK NY 10286']",
+    "phoneNumber": "718-315-4591"
+  },
+  {
+    "symbol": "AAC",
+    "name": "Ares Acquisition Corp",
+    "cik": "0001829432",
+    "sicCode": "3443",
+    "industryTitle": "FABRICATED PLATE WORK (BOILER SHOPS)",
+    "businessAddress": "['C/O ARES MANAGEMENT LLC', 'NEW YORK NY 10167']",
+    "phoneNumber": "310-201-4100"
+  }
+]
