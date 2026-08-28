@@ -129,7 +129,7 @@ compared (2026-08-28):
 honouring the other, which is why both were measured per path rather than inferred from the group. **It gets
 `limit` and no `page`.**
 
-## Four numeric fields would silently become null, and seven overflow `int`
+## Seven fields overflow `int`, and one more sits at 90% of its ceiling
 
 Measured across `extract` (7,346 rows over three filers), `extract-analytics/holder` (600 rows over six
 symbols), `holder-performance-summary` (53 rows), `symbol-positions-summary` (6 symbols) and
@@ -386,6 +386,19 @@ an *institutional filer's* CIK. Measured:
 All four would record `outcome empty`, and a baseline that agrees with itself forever. **The sweep needs a
 filer CIK constant distinct from `LiveApi.Cik`** — Berkshire's `0001067983` returned 53, 29, 24 and 53 rows
 respectively.
+
+**The same mechanism catches `insider-trading/search` a second way.** Nothing in the smoke suite inspects
+`IsOptional`, so `Probe` supplies every parameter, optional ones included. A search method taking
+`reportingCik`, `companyCik` and `transactionType` would have all three fall through the `string` arm to
+`"AAPL"`. Measured:
+
+| query | rows |
+|---|---|
+| `symbol=AAPL&reportingCik=AAPL&companyCik=AAPL&transactionType=AAPL` | 0 |
+| `symbol=AAPL&transactionType=AAPL` | 0 |
+
+One bogus discriminator is enough to empty the result. The path works — `transactionType=S-Sale` returned 100
+rows across 53 symbols — but the sweep would record `outcome empty` for it.
 
 Two smaller notes on the same mechanism:
 
