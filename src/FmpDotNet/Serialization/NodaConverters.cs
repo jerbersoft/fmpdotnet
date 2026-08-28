@@ -357,11 +357,12 @@ public sealed class TolerantDecimalJsonConverter : JsonConverter<decimal?>
 /// <summary>Normalises <c>businessAddress</c> so that one property means the same thing on all five paths that
 /// send it.
 ///
-/// <para><b>Two encodings for one field, measured 2026-08-28.</b> <c>all-industry-classification</c> and
-/// <c>industry-classification-search</c> send a stringified Python list —
-/// <c>"['BANK OF AMERICA CORPORATE CENTER', 'CHARLOTTE NC 28255']"</c>, 1,000 of 1,000 rows sampled — while the
-/// three <c>sec-filings-company-search/*</c> paths send the same address for the same CIK as
-/// <c>"BANK OF AMERICA CORPORATE CENTER, CHARLOTTE NC 28255"</c>, 0 of 976 rows bracketed. The joined form is
+/// <para><b>Two encodings for one field, measured 2026-08-28.</b> <c>all-industry-classification</c> sends a
+/// stringified Python list — <c>"['BANK OF AMERICA CORPORATE CENTER', 'CHARLOTTE NC 28255']"</c>, 1,000 of
+/// 1,000 rows sampled — and <c>industry-classification-search</c> was confirmed to send the same bracketed form
+/// on two queries. <c>sec-filings-company-search/name?company=Bank</c> sends the same address for the same CIK
+/// as <c>"BANK OF AMERICA CORPORATE CENTER, CHARLOTTE NC 28255"</c>, 0 of 976 rows bracketed — the other two
+/// <c>sec-filings-company-search/*</c> paths were not separately sampled at that volume. The joined form is
 /// FMP's own: <c>", ".join(parts)</c> of the bracketed value reproduced the sibling path's string exactly on
 /// five of five randomly sampled CIKs, so this converter adopts a target FMP publishes rather than inventing
 /// one.</para>
@@ -385,7 +386,25 @@ public sealed class BusinessAddressJsonConverter : JsonConverter<string>
 {
     /// <inheritdoc/>
     public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        => Normalise(reader.GetString());
+    {
+        // Every other converter in this file guards TokenType before reading a string; this one didn't, and
+        // Utf8JsonReader.GetString() throws on anything but String, PropertyName or Null. The realistic trigger
+        // is FMP fixing the naive-string-formatting bug this converter exists to undo: if businessAddress ever
+        // arrives as a real JSON array instead of a stringified one, an unguarded read costs the WHOLE response
+        // (FmpTransport.GetListAsync does not wrap DeserializeAsync) rather than the one field, which is exactly
+        // the house rule this class's own doc claims to follow.
+        if (reader.TokenType != JsonTokenType.String)
+        {
+            // Skip() rather than an early return alone: for StartArray/StartObject the reader is only
+            // positioned at the OPENING token, and System.Text.Json's VerifyRead demands the converter leave
+            // the reader past the matching close token — otherwise it throws its own JsonException ("read too
+            // much or not enough") in place of the one this guard exists to avoid. Skip() is a correct no-op
+            // on the scalar tokens (Number, True, False, Null) reaching this branch too.
+            reader.Skip();
+            return null;
+        }
+        return Normalise(reader.GetString());
+    }
 
     /// <inheritdoc/>
     public override void Write(Utf8JsonWriter writer, string value, JsonSerializerOptions options)

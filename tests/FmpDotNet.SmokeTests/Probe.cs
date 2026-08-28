@@ -329,9 +329,25 @@ internal static class Probe
         // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
         // sparse. See LiveApi.RangeStart for the measurement that forced this.
+        //
+        // `from` is then dispatched a second time, on the parameter's DECLARING TYPE, because RangeStart's
+        // ninety days is not one safe width for every date-ranged endpoint — it is safe only for the endpoints
+        // that were measured to tolerate it. CalendarEndpoints.GetEarningsCalendarAsync's own doc records
+        // day-at-a-time as "the only chunk width measured to be safe": a 31-day window in a heavy month
+        // silently truncated at exactly 4000 rows, eating the front of the range with no signal in the body.
+        // EconomicsEndpoints.GetEconomicCalendarAsync's own doc measured a 6-month window returning 535 rows —
+        // FEWER than the 3-month window it wholly contains — and a −3-to-+12-month window returning 0; "the
+        // widest range verified intact here is one week." A 91-day `from` is guaranteed truncated on the first
+        // and lands in non-monotonic, unverified territory on the second, so those two get the narrow,
+        // already-settled window instead. Every other `from` — the three sec-filings-search paths this was
+        // written for, plus the per-symbol chart and market-cap methods — is unaffected by width and keeps
+        // RangeStart.
         if (type == typeof(LocalDate))
             return parameter.Name switch
             {
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
+                    || parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
+                    => LiveApi.SettledWeekday,
                 "from" => LiveApi.RangeStart,
                 _ => LiveApi.SettledWeekday,
             };

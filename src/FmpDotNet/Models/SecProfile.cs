@@ -13,9 +13,9 @@ namespace FmpDotNet.Models;
 /// would mean a caller could not tell which fields their answer actually had.</para>
 ///
 /// <para><b>Thirty-five fields, of which all but four are JSON strings.</b> Measured 2026-08-28 across AAPL,
-/// TSM, SHEL, BRK-B, NVO and SPY — every one returned exactly one row, for both the padded and the unpadded
-/// CIK. The four exceptions are <see cref="IsActive"/>, <see cref="IsEtf"/>, <see cref="IsAdr"/> and
-/// <see cref="IsFund"/>, which are real booleans.</para></summary>
+/// TSM, SHEL, BRK-B, NVO and SPY — every one returned exactly one row. The padded and unpadded forms of the CIK
+/// were confirmed equivalent for AAPL only, CIK <c>0000320193</c>. The four boolean exceptions are
+/// <see cref="IsActive"/>, <see cref="IsEtf"/>, <see cref="IsAdr"/> and <see cref="IsFund"/>.</para></summary>
 public sealed record SecProfile
 {
     /// <summary>The ticker.</summary>

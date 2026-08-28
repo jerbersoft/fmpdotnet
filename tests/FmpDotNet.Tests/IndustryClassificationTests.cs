@@ -65,6 +65,24 @@ public class IndustryClassificationTests
     }
 
     [Fact]
+    public void A_non_string_token_reads_as_null_instead_of_costing_the_whole_response()
+    {
+        // The realistic trigger, not a contrived one: businessAddress arrives bracketed because FMP builds it
+        // with naive string formatting (see the converter's own doc). If FMP ever fixes that bug the field
+        // becomes a REAL JSON array instead of a stringified one, and Utf8JsonReader.GetString() throws on
+        // any token that is not String, PropertyName or Null. Read() had no TokenType guard, so that exception
+        // was not scoped to this one field — FmpTransport.GetListAsync does not wrap DeserializeAsync — it
+        // cost the entire response on all five paths that carry this property. A number and a bool are
+        // exercised alongside the array because the guard is on TOKEN TYPE, not on "is this specifically an
+        // array".
+        var rows = JsonSerializer.Deserialize(
+            """[{"businessAddress":["A","B"]}, {"businessAddress":123}, {"businessAddress":true}]""",
+            FmpJsonContext.Default.ListIndustryClassification)!;
+
+        Assert.All(rows, r => Assert.Null(r.BusinessAddress));
+    }
+
+    [Fact]
     public void A_single_element_address_loses_its_brackets_and_nothing_else()
     {
         // One of the 1,000 sampled values had a single element; 737 had two, 229 three, 27 four and 5 five.

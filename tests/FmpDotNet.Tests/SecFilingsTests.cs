@@ -243,6 +243,24 @@ public class SecFilingsTests
     // ---- the three searches ------------------------------------------------------------------------------------
 
     [Fact]
+    public async Task A_search_limit_exactly_at_the_measured_cap_succeeds_rather_than_being_refused()
+    {
+        // The whole-branch review's finding: SearchAsync's copy of the page-size guard (shared by all three
+        // Search* methods) had no boundary test, unlike the copy on Get8KFilingsAsync above (this file) or the
+        // one on DirectoryEndpoints.GetIndustryClassificationsAsync
+        // (IndustryClassificationTests.A_limit_exactly_at_the_measured_cap_succeeds_rather_than_being_refused).
+        // ThrowIfGreaterThan is correct here, but ThrowIfGreaterThanOrEqual would pass every other test in this
+        // file while silently rejecting the one value the XML docs tell callers is safe to send.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.SearchBySymbolAsync(
+            "AAPL", new LocalDate(2025, 1, 1), new LocalDate(2025, 12, 31),
+            limit: SecFilingsEndpoints.MaxSecFilingPageSize);
+
+        Assert.Contains("limit=1000", handler.Requests.Single().Query);
+    }
+
+    [Fact]
     public async Task The_search_paths_omit_has_financials_entirely()
     {
         // The one-field difference that decides whether this is one record or two. On the two feeds the field is
@@ -383,7 +401,7 @@ public class SecFilingsTests
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
             () => endpoints.SearchByCikAsync("320193", from, to, limit: 5000));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => endpoints.SearchByFormTypeAsync("10-K", from, to, page: -1));
+            () => endpoints.SearchByFormTypeAsync("10-K", from, to, limit: 1_000_000));
 
         Assert.Empty(handler.Requests);
     }

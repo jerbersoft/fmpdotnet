@@ -5,17 +5,18 @@ namespace FmpDotNet.SmokeTests;
 /// <para><b>These are the only tests in this project that are not gated on <c>FMP_API_KEY</c>, and that is
 /// deliberate.</b> The live suite runs on a schedule; a defect introduced on a Tuesday would otherwise sit
 /// unnoticed until the next scheduled run, and would surface then as an exception inside a sweep rather than as
-/// a compile-time-shaped complaint about the thing that actually changed. All six checks below are pure
+/// a compile-time-shaped complaint about the thing that actually changed. All seven checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining three pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining four pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
 /// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
-/// bare symbol where a search wants a form type or a SIC code — so a probe that runs without error but never
-/// asks a meaningful question doesn't slip back in unnoticed.</para>
+/// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
+/// calendars need a narrow one — so a probe that runs without error but never asks a meaningful question doesn't
+/// slip back in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
 /// arguments by parameter name, so an endpoint added with a parameter named or typed in a way
@@ -113,6 +114,28 @@ public class SweepCoverageTests
         Assert.True(NodaTime.Period.DaysBetween(from, to) >= 60,
             $"The sweep would probe the filing searches over {NodaTime.Period.DaysBetween(from, to)} day(s). "
             + "A short window answers zero rows and records an empty baseline that agrees with itself forever.");
+    }
+
+    [Fact]
+    public void The_sweep_gives_the_filing_search_a_wide_from_and_the_earnings_calendar_a_narrow_one()
+    {
+        // Probe.Argument used to map every `from` parameter to LiveApi.RangeStart regardless of which endpoint
+        // it belonged to. That is right for SecFilingsEndpoints — see the test above — and wrong for
+        // CalendarEndpoints.GetEarningsCalendarAsync and EconomicsEndpoints.GetEconomicCalendarAsync: their own
+        // doc comments measure a 91-day window as truncated (earnings calendar, hard cap at 4000) or
+        // non-monotonic (economic calendar, a 6-month window returning fewer rows than the 3-month window it
+        // contains). A regression back to one global `from` would widen those two again without any live test
+        // noticing until the next scheduled run.
+        var filingFrom = typeof(Endpoints.SecFilingsEndpoints)
+            .GetMethod(nameof(Endpoints.SecFilingsEndpoints.SearchBySymbolAsync))!.GetParameters()[1];
+        var earningsFrom = typeof(Endpoints.CalendarEndpoints)
+            .GetMethod(nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync))!.GetParameters()[0];
+        var economicFrom = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync))!.GetParameters()[0];
+
+        Assert.Equal(LiveApi.RangeStart, Probe.Argument(filingFrom));
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(earningsFrom));
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(economicFrom));
     }
 
     [Fact]

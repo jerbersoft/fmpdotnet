@@ -244,9 +244,9 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     /// <see cref="SecFiling.FormType"/>: EDGAR defines hundreds and a value this SDK has never seen must not
     /// cost the caller the call.</para>
     ///
-    /// <para>Whole-market and therefore wide: measured 2026-08-28, <c>10-K</c> over one January month answered
-    /// 398 rows, and over a recent 90-day window it filled the default page. Page it, or narrow the
-    /// range.</para></summary>
+    /// <para>Whole-market and therefore wide: measured 2026-08-28, <c>10-K</c> over the five-day window
+    /// 2025-03-01 to 2025-03-05 answered 398 rows, and over a recent 90-day window it filled the default page.
+    /// Page it, or narrow the range.</para></summary>
     /// <param name="formType">The EDGAR form type, spelled as EDGAR spells it.</param>
     /// <param name="from">Start of the range, inclusive. Required — see
     /// <see cref="SearchBySymbolAsync"/>.</param>
