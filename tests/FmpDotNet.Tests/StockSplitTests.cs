@@ -132,6 +132,16 @@ public class StockSplitTests
     }
 
     [Fact]
+    public async Task The_per_symbol_path_sends_a_limit_when_one_is_given()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetSplitsAsync("AAPL", limit: 5);
+
+        Assert.Equal("?symbol=AAPL&limit=5&apikey=k", handler.Requests.Single().Query);
+    }
+
+    [Fact]
     public void The_per_symbol_path_offers_no_date_range_because_the_endpoint_ignores_one()
     {
         // Measured 2026-08-28: splits?symbol=AAPL answers 5 rows with and without
@@ -172,6 +182,17 @@ public class StockSplitTests
         var (endpoints, handler) = Build();
 
         await Assert.ThrowsAsync<ArgumentNullException>(() => endpoints.GetSplitsAsync(null!));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public async Task A_non_positive_limit_is_refused_before_a_request_is_spent(int limit)
+    {
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => endpoints.GetSplitsAsync("AAPL", limit));
         Assert.Empty(handler.Requests);
     }
 

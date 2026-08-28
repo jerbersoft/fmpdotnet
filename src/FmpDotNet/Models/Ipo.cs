@@ -84,7 +84,7 @@ public sealed record IpoCalendarEntry
 
 /// <summary>One EDGAR filing marking a registration as effective, from <c>stable/ipos-disclosure</c>.
 ///
-/// <para><b>Every field was populated on every row measured</b> — 8,856 rows on 2026-08-28 — so this record has
+/// <para><b>Every field was populated on every row measured</b> — 8,838 rows on 2026-08-28 — so this record has
 /// no measured absent value, which is unusual in this SDK and worth stating rather than leaving to be
 /// discovered.</para>
 ///
@@ -92,7 +92,7 @@ public sealed record IpoCalendarEntry
 /// CIK, a form and a URL under five different tickers: a single <c>CERT</c> covering five classes of one fund.
 /// A caller deduplicating on <see cref="Url"/> collapses five real rows into one.</para>
 ///
-/// <para><b>The three dates are plain dates, not timestamps.</b> All three were 10 characters on all 8,856 rows
+/// <para><b>The three dates are plain dates, not timestamps.</b> All three were 10 characters on all 8,838 rows
 /// — read the note on <see cref="AcceptedDate"/> before reaching for a converter.</para></summary>
 public sealed record IpoDisclosure
 {
@@ -109,7 +109,7 @@ public sealed record IpoDisclosure
     /// <para><b>This is not the same kind of value as <see cref="SecFiling.AcceptedDate"/>, despite the
     /// identical field name.</b> That one is a 19-character <c>uuuu-MM-dd HH:mm:ss</c> EDGAR wall clock in US
     /// Eastern, read through <see cref="NullableEasternInstantJsonConverter"/>. This one was <b>10 characters on
-    /// all 8,856 rows</b> measured 2026-08-28 — there is no time of day in it at all. Pointing the Eastern
+    /// all 8,838 rows</b> measured 2026-08-28 — there is no time of day in it at all. Pointing the Eastern
     /// converter at this field would answer <see langword="null"/> for every row and never throw, which is the
     /// silent kind of wrong.</para></summary>
     [JsonPropertyName("acceptedDate")]

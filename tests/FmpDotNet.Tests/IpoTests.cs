@@ -14,7 +14,7 @@ namespace FmpDotNet.Tests;
 /// feeds that answer whatever range they are given — 25,689 rows for a full 2024 on the first.</para>
 ///
 /// <para><b><c>acceptedDate</c> means something different here than on the SEC filing paths.</b> Every
-/// date-shaped field on both filing feeds was 10 characters — a plain ISO date, measured across 8,856 and 165
+/// date-shaped field on both filing feeds was 10 characters — a plain ISO date, measured across 8,838 and 165
 /// rows. <see cref="SecFiling.AcceptedDate"/> reads a 19-character Eastern wall clock through a different
 /// converter, and pointing that converter at these fields would answer null for every row without
 /// erroring.</para></summary>
@@ -312,7 +312,7 @@ public class IpoTests
     {
         // The trap this pair shares with the SEC filing paths, in the other direction. SecFiling.AcceptedDate
         // reads a 19-character "uuuu-MM-dd HH:mm:ss" Eastern wall clock; every date-shaped field here was 10
-        // characters on all 8,856 disclosure rows and all 165 prospectus rows measured 2026-08-28. Pointing
+        // characters on all 8,838 disclosure rows and all 165 prospectus rows measured 2026-08-28. Pointing
         // NullableEasternInstantJsonConverter at these would answer null for every row and never throw.
         var disclosure = JsonSerializer.Deserialize(
             """[{"filingDate":"2026-08-26","acceptedDate":"2026-08-26","effectivenessDate":"2026-08-26"}]""",

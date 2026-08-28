@@ -121,14 +121,10 @@ public class StockGradeTests
     }
 
     [Fact]
-    public async Task The_consensus_carries_no_date_at_all()
+    public void The_consensus_carries_no_date_at_all()
     {
         // Seven fields, and none of them temporal. There is no way to tell how old a consensus row is, which is
         // half the reason it cannot be treated as the head of the historical series.
-        var (endpoints, _) = Build(Binding.Fixture("grades-consensus.AAPL.json"));
-
-        await endpoints.GetGradeConsensusAsync("AAPL");
-
         Assert.DoesNotContain(
             typeof(GradeConsensus).GetProperties(),
             p => p.PropertyType == typeof(LocalDate?) || p.PropertyType == typeof(LocalDate));
