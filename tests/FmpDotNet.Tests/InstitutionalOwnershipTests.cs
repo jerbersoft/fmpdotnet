@@ -208,4 +208,141 @@ public class InstitutionalOwnershipTests
         Assert.Empty(rows);
         Assert.Contains($"year={year}", handler.Requests[0].Query);
     }
+
+    // ---- institutional-ownership/extract-analytics/holder --------------------------------------------------------
+
+    [Fact]
+    public void A_captured_holder_analytics_row_binds_all_thirty_nine_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-extract-analytics.AAPL.json"),
+            FmpJsonContext.Default.ListHolderAnalytics)!;
+
+        Assert.Equal(2, rows.Count);
+        // Nothing unbound: this is the widest record in the slice and the one most likely to lose a field to a
+        // typo'd [JsonPropertyName], which binds null rather than failing.
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("BLACKROCK, INC.", rows[0].InvestorName);
+        Assert.Equal("0002012383", rows[0].Cik);
+        Assert.Equal("AAPL", rows[0].Symbol);
+        Assert.Equal("APPLE INC", rows[0].SecurityName);
+        Assert.Equal("COM", rows[0].TypeOfSecurity);
+        Assert.Equal("Share", rows[0].PutCallShare);
+        Assert.Equal("SOLE", rows[0].InvestmentDiscretion);
+        Assert.Equal("ELECTRONIC COMPUTERS", rows[0].IndustryTitle);
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].Date);
+        Assert.Equal(new LocalDate(2026, 8, 7), rows[0].FilingDate);
+        Assert.Equal(new LocalDate(2024, 9, 30), rows[0].FirstAdded);
+        Assert.False(rows[0].IsNew);
+        Assert.False(rows[0].IsSoldOut);
+        Assert.True(rows[0].IsCountedForPerformance);
+        Assert.Equal(8, rows[0].HoldingPeriod);
+    }
+
+    [Fact]
+    public void A_market_value_past_two_billion_binds_rather_than_throwing()
+    {
+        // The overflow guard. int.MaxValue is 2,147,483,647; BlackRock's AAPL position is 336,524,794,350 —
+        // 157 times that. Typing MarketValue as int? makes System.Text.Json throw, and FmpTransport does not
+        // wrap DeserializeAsync, so the caller loses the whole response rather than the field. Retyping it as
+        // int? fails this test; retyping it as long? does not, which is why the fractional-value guard in
+        // Task 6 exists as well.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-extract-analytics.AAPL.json"),
+            FmpJsonContext.Default.ListHolderAnalytics)!;
+
+        Assert.Equal(336524794350m, rows[0].MarketValue);
+        Assert.Equal(290512251859m, rows[0].LastMarketValue);
+        Assert.Equal(40716816267m, rows[0].Performance);
+        Assert.Equal(-20864809759m, rows[0].LastPerformance);
+        // 1,162,996,939 — 54% of int's ceiling and rising. `sharesNumber` is the field that gets retyped by
+        // somebody who checks one row and concludes it fits.
+        Assert.Equal(1162996939m, rows[0].SharesNumber);
+    }
+
+    [Fact]
+    public void A_zero_performance_is_a_measured_value_and_not_a_missing_one()
+    {
+        // Vanguard's row carries lastPerformance: 0 because it first held AAPL in the previous quarter. Zero is
+        // FMP's answer, not an absence — Binding.Unbound counts zero as populated for exactly this reason
+        // (see its doc), and a caller must not read it as "not reported".
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-extract-analytics.AAPL.json"),
+            FmpJsonContext.Default.ListHolderAnalytics)!;
+
+        Assert.Equal(0m, rows[1].LastPerformance);
+        Assert.Empty(Binding.Unbound(rows[1]));
+        Assert.Equal(2, rows[1].HoldingPeriod);
+        Assert.Equal(new LocalDate(2026, 3, 31), rows[1].FirstAdded);
+    }
+
+    [Fact]
+    public async Task The_holder_analytics_call_sends_page_and_limit()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetHolderAnalyticsAsync("AAPL", 2025, 3, page: 2, limit: 50);
+
+        Assert.Equal(
+            "/stable/institutional-ownership/extract-analytics/holder", handler.Requests[0].AbsolutePath);
+        Assert.Contains("symbol=AAPL", handler.Requests[0].Query);
+        Assert.Contains("year=2025", handler.Requests[0].Query);
+        Assert.Contains("quarter=3", handler.Requests[0].Query);
+        Assert.Contains("page=2", handler.Requests[0].Query);
+        Assert.Contains("limit=50", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(101)]
+    [InlineData(200)]
+    [InlineData(1000)]
+    [InlineData(2000)]
+    public async Task A_holder_analytics_limit_above_one_hundred_is_refused(int limit)
+    {
+        // Measured 2026-08-28: limit=200, 1000, 1001 and 2000 each answered exactly 100 rows with HTTP 200 and
+        // byte-identical bodies. The path DOES paginate, so a caller who asked for 1,000 and stepped `page` by
+        // 1,000 would read a tenth of the holder list and be told nothing at all. This is the one path in the
+        // slice whose cap is 100 rather than 1,000.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHolderAnalyticsAsync("AAPL", 2025, 3, limit: limit));
+
+        Assert.Equal("limit", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_holder_analytics_limit_exactly_at_the_cap_is_accepted()
+    {
+        // The boundary the last slice's review had to add three times, for the same reason each time:
+        // ThrowIfGreaterThan and ThrowIfGreaterThanOrEqual differ by one value, the whole suite stays green
+        // when they are swapped, and the documented maximum starts throwing.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetHolderAnalyticsAsync(
+            "AAPL", 2025, 3, limit: InstitutionalOwnershipEndpoints.MaxHolderAnalyticsPageSize);
+
+        Assert.Contains("limit=100", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public void The_holder_analytics_page_cap_is_the_measured_one()
+    {
+        Assert.Equal(100, InstitutionalOwnershipEndpoints.MaxHolderAnalyticsPageSize);
+    }
+
+    [Theory]
+    [InlineData(-1, 100)]
+    [InlineData(0, 0)]
+    [InlineData(0, -5)]
+    public async Task A_negative_page_or_a_non_positive_limit_is_refused_on_holder_analytics(int page, int limit)
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHolderAnalyticsAsync("AAPL", 2025, 3, page: page, limit: limit));
+
+        Assert.Empty(handler.Requests);
+    }
 }

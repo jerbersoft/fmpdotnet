@@ -89,6 +89,64 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListInstitutionalHolding, ct);
     }
 
+    /// <summary>The largest page <see cref="GetHolderAnalyticsAsync"/> will serve — <b>100, not 1,000</b>, and
+    /// measured rather than documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, and the odd one out in this group. Measured 2026-08-28,
+    /// <c>limit=5</c> answered 5 rows while <c>limit=200</c>, <c>limit=1000</c>, <c>limit=1001</c> and
+    /// <c>limit=2000</c> each answered exactly 100 with HTTP 200 and byte-identical bodies — nothing in the
+    /// response says the request was trimmed. The path genuinely paginates, so a caller who asks for 1,000 and
+    /// advances <c>page</c> by 1,000 reads a tenth of the holder list and is never told. A larger
+    /// <c>limit</c> is therefore refused here rather than passed on to be clamped.</para>
+    ///
+    /// <para>Every other paged path in this slice caps at 1,000; see <c>MaxOwnershipPageSize</c> and
+    /// <c>InsiderTradesEndpoints.MaxInsiderTradePageSize</c>.</para></summary>
+    public const int MaxHolderAnalyticsPageSize = 100;
+
+    /// <summary>Every institution reporting a position in one symbol for one quarter, with FMP's
+    /// quarter-over-quarter analytics —
+    /// <c>stable/institutional-ownership/extract-analytics/holder</c>.
+    ///
+    /// <para><b>The mirror of <see cref="GetHoldingsAsync"/>.</b> That asks a filer what it holds; this asks a
+    /// symbol who holds it, and adds weights, ownership percentages, holding periods and performance that a
+    /// 13F does not itself report.</para>
+    ///
+    /// <para><b>Paged, and the cap is 100</b> — see <see cref="MaxHolderAnalyticsPageSize"/>. A widely-held
+    /// symbol runs to thousands of holders, so this is a path you page rather than one you drain in a
+    /// call.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="year">The calendar year of the quarter end. Not range-checked; see
+    /// <see cref="GetHoldingsAsync"/>.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4. Required by FMP.</param>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
+    /// error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxHolderAnalyticsPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's holders. Never <see langword="null"/>; empty for an unknown symbol or an unfiled
+    /// quarter, not an error.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="symbol"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is outside 1 to 4,
+    /// <paramref name="page"/> is negative, or <paramref name="limit"/> is outside 1 to
+    /// <see cref="MaxHolderAnalyticsPageSize"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<HolderAnalytics>> GetHolderAnalyticsAsync(
+        string symbol, int year, int quarter, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ThrowIfQuarterOutOfRange(quarter);
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxHolderAnalyticsPageSize);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/extract-analytics/holder")
+                .With("symbol", symbol).With("year", year).With("quarter", quarter)
+                .With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListHolderAnalytics, ct);
+    }
+
     /// <summary>Rejects a quarter FMP could only answer with an error.
     ///
     /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it
