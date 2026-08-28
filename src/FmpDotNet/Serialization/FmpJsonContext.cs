@@ -56,6 +56,7 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<GradeHistory>))]
 [JsonSerializable(typeof(List<PriceTargetConsensus>))]
 [JsonSerializable(typeof(List<PriceTargetSummary>))]
+[JsonSerializable(typeof(List<CompanyRating>))]
 [JsonSerializable(typeof(List<EarningsReport>))]
 [JsonSerializable(typeof(List<EarningsCalendarEntry>))]
 [JsonSerializable(typeof(List<Dividend>))]

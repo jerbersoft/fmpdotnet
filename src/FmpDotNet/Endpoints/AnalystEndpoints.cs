@@ -238,4 +238,63 @@ public sealed class AnalystEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListPriceTargetSummary, ct).ConfigureAwait(false);
         return rows.Count > 0 ? rows[0] : null;
     }
+
+    /// <summary>FMP's current letter rating for one symbol, from <c>stable/ratings-snapshot</c>. Returns
+    /// <see langword="null"/> when FMP has no rating.
+    ///
+    /// <para><b>The returned row carries no date</b> — this endpoint sends none, so
+    /// <see cref="CompanyRating.Date"/> is always null here. Use <see cref="GetRatingHistoryAsync"/> if you need
+    /// to know when a rating applied.</para>
+    ///
+    /// <para>One row, unwrapped as <see cref="CompanyEndpoints.GetProfileAsync"/> does. An
+    /// unknown-but-well-formed symbol answers an empty array with HTTP 200, not a 404.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<CompanyRating?> GetRatingAsync(string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/ratings-snapshot").With("symbol", symbol),
+            FmpJsonContext.Default.ListCompanyRating, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>FMP's rating for one symbol over time, newest first, from <c>stable/ratings-historical</c>.
+    ///
+    /// <para><b><paramref name="limit"/> defaults to 100, and that is deliberately <i>not</i> what FMP does.</b>
+    /// Measured 2026-08-28: with no <c>limit</c> this endpoint answers <b>exactly one row</b> — from a path
+    /// named "historical". Passing FMP's default through faithfully would be useless to a caller, so this method
+    /// sends 100 unless told otherwise. The measured ladder, for anyone choosing a value: <c>limit=5</c> → 5,
+    /// <c>100</c> → 100, <c>1000</c> → 1000, <c>5000</c> → 5000, <c>10000</c> → <b>6292</b>, <c>50000</c> →
+    /// 6292. That last figure is AAPL's whole series, not a cap — it stops growing because the data does. There
+    /// is therefore no maximum page size to enforce here.</para>
+    ///
+    /// <para>This is the only <c>limit</c> in this endpoint group with a non-null default. The dividend, split
+    /// and grade-history methods all leave theirs null, because those endpoints answer the whole series when the
+    /// parameter is absent and a default would silently truncate it.</para>
+    ///
+    /// <para><b><c>from</c> and <c>to</c> are ignored</b>, measured the same day: 1000 rows with and without a
+    /// 2024 range. The series is per trading day. Filter on <see cref="CompanyRating.Date"/> at the call
+    /// site.</para></summary>
+    /// <param name="symbol">Ticker as FMP spells it.</param>
+    /// <param name="limit">Newest N rows. Defaults to 100 rather than to FMP's own default of one. Must be
+    /// positive.</param>
+    /// <param name="ct">Cancellation token.</param>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<IReadOnlyList<CompanyRating>> GetRatingHistoryAsync(
+        string symbol, int limit = 100, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        if (limit <= 0)
+            throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit must be positive.");
+
+        return await transport.GetListAsync(
+            new FmpRequest("stable/ratings-historical").With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListCompanyRating, ct).ConfigureAwait(false);
+    }
 }
