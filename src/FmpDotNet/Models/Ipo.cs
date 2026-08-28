@@ -170,7 +170,12 @@ public sealed record IpoProspectus
     /// <summary>The filer's SEC Central Index Key, zero-padded to ten characters.</summary>
     [JsonPropertyName("cik")] public string? Cik { get; init; }
 
-    /// <summary>Offering price per share to the public.</summary>
+    /// <summary>Offering price per share to the public.
+    ///
+    /// <para><b>The most fractional field in this slice:</b> measured 0.12 to 12,183,292 across 165 rows on
+    /// 2026-08-28, with 51 of 165 rows — nearly a third — fractional. The range fits comfortably within
+    /// <see cref="int"/>'s ceiling, so width is not what earns this <see langword="decimal"/>?; the fractional
+    /// rate does.</para></summary>
     [JsonPropertyName("pricePublicPerShare")] public decimal? PricePublicPerShare { get; init; }
 
     /// <summary>Total offering value to the public.
@@ -181,20 +186,39 @@ public sealed record IpoProspectus
     /// response.</para></summary>
     [JsonPropertyName("pricePublicTotal")] public decimal? PricePublicTotal { get; init; }
 
-    /// <summary>Underwriting discounts and commissions per share.</summary>
+    /// <summary>Underwriting discounts and commissions per share.
+    ///
+    /// <para><b>Not included in the 2026-08-28 magnitude sweep</b> — no range or fractional rate was measured
+    /// for this field specifically. It takes <see langword="decimal"/>? alongside its five siblings on this
+    /// record because it is per-share money on the same rows and shares their shape, not because its own
+    /// magnitude was checked.</para></summary>
     [JsonPropertyName("discountsAndCommissionsPerShare")]
     public decimal? DiscountsAndCommissionsPerShare { get; init; }
 
-    /// <summary>Total underwriting discounts and commissions. Measured to 500,000,000.</summary>
+    /// <summary>Total underwriting discounts and commissions.
+    ///
+    /// <para><b>Measured 0 to 500,000,000</b> across 165 rows on 2026-08-28, with 11 of 165 fractional. Unlike
+    /// <see cref="PricePublicTotal"/> and <see cref="ProceedsBeforeExpensesTotal"/> beside it, 500,000,000 fits
+    /// comfortably within <see cref="int"/>'s ceiling of 2,147,483,647 — this still takes
+    /// <see langword="decimal"/>? because it is the same kind of quantity as its siblings and because 11 of
+    /// those 165 rows are fractional. The same shape as <see cref="IpoCalendarEntry.Shares"/>, which also fits
+    /// and also takes <see langword="decimal"/>?; the opposite of <see cref="StockSplit.Numerator"/>, which
+    /// fits and stays <see langword="int"/>?.</para></summary>
     [JsonPropertyName("discountsAndCommissionsTotal")]
     public decimal? DiscountsAndCommissionsTotal { get; init; }
 
-    /// <summary>Proceeds to the issuer per share, before expenses.</summary>
+    /// <summary>Proceeds to the issuer per share, before expenses.
+    ///
+    /// <para><b>Not included in the 2026-08-28 magnitude sweep</b> — no range or fractional rate was measured
+    /// for this field specifically. It takes <see langword="decimal"/>? alongside its five siblings on this
+    /// record because it is per-share money on the same rows and shares their shape, not because its own
+    /// magnitude was checked.</para></summary>
     [JsonPropertyName("proceedsBeforeExpensesPerShare")]
     public decimal? ProceedsBeforeExpensesPerShare { get; init; }
 
-    /// <summary>Total proceeds to the issuer before expenses. Measured to <b>74,499,999,925</b> — see
-    /// <see cref="PricePublicTotal"/> for why this is <see langword="decimal"/>.</summary>
+    /// <summary>Total proceeds to the issuer before expenses. Measured 0 to <b>74,499,999,925</b> across 165
+    /// rows on 2026-08-28, with 18 of 165 fractional — see <see cref="PricePublicTotal"/> for why this is
+    /// <see langword="decimal"/>.</summary>
     [JsonPropertyName("proceedsBeforeExpensesTotal")]
     public decimal? ProceedsBeforeExpensesTotal { get; init; }
 
