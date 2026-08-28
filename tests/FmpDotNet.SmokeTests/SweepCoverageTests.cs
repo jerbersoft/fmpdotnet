@@ -7,18 +7,18 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All seven checks below are pure
+/// still ask it something worth answering.) All nine checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining four pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining six pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
 /// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
 /// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
-/// calendars need a narrow one — so a probe that runs without error but never asks a meaningful question doesn't
-/// slip back in unnoticed.</para>
+/// calendars need a narrow one, and a single day where five calendars need a week — so a probe that runs
+/// without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
 /// arguments by parameter name, so an endpoint added with a parameter named or typed in a way
