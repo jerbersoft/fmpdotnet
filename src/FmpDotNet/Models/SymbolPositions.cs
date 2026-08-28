@@ -18,7 +18,7 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b><see cref="OwnershipPercent"/> exceeds 100, legitimately.</b> See its own documentation.</para>
 ///
-/// <para><b>Nine fields are genuine counts and are <see cref="int"/>; everything else is
+/// <para><b>Fifteen fields are genuine counts and are <see cref="int"/>; everything else is
 /// <see cref="decimal"/>.</b> The counts are the investors-holding and four position-count triples. The option
 /// contract counts are the deliberate exception — see <see cref="TotalCalls"/>.</para></summary>
 public sealed record SymbolPositions
