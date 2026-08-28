@@ -1,0 +1,52 @@
+[
+  {
+    "symbol": "DNN",
+    "cik": "0001063259",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 16:52:35",
+    "formType": "6-K",
+    "hasFinancials": true,
+    "link": "https://www.sec.gov/Archives/edgar/data/1063259/000110465924030026/0001104659-24-030026-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1063259/000110465924030026/dnn-20231231xex99d1.htm"
+  },
+  {
+    "symbol": "LL",
+    "cik": "0001396033",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 16:38:37",
+    "formType": "8-K",
+    "hasFinancials": true,
+    "link": "https://www.sec.gov/Archives/edgar/data/1396033/000095017024023941/0000950170-24-023941-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1396033/000095017024023941/ll-ex99_1.htm"
+  },
+  {
+    "symbol": "TTEC",
+    "cik": "0001013880",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 16:30:35",
+    "formType": "8-K",
+    "hasFinancials": true,
+    "link": "https://www.sec.gov/Archives/edgar/data/1013880/000110465924030001/0001104659-24-030001-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/1013880/000110465924030001/tm247637d1_ex99-1.htm"
+  },
+  {
+    "symbol": "DTG",
+    "cik": "0000936340",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 16:20:34",
+    "formType": "8-K",
+    "hasFinancials": true,
+    "link": "https://www.sec.gov/Archives/edgar/data/936340/000093634024000090/0000936340-24-000090-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/936340/000093634024000090/dtegasexhibit991123123.htm"
+  },
+  {
+    "symbol": "DTW",
+    "cik": "0000936340",
+    "filingDate": "2024-03-01 00:00:00",
+    "acceptedDate": "2024-03-01 16:20:34",
+    "formType": "8-K",
+    "hasFinancials": true,
+    "link": "https://www.sec.gov/Archives/edgar/data/936340/000093634024000090/0000936340-24-000090-index.htm",
+    "finalLink": "https://www.sec.gov/Archives/edgar/data/936340/000093634024000090/dtegasexhibit991123123.htm"
+  }
+]

@@ -16,7 +16,8 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para><b>Two families here, and they do not share a row shape.</b>
 /// <see cref="GetProfileAsync(string, CancellationToken)"/> answers a registrant;
-/// <c>Get8KFilingsAsync</c> and its neighbours answer filings; the three <c>FindCompany*</c> methods
+/// <see cref="Get8KFilingsAsync(LocalDate?, LocalDate?, int, int, CancellationToken)"/> and its neighbours
+/// answer filings; the three <c>FindCompany*</c> methods
 /// answer the same classification row <see cref="DirectoryEndpoints"/> and <see cref="SearchEndpoints"/> serve,
 /// which is why they return <see cref="IndustryClassification"/> rather than a type of their own.</para>
 ///
@@ -75,5 +76,98 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
             new FmpRequest("stable/sec-profile").With("cik", cik),
             FmpJsonContext.Default.ListSecProfile, ct).ConfigureAwait(false);
         return rows.Count > 0 ? rows[0] : null;
+    }
+
+    /// <summary>The largest page any of the five filing paths will serve, measured rather than documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, for the same reason as
+    /// <see cref="CompanyEndpoints.MaxMergerAcquisitionPageSize"/>: measured 2026-08-28, <c>limit=2000</c> and
+    /// <c>limit=5000</c> each answered exactly 1,000 rows with HTTP 200 and nothing in the body to say the
+    /// request had been trimmed. These feeds genuinely paginate — page 0 and page 1 return disjoint rows — so a
+    /// caller who asks for 5,000 and advances <c>page</c> by 5,000 reads a fifth of the archive and is never
+    /// told. Every method here therefore rejects a larger <c>limit</c> rather than passing it on to be
+    /// clamped.</para></summary>
+    public const int MaxSecFilingPageSize = 1000;
+
+    /// <summary>The 8-K feed — <c>stable/sec-filings-8k</c>, every current-report filing across the market,
+    /// newest first.
+    ///
+    /// <para><b>Filtered by form.</b> Measured 2026-08-28 over 1,000 rows, <c>formType</c> was <c>8-K</c> on all
+    /// 1,000. <see cref="SecFiling.HasFinancials"/> varies here — null on 107, false on 725, true on 168 — and
+    /// carries real information, unlike on
+    /// <see cref="GetFilingsWithFinancialsAsync(LocalDate?, LocalDate?, int, int, CancellationToken)"/>.</para>
+    ///
+    /// <para><b><paramref name="from"/> and <paramref name="to"/> filter
+    /// <see cref="SecFiling.AcceptedDate"/>, not <see cref="SecFiling.FilingDate"/>.</b> A response therefore
+    /// carries rows whose <c>FilingDate</c> falls outside the range you asked for — 21 of them on the measured
+    /// five-day window. They are not errors and are not dropped; see <see cref="SecFiling"/> for the hypothesis
+    /// test that established it.</para>
+    ///
+    /// <para>Both ends are optional and the endpoint answers without them.</para></summary>
+    /// <param name="from">Start of the range, inclusive, applied to <see cref="SecFiling.AcceptedDate"/>.
+    /// Optional.</param>
+    /// <param name="to">End of the range, inclusive, applied to <see cref="SecFiling.AcceptedDate"/>.
+    /// Optional.</param>
+    /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an error.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative,
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxSecFilingPageSize"/>, or both ends of the range
+    /// were supplied with <paramref name="to"/> earlier than <paramref name="from"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SecFiling>> Get8KFilingsAsync(
+        LocalDate? from = null, LocalDate? to = null, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxSecFilingPageSize);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/sec-filings-8k")
+                .With("from", from).With("to", to).With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListSecFiling, ct);
+    }
+
+    /// <summary>The feed of filings that carry financial data — <c>stable/sec-filings-financials</c>.
+    ///
+    /// <para><b>Filtered by content, not by form.</b> Measured 2026-08-28 over 1,000 rows, <c>formType</c> was
+    /// <c>8-K</c> 861 times, <c>6-K</c> 137 and <c>10-K</c> twice, while
+    /// <see cref="SecFiling.HasFinancials"/> was <c>true</c> on all 1,000 — so that property is constant here
+    /// and tells a caller nothing. This is the same row shape as
+    /// <see cref="Get8KFilingsAsync(LocalDate?, LocalDate?, int, int, CancellationToken)"/> over a different
+    /// selection.</para>
+    ///
+    /// <para><b><paramref name="from"/> and <paramref name="to"/> filter
+    /// <see cref="SecFiling.AcceptedDate"/>.</b> This is the endpoint the hypothesis test was run against:
+    /// 2025-03-01 to 2025-03-05 answered 722 rows — comfortably under the cap, so truncation cannot explain it —
+    /// of which 16 carried a <c>FilingDate</c> past the requested <c>to</c>, and all 16 of those carried an
+    /// <c>AcceptedDate</c> inside it, with zero rows in the whole response falling outside.</para></summary>
+    /// <param name="from">Start of the range, inclusive, applied to <see cref="SecFiling.AcceptedDate"/>.
+    /// Optional.</param>
+    /// <param name="to">End of the range, inclusive, applied to <see cref="SecFiling.AcceptedDate"/>.
+    /// Optional.</param>
+    /// <param name="page">Zero-based page index.</param>
+    /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">As
+    /// <see cref="Get8KFilingsAsync(LocalDate?, LocalDate?, int, int, CancellationToken)"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SecFiling>> GetFilingsWithFinancialsAsync(
+        LocalDate? from = null, LocalDate? to = null, int page = 0, int limit = 100,
+        CancellationToken ct = default)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(page);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxSecFilingPageSize);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/sec-filings-financials")
+                .With("from", from).With("to", to).With("page", page).With("limit", limit),
+            FmpJsonContext.Default.ListSecFiling, ct);
     }
 }

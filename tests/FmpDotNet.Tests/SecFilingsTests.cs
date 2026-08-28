@@ -1,6 +1,8 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -99,5 +101,142 @@ public class SecFilingsTests
         Assert.Equal(new LocalDate(2024, 3, 4), rows[0].FilingDate);
         Assert.Equal(new LocalDate(2024, 3, 4), rows[1].FilingDate);
         Assert.Equal(new LocalDate(2024, 3, 1), rows[2].FilingDate);
+    }
+
+    // ---- the two feeds -----------------------------------------------------------------------------------------
+
+    private static (SecFilingsEndpoints Endpoints, StubHandler Handler) Build(
+        params HttpResponseMessage[] responses)
+    {
+        var handler = new StubHandler(responses);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new SecFilingsEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task The_two_feeds_return_the_same_shape_and_differ_by_what_they_filter()
+    {
+        // Measured 2026-08-28 over 1,000 rows each. sec-filings-8k: formType "8-K" 1,000 times, hasFinancials
+        // null 107 / false 725 / true 168. sec-filings-financials: formType "8-K" 861, "6-K" 137, "10-K" 2, and
+        // hasFinancials true 1,000 times. One filters by form; the other by whether financials are attached —
+        // which is why hasFinancials carries no information on the financials feed.
+        var (endpoints, _) = Build(
+            StubHandler.Json(Binding.Fixture("sec-filings-8k.head.json")),
+            StubHandler.Json(Binding.Fixture("sec-filings-financials.head.json")));
+
+        var eightK = await endpoints.Get8KFilingsAsync(limit: 5);
+        var financials = await endpoints.GetFilingsWithFinancialsAsync(limit: 5);
+
+        Assert.All(eightK, r => Assert.Equal("8-K", r.FormType));
+        Assert.All(eightK, r => Assert.Null(r.HasFinancials));
+
+        Assert.All(financials, r => Assert.True(r.HasFinancials));
+        Assert.Contains(financials, r => r.FormType == "6-K");
+        Assert.Empty(Binding.Unbound(financials[0]));
+    }
+
+    [Fact]
+    public async Task The_feeds_send_page_and_limit_and_omit_an_unset_range()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.Get8KFilingsAsync(page: 2, limit: 50);
+        await endpoints.GetFilingsWithFinancialsAsync(
+            new LocalDate(2025, 3, 1), new LocalDate(2025, 3, 5), page: 0, limit: 1000);
+
+        Assert.Equal("/stable/sec-filings-8k", handler.Requests[0].AbsolutePath);
+        Assert.Contains("page=2", handler.Requests[0].Query);
+        Assert.Contains("limit=50", handler.Requests[0].Query);
+        Assert.DoesNotContain("from=", handler.Requests[0].Query);
+        Assert.DoesNotContain("to=", handler.Requests[0].Query);
+
+        Assert.Equal("/stable/sec-filings-financials", handler.Requests[1].AbsolutePath);
+        Assert.Contains("from=2025-03-01", handler.Requests[1].Query);
+        Assert.Contains("to=2025-03-05", handler.Requests[1].Query);
+    }
+
+    [Theory]
+    [InlineData(1001)]
+    [InlineData(2000)]
+    [InlineData(5000)]
+    public async Task A_limit_above_the_measured_cap_is_refused_on_both_feeds(int limit)
+    {
+        // Measured 2026-08-28: limit=2000 and limit=5000 each answered exactly 1,000 rows, HTTP 200, with
+        // nothing in the response to say so. These feeds DO paginate — page 0 and page 1 return disjoint rows —
+        // so a caller who asked for 5,000 and stepped `page` by 5,000 would read a fifth of the archive and be
+        // told nothing at all.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        var first = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.Get8KFilingsAsync(limit: limit));
+        var second = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetFilingsWithFinancialsAsync(limit: limit));
+
+        Assert.Equal("limit", first.ParamName);
+        Assert.Equal("limit", second.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData(-1, 100)]
+    [InlineData(0, 0)]
+    [InlineData(0, -5)]
+    public async Task A_negative_page_or_a_non_positive_limit_is_refused(int page, int limit)
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.Get8KFilingsAsync(page: page, limit: limit));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public void The_filing_page_cap_is_the_measured_one()
+    {
+        Assert.Equal(1000, SecFilingsEndpoints.MaxSecFilingPageSize);
+    }
+
+    [Fact]
+    public async Task A_backwards_range_is_refused_on_both_feeds()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 3, 5);
+        var to = new LocalDate(2025, 3, 1);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => endpoints.Get8KFilingsAsync(from, to));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetFilingsWithFinancialsAsync(from, to));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task One_end_of_the_range_alone_is_allowed()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.Get8KFilingsAsync(from: new LocalDate(2025, 3, 1));
+        await endpoints.Get8KFilingsAsync(to: new LocalDate(2025, 3, 5));
+
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task A_limit_exactly_at_the_measured_cap_succeeds_rather_than_being_refused()
+    {
+        // Task 2's review found the gap this closes: nothing asserted that the documented maximum itself is
+        // accepted. ThrowIfGreaterThan is correct, but ThrowIfGreaterThanOrEqual would pass every other test
+        // here while silently rejecting the one value callers are told is safe to send.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.Get8KFilingsAsync(limit: SecFilingsEndpoints.MaxSecFilingPageSize);
+
+        Assert.Contains("limit=1000", handler.Requests.Single().Query);
     }
 }

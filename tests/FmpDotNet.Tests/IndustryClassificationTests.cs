@@ -204,6 +204,19 @@ public class IndustryClassificationTests
     }
 
     [Fact]
+    public async Task A_limit_exactly_at_the_measured_cap_succeeds_rather_than_being_refused()
+    {
+        // Task 2's review found the gap this closes: nothing asserted that the documented maximum itself is
+        // accepted. ThrowIfGreaterThan is correct, but ThrowIfGreaterThanOrEqual would pass every other test
+        // here while silently rejecting the one value callers are told is safe to send.
+        var (endpoints, handler) = BuildDirectory(StubHandler.Json("[]"));
+
+        await endpoints.GetIndustryClassificationsAsync(DirectoryEndpoints.MaxIndustryClassificationPageSize);
+
+        Assert.Contains("limit=1000", handler.Requests.Single().Query);
+    }
+
+    [Fact]
     public async Task The_sic_list_takes_no_parameters_at_all()
     {
         // Measured 2026-08-28: the endpoint answered all 444 rows for every combination of page and limit tried,
