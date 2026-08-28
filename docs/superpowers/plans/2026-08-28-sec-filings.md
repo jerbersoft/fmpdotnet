@@ -3718,7 +3718,7 @@ Two traps are pinned that the spec did not name, both found while planning: the 
 name matching that returns `APPLING PARTNERS, LLC` for `company=Apple`
 (`A_name_search_matches_loosely_and_leaves_unclassified_filers_blank`, Task 9).
 
-**Totals.** 66 new test methods across ten test files (four created, six modified), 13 fixtures, 12 paths, 14
+**Totals.** 67 new test methods across ten test files (four created, six modified), 13 fixtures, 12 paths, 14
 public methods, 4 records, 2 converters, 1 new facade, 1 promoted helper. The spec estimated 45–55 tests; the
 excess is the two unplanned traps above, the promoted guard's own tests, and the two keyless sweep guards.
 
@@ -3732,6 +3732,9 @@ excess is the two unplanned traps above, the promoted guard's own tests, and the
 > it did not; and one keyless guard pinning that the sweep hands the two calendars a narrow date range rather
 > than the widened one their own measurements call unsafe.
 >
-> Composition, verified against the tree rather than asserted: 22 in `IndustryClassificationTests`, 22 in
+> Composition, verified against the tree rather than asserted: 22 in `IndustryClassificationTests`, 23 in
 > `SecFilingsTests`, 15 in `SecProfileTests`, 3 in `DateRangeTests`, 3 added to `SweepCoverageTests` (4 → 7),
-> 1 added to `OrdinaryEndpointShapeTests` (2 → 3). 62 + 3 + 1 = 66.
+> 1 added to `OrdinaryEndpointShapeTests` (2 → 3). 63 + 3 + 1 = 67. The last of the 23 in `SecFilingsTests`
+> was added by the scoped re-review of the fix round: repairing a mislabelled test arm removed the only call
+> that reached `SearchAsync`'s `ThrowIfNegative(page)`, reopening in that helper the very hole the branch had
+> just closed in it.
