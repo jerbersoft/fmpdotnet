@@ -405,4 +405,25 @@ public class SecFilingsTests
 
         Assert.Empty(handler.Requests);
     }
+
+    [Theory]
+    [InlineData(-1, 100)]
+    [InlineData(0, 0)]
+    [InlineData(0, -5)]
+    public async Task A_search_refuses_a_negative_page_or_a_non_positive_limit(int page, int limit)
+    {
+        // The three searches reach their paging guards through the shared SearchAsync helper, so this is the
+        // only test that covers that copy of ThrowIfNegative(page). The feeds have their own copy and their own
+        // test above; a guard reached only through a private helper is exactly the shape that goes untested by
+        // accident — which is how the cap guard in this same helper came to have no boundary test until a
+        // whole-branch review found it.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+        var from = new LocalDate(2025, 1, 1);
+        var to = new LocalDate(2025, 1, 31);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchBySymbolAsync("AAPL", from, to, page: page, limit: limit));
+
+        Assert.Empty(handler.Requests);
+    }
 }
