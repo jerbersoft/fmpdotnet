@@ -194,8 +194,8 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     /// <param name="page">Zero-based page index.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>The page's filings, newest first. Empty for an unknown symbol. Never
-    /// <see langword="null"/>.</returns>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>; empty for an unknown symbol,
+    /// not an error.</returns>
     /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative,
     /// <paramref name="limit"/> is out of range, or <paramref name="to"/> is earlier than
@@ -223,7 +223,8 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     /// <param name="page">Zero-based page index.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>; empty for an unknown CIK,
+    /// not an error.</returns>
     /// <exception cref="ArgumentException"><paramref name="cik"/> is null, empty or blank.</exception>
     /// <exception cref="ArgumentOutOfRangeException">As <see cref="SearchBySymbolAsync"/>.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
@@ -253,7 +254,8 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     /// <param name="page">Zero-based page index.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxSecFilingPageSize"/>.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>The page's filings, newest first. Never <see langword="null"/>.</returns>
+    /// <returns>The page's filings, newest first. Never <see langword="null"/>; empty for an unknown form
+    /// type, not an error.</returns>
     /// <exception cref="ArgumentException"><paramref name="formType"/> is null, empty or blank.</exception>
     /// <exception cref="ArgumentOutOfRangeException">As <see cref="SearchBySymbolAsync"/>.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
@@ -285,4 +287,86 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
                 .With(parameter, value).With("from", from).With("to", to).With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListSecFiling, ct);
     }
+
+    /// <summary>The registrant behind one ticker — <c>stable/sec-filings-company-search/symbol</c>.
+    ///
+    /// <para><b>Returns <see cref="IndustryClassification"/>, the same seven-field row
+    /// <see cref="DirectoryEndpoints.GetIndustryClassificationsAsync"/> and
+    /// <see cref="SearchEndpoints.FindIndustryClassificationAsync"/> serve.</b> Measured 2026-08-28 for CIK
+    /// <c>0000070858</c>, this path and <c>all-industry-classification</c> returned byte-identical values for
+    /// all six non-address fields — the same data, not merely the same field names. The address differs only in
+    /// encoding, and <see cref="Serialization.BusinessAddressJsonConverter"/> makes that invisible.</para>
+    ///
+    /// <para><b>No <c>limit</c> and no <c>page</c>, because the endpoint honours neither.</b> Measured
+    /// 2026-08-28, the name variant answered 52 rows with and without <c>limit=5</c>. Take what comes back and
+    /// page it yourself.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Matching registrants, unpaged. Never <see langword="null"/>; empty for an unknown symbol, not
+    /// an error.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or blank — FMP answers 400
+    /// naming the parameter, so it is raised here instead of bought.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> FindCompanyBySymbolAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        return FindCompanyAsync("stable/sec-filings-company-search/symbol", "symbol", symbol, ct);
+    }
+
+    /// <summary>The registrant behind one Central Index Key —
+    /// <c>stable/sec-filings-company-search/cik</c>.
+    ///
+    /// <para>The route for the majority of SEC registrants, which have no ticker. Measured 2026-08-28, the
+    /// padded and unpadded forms of the CIK each answered the same single row, identical to what
+    /// <see cref="FindCompanyBySymbolAsync"/> answers for the same filer.</para></summary>
+    /// <param name="cik">The SEC Central Index Key, padded or unpadded.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Matching registrants, unpaged. Never <see langword="null"/>; empty for an unknown CIK, not an
+    /// error.</returns>
+    /// <exception cref="ArgumentException"><paramref name="cik"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> FindCompanyByCikAsync(
+        string cik, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(cik);
+        return FindCompanyAsync("stable/sec-filings-company-search/cik", "cik", cik, ct);
+    }
+
+    /// <summary>Registrants whose name matches — <c>stable/sec-filings-company-search/name</c>.
+    ///
+    /// <para><b>Matching is loose and its exact rule was not established.</b> Measured 2026-08-28:
+    /// <c>Apple</c>, <c>apple</c> and <c>Appl</c> each answered the same 52 rows, so it is case-insensitive and
+    /// not an exact comparison; the results include <c>APPLING PARTNERS, LLC</c>, which contains no "apple" at
+    /// all, so it is looser than a substring test. A single character, <c>a</c>, answered <b>0</b> rows, so very
+    /// short queries are rejected rather than matching broadly. This SDK records what it saw and asserts no
+    /// rule.</para>
+    ///
+    /// <para><b>Most rows come back unclassified.</b> Four of the first five carry a blank
+    /// <see cref="IndustryClassification.SicCode"/> and <see cref="IndustryClassification.IndustryTitle"/>, and
+    /// four carry the literal string <c>"None"</c> as their symbol — see
+    /// <see cref="IndustryClassification.Symbol"/>.</para>
+    ///
+    /// <para>No <c>limit</c>: measured 2026-08-28, <c>company=Apple</c> answered 52 rows with and without
+    /// one.</para></summary>
+    /// <param name="company">The name to match. Matched loosely — see above.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Matching registrants, unpaged. Never <see langword="null"/>; empty for an unmatched name, not
+    /// an error — including when FMP considers the query too short.</returns>
+    /// <exception cref="ArgumentException"><paramref name="company"/> is null, empty or blank.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryClassification>> FindCompanyByNameAsync(
+        string company, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(company);
+        return FindCompanyAsync("stable/sec-filings-company-search/name", "company", company, ct);
+    }
+
+    /// <summary>The body the three <c>sec-filings-company-search/*</c> paths share: one required parameter and
+    /// nothing else. Extracted at three call sites, for the reason on <see cref="SearchAsync"/>.</summary>
+    private Task<IReadOnlyList<IndustryClassification>> FindCompanyAsync(
+        string path, string parameter, string value, CancellationToken ct) =>
+        transport.GetListAsync(
+            new FmpRequest(path).With(parameter, value),
+            FmpJsonContext.Default.ListIndustryClassification, ct);
 }
