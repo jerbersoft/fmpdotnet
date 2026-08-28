@@ -198,6 +198,40 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListHolderPerformance, ct);
     }
 
+    /// <summary>What every 13F filer together reported about one symbol in one quarter, or
+    /// <see langword="null"/> when FMP has nothing —
+    /// <c>stable/institutional-ownership/symbol-positions-summary</c>.
+    ///
+    /// <para><b>One row, unwrapped from the array FMP sends.</b> The path answers a JSON array that carried
+    /// exactly one element for every symbol measured 2026-08-28; its 36 fields are whole-market aggregates for
+    /// the symbol and quarter rather than per-filer rows, so a list return would make every caller write
+    /// <c>[0]</c>. Unwrapped the way <see cref="SecFilingsEndpoints.GetProfileAsync"/> does it.</para>
+    ///
+    /// <para><b><see cref="SymbolPositions.OwnershipPercent"/> can exceed 100</b>, legitimately — read its
+    /// documentation before treating it as a fraction.</para></summary>
+    /// <param name="symbol">The ticker, as FMP spells it.</param>
+    /// <param name="year">The calendar year of the quarter end. Not range-checked.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4. Required by FMP.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The quarter's aggregates, or <see langword="null"/> when FMP has none — which is what an
+    /// unknown symbol or an unfiled quarter answers, with HTTP 200 rather than a 404.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="symbol"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is outside 1 to 4.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<SymbolPositions?> GetSymbolPositionsAsync(
+        string symbol, int year, int quarter, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ThrowIfQuarterOutOfRange(quarter);
+
+        var rows = await transport.GetListAsync(
+            new FmpRequest("stable/institutional-ownership/symbol-positions-summary")
+                .With("symbol", symbol).With("year", year).With("quarter", quarter),
+            FmpJsonContext.Default.ListSymbolPositions, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
     /// <summary>Rejects a quarter FMP could only answer with an error.
     ///
     /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it

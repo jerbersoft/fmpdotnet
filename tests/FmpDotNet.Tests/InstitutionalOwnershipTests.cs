@@ -493,4 +493,115 @@ public class InstitutionalOwnershipTests
         Assert.DoesNotContain("quarter=", handler.Requests[0].Query);
         Assert.DoesNotContain("limit=", handler.Requests[0].Query);
     }
+
+    // ---- institutional-ownership/symbol-positions-summary --------------------------------------------------------
+
+    [Fact]
+    public async Task The_symbol_positions_summary_is_unwrapped_from_its_one_element_array()
+    {
+        // The wire shape is an array; the answer is one row of whole-market aggregates. GetProfileAsync set
+        // this precedent — GetListAsync, then rows[0] — rather than GetObjectAsync, because the response really
+        // is a list and pretending otherwise would fail to deserialise.
+        var (endpoints, _) = Build(StubHandler.Json(
+            Binding.Fixture("institutional-ownership-symbol-positions-summary.AAPL.json")));
+
+        var row = await endpoints.GetSymbolPositionsAsync("AAPL", 2026, 2);
+
+        Assert.NotNull(row);
+        Assert.Equal("AAPL", row.Symbol);
+        Assert.Equal("0000320193", row.Cik);
+        Assert.Equal(new LocalDate(2026, 6, 30), row.Date);
+        Assert.Empty(Binding.Unbound(row));
+    }
+
+    [Fact]
+    public async Task An_unknown_symbol_answers_null_rather_than_throwing()
+    {
+        // Measured 2026-08-28: an unrecognised symbol answers `[]` with HTTP 200, not a 404. Null is this SDK's
+        // spelling of that, matching GetProfileAsync.
+        var (endpoints, _) = Build(StubHandler.Json("[]"));
+
+        Assert.Null(await endpoints.GetSymbolPositionsAsync("NOSUCHTICKER", 2026, 2));
+    }
+
+    [Fact]
+    public void An_ownership_percentage_over_one_hundred_is_kept_exactly_as_sent()
+    {
+        // Not a defect and not something to clamp. A 13F double-counts shares held through multiple reporting
+        // managers, so summing filers legitimately passes shares outstanding. Measured 2026-08-28, this was
+        // over 100 on two of six symbols: AAPL 110.1329 and MSFT 128.2744. A clamp, a range check or a
+        // percentage wrapper type would each turn a real measurement into a lie.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-symbol-positions-summary.AAPL.json"),
+            FmpJsonContext.Default.ListSymbolPositions)!;
+
+        Assert.Equal(110.1329m, rows[0].OwnershipPercent);
+        Assert.Equal(63.9264m, rows[0].LastOwnershipPercent);
+        Assert.Equal(46.2065m, rows[0].OwnershipPercentChange);
+    }
+
+    [Fact]
+    public void A_total_invested_past_two_trillion_binds_rather_than_throwing()
+    {
+        // 2,840,158,192,185 — 1,322 times int.MaxValue, and past long's ceiling is not the risk here; the risk
+        // is somebody typing it int? because "positions" sounds like a count. numberOf13Fshares is the sharper
+        // case at 16,201,347,267: seven times int's ceiling on a field whose name says "shares".
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-symbol-positions-summary.AAPL.json"),
+            FmpJsonContext.Default.ListSymbolPositions)!;
+
+        Assert.Equal(2840158192185m, rows[0].TotalInvested);
+        Assert.Equal(16201347267m, rows[0].NumberOf13FShares);
+        Assert.Equal(463018157203m, rows[0].TotalInvestedChange);
+    }
+
+    [Fact]
+    public void The_position_counts_are_ints_and_the_negative_changes_survive_it()
+    {
+        // These six really are counts of filers, so they stay int? rather than being swept into decimal? for
+        // safety — the largest measured is 6,435 and none was ever fractional. The changes go negative, which
+        // is what this pins: closedPositionsChange is −18 and reducedPositionsChange is −165 on the captured
+        // row, so an unsigned type would be wrong here even though the counts themselves never are.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("institutional-ownership-symbol-positions-summary.AAPL.json"),
+            FmpJsonContext.Default.ListSymbolPositions)!;
+
+        Assert.Equal(6435, rows[0].InvestorsHolding);
+        Assert.Equal(43, rows[0].InvestorsHoldingChange);
+        Assert.Equal(-18, rows[0].ClosedPositionsChange);
+        Assert.Equal(-165, rows[0].ReducedPositionsChange);
+    }
+
+    [Fact]
+    public async Task The_symbol_positions_call_sends_symbol_year_and_quarter()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetSymbolPositionsAsync("AAPL", 2025, 3);
+
+        Assert.Equal(
+            "/stable/institutional-ownership/symbol-positions-summary", handler.Requests[0].AbsolutePath);
+        Assert.Contains("symbol=AAPL", handler.Requests[0].Query);
+        Assert.Contains("year=2025", handler.Requests[0].Query);
+        Assert.Contains("quarter=3", handler.Requests[0].Query);
+        Assert.DoesNotContain("limit=", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(-1)]
+    public async Task A_quarter_outside_one_to_four_is_refused_on_symbol_positions(int quarter)
+    {
+        // Task 3's review flagged this exact omission on a sibling method: the shared guard being exercised
+        // elsewhere does not cover a third caller that might later stop calling it. Mirrors
+        // A_quarter_outside_one_to_four_is_refused, ..._on_holder_analytics and ..._on_industry_breakdown.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetSymbolPositionsAsync("AAPL", 2025, quarter));
+
+        Assert.Equal("quarter", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
 }
