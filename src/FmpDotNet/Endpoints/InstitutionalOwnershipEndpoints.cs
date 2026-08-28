@@ -309,6 +309,44 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListInstitutionalFiling, ct);
     }
 
+    /// <summary>SC 13D/G disclosures for one issuer — who has crossed 5% of a class, and with what voting and
+    /// dispositive power — <c>stable/acquisition-of-beneficial-ownership</c>.
+    ///
+    /// <para><b>FMP documents this under Insider Trades. It is here because it is not an insider
+    /// transaction</b> — the reporting person is an institution and the subject is a stake. See
+    /// <see cref="BeneficialOwnership"/>.</para>
+    ///
+    /// <para><b><paramref name="limit"/> and no <c>page</c>, and both halves are measured.</b> The endpoint
+    /// honours <c>limit</c>; it ignores <c>page</c> — <c>page=0</c> and <c>page=1</c> returned byte-identical
+    /// bodies on 2026-08-28. Honouring one does not predict honouring the other, so each was measured
+    /// separately and only the one that works is offered.</para>
+    ///
+    /// <para>Historical as well as current: the captured AAPL response spans 2015 to 2026 in 99 rows.</para></summary>
+    /// <param name="symbol">The issuer's ticker, as FMP spells it.</param>
+    /// <param name="limit">Rows to return, 1 to <see cref="MaxOwnershipPageSize"/>. <b>The upper bound is
+    /// derived from this path's siblings rather than measured on it</b> — see
+    /// <see cref="MaxOwnershipPageSize"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The disclosures, newest first. Never <see langword="null"/>; empty for an unknown symbol, not
+    /// an error.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="symbol"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is empty or blank.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is outside 1 to
+    /// <see cref="MaxOwnershipPageSize"/>.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<BeneficialOwnership>> GetBeneficialOwnershipAsync(
+        string symbol, int limit = 100, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxOwnershipPageSize);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/acquisition-of-beneficial-ownership")
+                .With("symbol", symbol).With("limit", limit),
+            FmpJsonContext.Default.ListBeneficialOwnership, ct);
+    }
+
     /// <summary>Rejects a quarter FMP could only answer with an error.
     ///
     /// <para>Five methods on this class take a quarter and all five require it: measured 2026-08-28, omitting it

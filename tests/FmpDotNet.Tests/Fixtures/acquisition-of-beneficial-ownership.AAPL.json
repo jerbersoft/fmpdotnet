@@ -1,0 +1,53 @@
+[
+  {
+    "cik": "0000320193",
+    "symbol": "AAPL",
+    "filingDate": "2026-04-29",
+    "acceptedDate": "2026-04-29",
+    "cusip": "037833100",
+    "nameOfReportingPerson": "Vanguard Capital Management",
+    "citizenshipOrPlaceOfOrganization": "PENNSYLVANIA",
+    "soleVotingPower": "0",
+    "sharedVotingPower": "0",
+    "soleDispositivePower": "0",
+    "sharedDispositivePower": "0",
+    "amountBeneficiallyOwned": "1099168953",
+    "percentOfClass": "7.48",
+    "typeOfReportingPerson": "IA",
+    "url": "https://www.sec.gov/Archives/edgar/data/320193/000210011926000139/xslSCHEDULE_13G_X02/primary_doc.xml"
+  },
+  {
+    "cik": "0000320193",
+    "symbol": "AAPL",
+    "filingDate": "2026-03-26",
+    "acceptedDate": "2026-03-26",
+    "cusip": "037833100",
+    "nameOfReportingPerson": "The Vanguard Group",
+    "citizenshipOrPlaceOfOrganization": "PENNSYLVANIA",
+    "soleVotingPower": "0",
+    "sharedVotingPower": "0",
+    "soleDispositivePower": "0",
+    "sharedDispositivePower": "0",
+    "amountBeneficiallyOwned": "0",
+    "percentOfClass": "0",
+    "typeOfReportingPerson": "IA",
+    "url": "https://www.sec.gov/Archives/edgar/data/102909/000010290926000630/xslSCHEDULE_13G_X02/primary_doc.xml"
+  },
+  {
+    "cik": "0000320193",
+    "symbol": "AAPL",
+    "filingDate": "2015-02-10",
+    "acceptedDate": "2015-02-10",
+    "cusip": "037833100",
+    "nameOfReportingPerson": "Vanguard Group - 23-1945930",
+    "citizenshipOrPlaceOfOrganization": "Pennsylvania",
+    "soleVotingPower": "10208579",
+    "sharedVotingPower": null,
+    "soleDispositivePower": "322573028",
+    "sharedDispositivePower": "9666535",
+    "amountBeneficiallyOwned": "332239563",
+    "percentOfClass": "5.66",
+    "typeOfReportingPerson": "EP, IN",
+    "url": "https://www.sec.gov/Archives/edgar/data/102909/000093247115003679/appleinc.htm"
+  }
+]
