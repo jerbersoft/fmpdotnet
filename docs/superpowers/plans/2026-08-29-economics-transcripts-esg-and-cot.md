@@ -3828,8 +3828,14 @@ turn the placeholders left by Task 6 into real cross-references:
 Find them by grep rather than by eye — a count written here has been wrong before, and the grep cannot be:
 
 ```bash
-grep -rn '<c>GetReportAsync</c>\|<c>GetAnalysisAsync</c>\|<c>GetSymbolsAsync</c>' src/
+grep -rn '<c>GetReportAsync</c>\|<c>GetAnalysisAsync</c>\|<c>GetSymbolsAsync</c>' src/FmpDotNet/Models/
 ```
+
+**Scoped to `Models/`, and that matters.** The placeholders are Task 6's, and Task 6 wrote only models — nothing
+in `Endpoints/` was ever deferred. A grep across all of `src/` also catches `CotEndpoints.cs`'s own summary,
+which says "Named `<c>GetSymbolsAsync</c>` rather than after the path" and pairs it with `<c>GetListAsync</c>`.
+Those two are names being discussed as names, and the parallel is the point of the sentence: promoting one of
+them to a cref — a method's summary linking to itself — breaks it. Leave both as `<c>`.
 
 Promote **every** hit to its `<see cref="Endpoints.CotEndpoints.X"/>` form — `GetReportAsync` in
 `CotReport.cs`, `GetAnalysisAsync` and `GetSymbolsAsync` in `CotAnalysis.cs`. Re-run the grep afterwards and

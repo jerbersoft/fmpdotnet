@@ -102,7 +102,7 @@ public sealed class CotEndpoints(FmpTransport transport)
     /// This is where a contract code for <see cref="GetReportAsync"/> and <see cref="GetAnalysisAsync"/>
     /// comes from.</para>
     ///
-    /// <para><b>Named <see cref="GetSymbolsAsync"/> rather than after the path.</b> <c>GetListAsync</c> is what
+    /// <para><b>Named <c>GetSymbolsAsync</c> rather than after the path.</b> <c>GetListAsync</c> is what
     /// <see cref="FmpTransport"/> calls its own primitive, and a facade method of that name would read as the
     /// transport rather than as a directory of contracts.</para></summary>
     /// <param name="ct">Cancels the request.</param>
