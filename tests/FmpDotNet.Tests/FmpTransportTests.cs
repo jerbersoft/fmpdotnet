@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Microsoft.Extensions.Options;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
@@ -249,5 +250,49 @@ public class FmpTransportTests
         var (transport, _) = Build(StubHandler.Status(status));
 
         await Assert.ThrowsAsync<FmpPlanRestrictedException>(() => transport.GetBytesAsync(new FmpRequest("stable/x")));
+    }
+
+    [Fact]
+    public async Task A_two_hundred_carrying_a_body_that_is_not_json_raises_FmpApiException()
+    {
+        // Measured 2026-08-29: stable/economic-indicators?name=gdp answers HTTP 200,
+        // `content-type: application/json; charset=utf-8`, and twelve bytes of `Invalid name` — which is not
+        // JSON at all. Before this guard the caller got
+        //
+        //   System.Text.Json.JsonException: 'I' is an invalid start of a value. Path: $ | LineNumber: 0 …
+        //
+        // a raw serialisation exception naming neither the request nor what FMP actually said. GetObjectAsync
+        // has caught this since #21; ReadListAsync did not, and the two pipelines diverged for no reason
+        // anyone chose. `stable/financial-reports-xlsx` answers a MISS the same way with `Error with query`.
+        var (transport, _) = Build(StubHandler.Json("Invalid name"));
+
+        var thrown = await Assert.ThrowsAsync<FmpApiException>(
+            () => transport.GetListAsync(
+                new FmpRequest("stable/economic-indicators").With("name", "gdp"),
+                FmpJsonContext.Default.ListEconomicRelease));
+
+        // FmpApiException has no Request property — FmpApiException(message, requestUri) folds the request
+        // into Message as "(request: …)", and ErrorMessage keeps FMP's own text alone.
+        Assert.Contains("not JSON", thrown.ErrorMessage);
+        Assert.Contains("stable/economic-indicators", thrown.Message);
+    }
+
+    [Fact]
+    public async Task A_well_formed_array_with_a_field_of_the_wrong_type_still_raises_JsonException()
+    {
+        // The other side of the guard above, and the reason it carries a filter. This body IS JSON — it just
+        // does not match the model, which makes it a defect in THIS SDK rather than a bad answer from FMP.
+        // Several models say so in as many words: "a non-numeric segment revenue would be a defect worth
+        // hearing about, so the decimal dictionary is the right type and this throw is the right outcome."
+        // Wrapping it in FmpApiException would report "FMP answered a body that is not JSON" about a body
+        // that is, blame FMP for our own modelling, and — FmpApiException taking no inner exception — throw
+        // the JSON path and byte offset away with it. GetObjectAsync draws the same line: its guard wraps the
+        // parse and leaves the bind alone.
+        var (transport, _) = Build(StubHandler.Json("""[{"impact":7}]"""));
+
+        await Assert.ThrowsAsync<JsonException>(
+            () => transport.GetListAsync(
+                new FmpRequest("stable/economic-calendar"),
+                FmpJsonContext.Default.ListEconomicRelease));
     }
 }

@@ -76,10 +76,37 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
 
         // An error envelope is a JSON OBJECT where success is a JSON ARRAY, so the first non-space byte separates
         // them without parsing either.
-        if (FirstMeaningfulByte(prefix, prefixLength) == (byte)'{')
+        var first = FirstMeaningfulByte(prefix, prefixLength);
+        if (first == (byte)'{')
             throw await ReadErrorAsync(body, request, ct).ConfigureAwait(false);
 
-        return await deserialise(body, ct).ConfigureAwait(false) ?? [];
+        // A 200 whose body is not JSON at all. Measured 2026-08-29, `stable/economic-indicators` answers an
+        // unrecognised `name` with HTTP 200, `content-type: application/json; charset=utf-8`, and twelve
+        // bytes of `Invalid name`. The check above cannot catch it: the first meaningful byte is `I`, neither
+        // `{` nor the start of an array. Without this the caller gets a raw JsonException naming the byte
+        // offset and nothing else — not the request, not what FMP said. GetObjectAsync has had this guard
+        // since #21 and this pipeline had not; they were divergent by accident rather than by decision.
+        // `stable/financial-reports-xlsx` answers a MISS the same way, with `Error with query`.
+        //
+        // The filter is what keeps the guard honest, and it is not optional. `deserialise` both PARSES and
+        // BINDS, so an unfiltered catch would also swallow a well-formed array whose field is the wrong type
+        // — and report it as "not JSON", which is false, and blame FMP for what is a defect in THIS SDK's
+        // model. Several models document that throw as the outcome they want: "a non-numeric segment revenue
+        // would be a defect worth hearing about, so the decimal dictionary is the right type and this throw
+        // is the right outcome" (AsReportedTests), and CompanyMarketCap, PriceTarget and the directory lists
+        // all record the same. FmpApiException has no inner-exception constructor, so wrapping would lose the
+        // distinction outright. GetObjectAsync's guard makes the same cut for the same reason — it wraps
+        // JsonDocument.ParseAsync and leaves RootElement.Deserialize alone. Here the peeked prefix draws the
+        // line for free: a body that begins `[` is JSON, and a JsonException out of one is ours, not FMP's.
+        try
+        {
+            return await deserialise(body, ct).ConfigureAwait(false) ?? [];
+        }
+        catch (JsonException ex) when (first != (byte)'[')
+        {
+            throw new FmpApiException(
+                $"FMP answered a body that is not JSON: {ex.Message}", request.ToString());
+        }
     }
 
     /// <summary>GETs a JSON <b>object</b> and deserialises it through a source-generated
