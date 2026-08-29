@@ -111,6 +111,25 @@ public class TranscriptsTests
     }
 
     [Fact]
+    public async Task An_empty_answer_is_an_empty_list_rather_than_null_on_the_list_methods()
+    {
+        // Pins the promise on GetDatesAsync's and GetLatestAsync's doc comments: "Never null; empty for a
+        // symbol with none, not an error" and "Never null" respectively. Both are driven through a bare `[]`
+        // response here, unlike GetTranscriptAsync above, which collapses an empty answer to null instead.
+        // Separate Build() calls, each good for one request — see Latest_sends_paging_only_when_it_is_given_some.
+        var (datesEndpoints, _) = Build();
+        var (latestEndpoints, _) = Build();
+
+        var dates = await datesEndpoints.GetDatesAsync("NOSUCH");
+        var latest = await latestEndpoints.GetLatestAsync();
+
+        Assert.NotNull(dates);
+        Assert.Empty(dates);
+        Assert.NotNull(latest);
+        Assert.Empty(latest);
+    }
+
+    [Fact]
     public async Task The_transcript_is_queried_with_quarter_even_though_it_answers_period()
     {
         // The request parameter and the response field disagree on this one endpoint: it is QUERIED with

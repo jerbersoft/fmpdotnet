@@ -35,8 +35,8 @@ public sealed record FinancialStatementSymbol
 ///
 /// <para>FMP files this under both Directory and Earnings Transcript. It is on
 /// <see cref="Endpoints.DirectoryEndpoints"/> because it is a directory: it says what exists, not what any
-/// transcript says. <b>The transcripts themselves are not modelled</b> — that is three further paths in the long
-/// tail of issue #25.</para></summary>
+/// transcript says — the transcripts themselves are on <see cref="Endpoints.TranscriptsEndpoints"/>, as
+/// <see cref="EarningsTranscript"/>, <see cref="TranscriptDate"/> and <see cref="LatestTranscript"/>.</para></summary>
 public sealed record TranscriptSymbol
 {
     /// <summary>The ticker as FMP spells it.</summary>
