@@ -29,8 +29,9 @@ none. `CotReport` is 128 properties, the widest record in the SDK against `Finan
   rule is uniform: **write the cref as plain `<c>GetSomethingAsync</c>` when you write the model, then promote
   it to `<see cref="Endpoints.SomethingEndpoints.GetSomethingAsync"/>` at the step that creates the facade.**
   Skipping the promotion is not a build failure, only a weaker doc — so it is easy to lose. Each affected task
-  has an explicit promotion step; do not treat it as optional. There are **eleven** of these across the plan:
-  three in Task 2 and one in Task 3, both promoted together in **Task 3 Step 12**; three in Task 4, promoted in
+  has an explicit promotion step; do not treat it as optional. There are **ten** of these across the plan
+  (counted in the code blocks themselves, not from prose): two in Task 2 and one in Task 3, promoted together
+  in **Task 3 Step 12**; three in Task 4, promoted in
   **Task 4 Step 6b**; one in Task 5, promoted in **Task 5 Step 6b**; and three in Task 6, promoted in
   **Task 7 Step 4**.
 - **CS1591 is not suppressed project-wide.** `CotReport` gets a file-scoped `#pragma warning disable CS1591`,
@@ -562,7 +563,7 @@ public static class EconomicIndicatorExtensions
 
 **Note on the `<see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>` references above.** They point at
 a method Task 3 creates, and `TreatWarningsAsErrors` turns an unresolvable cref into CS1574 — a **build
-error**. Write the file with those three crefs rendered as plain `<c>GetIndicatorAsync</c>` in this task, and
+error**. Write the file with both of those crefs rendered as plain `<c>GetIndicatorAsync</c>` in this task, and
 promote them to real crefs in Task 3 Step 12, which is where the method exists. Do not skip that step: the
 cross-reference is what makes the staleness note reachable from the method a caller is actually looking at.
 
@@ -1193,13 +1194,14 @@ Append to the body of `EconomicsEndpoints`, after `GetEconomicCalendarAsync`:
     }
 ```
 
-- [ ] **Step 12: Promote the four deferred crefs**
+- [ ] **Step 12: Promote the three deferred crefs**
 
 All three methods now exist, so the placeholders left by Task 2 Step 3 and Step 4 above become real
-cross-references:
+cross-references. Grep for the placeholder rather than counting by eye —
+`grep -rn '<c>GetIndicatorAsync</c>\|<c>GetTreasuryRatesAsync</c>' src/` — and promote every hit:
 
-- `src/FmpDotNet/EconomicIndicator.cs`, type-level summary — three occurrences of
-  `<c>GetIndicatorAsync</c>` → `<see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>`
+- `src/FmpDotNet/EconomicIndicator.cs` — two occurrences of `<c>GetIndicatorAsync</c>` (the type-level summary
+  and the staleness paragraph) → `<see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>`
 - `src/FmpDotNet/Models/EconomicIndicators.cs`, `TreasuryRate`'s type summary — one occurrence of
   `<c>GetTreasuryRatesAsync</c>` → `<see cref="Endpoints.EconomicsEndpoints.GetTreasuryRatesAsync"/>`
 
