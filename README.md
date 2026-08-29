@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**140 of FMP's 243 endpoint paths are modelled.**
+**154 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -229,6 +229,30 @@ without a table entry fails the build rather than leaving a page that reads as c
 |---|---|
 | `stable/economic-calendar` | `GetEconomicCalendarAsync` |
 
+`fmp.InsiderTrades`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/insider-trading-transaction-type` | `GetTransactionTypesAsync` |
+| `stable/insider-trading/latest` | `GetLatestAsync` |
+| `stable/insider-trading/reporting-name` | `SearchReportingNameAsync` |
+| `stable/insider-trading/search` | `SearchAsync` |
+| `stable/insider-trading/statistics` | `GetStatisticsAsync` |
+
+`fmp.InstitutionalOwnership`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/acquisition-of-beneficial-ownership` | `GetBeneficialOwnershipAsync` |
+| `stable/institutional-ownership/dates` | `GetFilingDatesAsync` |
+| `stable/institutional-ownership/extract` | `GetHoldingsAsync` |
+| `stable/institutional-ownership/extract-analytics/holder` | `GetHolderAnalyticsAsync` |
+| `stable/institutional-ownership/holder-industry-breakdown` | `GetHolderIndustryBreakdownAsync` |
+| `stable/institutional-ownership/holder-performance-summary` | `GetHolderPerformanceAsync` |
+| `stable/institutional-ownership/industry-summary` | `GetIndustrySummaryAsync` |
+| `stable/institutional-ownership/latest` | `GetLatestFilingsAsync` |
+| `stable/institutional-ownership/symbol-positions-summary` | `GetSymbolPositionsAsync` |
+
 `fmp.Quote`
 
 | FMP endpoint | Method |
@@ -313,12 +337,12 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **103 paths
-remain**, of which **96 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **89 paths
+remain**, of which **82 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest group is Form 13F & Insider Trades (14), then
-Senate & House (12) and Economics/Transcripts/ESG/COT (12), Market Performance (11), News (10) and Fundraisers &
-DCF (10); ETF & Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9 apiece.
+spread the way FMP's own section headings suggest: the largest groups are Senate & House (12) and
+Economics/Transcripts/ESG/COT (12), then Market Performance (11), News (10) and Fundraisers & DCF (10); ETF &
+Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9 apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -326,9 +350,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as ten issues under the epic, nine of them actionable, each 9 to 14 paths and each
+That remainder is tracked as nine issues under the epic, eight of them actionable, each 9 to 12 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 140 modelled plus 103 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 154 modelled plus 89 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
