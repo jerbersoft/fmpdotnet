@@ -122,7 +122,7 @@ exactly the failure the typing convention in `CONTRIBUTING.md` now warns about.
 `yearsInTerm` is the dangerous one: 266 of its 300 values are bare integers, so a smaller sample could easily
 have seen none of the 34 and typed it `int`. Both are `decimal?`.
 
-The same flip runs through `senate-net-worth-aggregated`, where **6 of its 14 money fields** changed
+The same flip runs through `senate-net-worth-aggregated`, where **8 of its 14 money fields** changed
 representation across only six rows:
 
 | field | float representation |
@@ -147,8 +147,20 @@ seventh. Every money field on this record is `decimal?`.
 | `points` | `int`, `string` |
 | `rate` | `float`, `int`, `string` |
 
-`rate` arriving as any of three types — including the placeholder `"-"` — is not something `decimal?` survives
-on its own. This needs either a tolerant converter or `string?`, and the design must choose deliberately.
+The string values of `rate` are **not placeholders** — they carry a term as well as a rate, and there are only
+two of them across 64 rows:
+
+```
+"N/A%                        (10 years)"
+"NA%                        (On Demand)"
+```
+
+Over the 100 rows where `debtDetails` is present: `rate` is numeric on 23 (1.4, 2.75, 5.25, 3), one of those
+two strings on 64, and null on 13. `points` is the string `"-"` on 82, the integer `0` on 5, and null on 13.
+
+A tolerant numeric converter would bind null on the 64 and discard "10 years" and "On Demand" with them, and
+mapping `points`' `"-"` to null would collapse two states FMP distinguishes. Whichever way the design rules,
+it is ruling on data loss, not on convenience.
 
 ## `value` is the midpoint of `valueRange`
 
@@ -227,3 +239,37 @@ trade shape that arrives as a JSON `null` (2 of 100 rows).
 | `valueRange`, `value` | 36 each |
 | `name` | 13 |
 | `comment` | 5 |
+
+## Every date field is ISO `yyyy-MM-dd`
+
+**1,728 values across six distinct field names, none non-conforming.**
+
+| field | path | values |
+|---|---|---|
+| `disclosureDate`, `transactionDate` | `house-latest` | 100 each |
+| `disclosureDate`, `transactionDate` | `senate-latest` | 100 each |
+| `startDate` | `senate-positions` | 300 |
+| `endDate` | `senate-positions` | 278 (null on 22) |
+| `birthDate` | `senate-profile` | 500 |
+| `filingDate` | `senate-net-worth` | 250 |
+
+`birthDate` runs from 1932-12-31 to 1997-01-16.
+
+`debtDetails.dateIncurred` is **not** among these and is not a date: seven distinct values, every one a bare
+four-digit year — `2003`, `2010`, `2014`, `2015`, `2018`, `2020`, `2021`.
+
+## `bool?` cannot read `capitalGainsOver200USD`
+
+The field arrives as the JSON string `"False"`. Measured 2026-08-29 against this library's own
+`FmpJsonContext` options:
+
+| target | `"False"` | `"True"` | `false` |
+|---|---|---|---|
+| `bool?` | **throws** | **throws** | binds |
+| `string?` | binds | binds | — |
+
+`NumberHandling.AllowReadingFromString` covers numbers, not booleans, so there is no option-level rescue. Only
+`"False"` was observed on the wire — **the spelling of the affirmative was never measured**, so any converter
+written to handle it would be guessing at the one value it exists for.
+
+`senate-profile.active` is a genuine JSON `true` and is unaffected.
