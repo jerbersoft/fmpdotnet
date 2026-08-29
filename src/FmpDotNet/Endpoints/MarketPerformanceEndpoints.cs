@@ -191,9 +191,9 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <summary>Every industry's aggregate price-to-earnings ratio on one day and one exchange, from
     /// <c>stable/industry-pe-snapshot</c>.
     ///
-    /// <para><b>Twelve of 254 measured rows read <c>pe: 0</c></b>, which means "no meaningful aggregate" rather
-    /// than a ratio of zero — see <see cref="Models.IndustryPe.Pe"/>. Every one of the twelve was an industry
-    /// row; no sector row carried a zero.</para>
+    /// <para><b>Twelve of the 254 industry-PE snapshot rows read <c>pe: 0</c></b>, which means "no meaningful
+    /// aggregate" rather than a ratio of zero — see <see cref="Models.IndustryPe.Pe"/>. Every one of the
+    /// twelve was an industry row; no sector row carried a zero.</para>
     ///
     /// <para>The vocabulary gap documented on <see cref="GetIndustryPerformanceSnapshotAsync"/> and the
     /// out-of-range date behaviour documented on <see cref="GetSectorPerformanceSnapshotAsync"/> both apply
@@ -219,6 +219,165 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
                 .With("date", date)
                 .With("exchange", exchange)
                 .With("industry", industry),
+            FmpJsonContext.Default.ListIndustryPe, ct);
+    }
+
+    /// <summary>One sector's average price change over a range, on one exchange, from
+    /// <c>stable/historical-sector-performance</c>.
+    ///
+    /// <para><b><paramref name="from"/> and <paramref name="to"/> are required because FMP's defaults are
+    /// thirty months stale.</b> Measured 2026-08-29, omitting both returns 21 rows spanning
+    /// <c>2024-02-01 … 2024-03-01</c> — HTTP 200, well-formed, and wrong for anyone who meant "recently". The
+    /// two bounds were measured separately: <c>to</c> alone backfills <c>from</c> to 2024-02-01, and
+    /// <c>from=2024-02-20</c> alone returns 9 rows ending at 2024-03-01. <c>limit=100</c> does not move either.
+    /// Recent data is reachable and plentiful; only the defaults are stuck, so this SDK makes them
+    /// unreachable.</para>
+    ///
+    /// <para><b>The exchange is part of the fact.</b> Measured on the same window, the NASDAQ and NYSE answers
+    /// for Technology disagreed on all 20 shared dates.</para>
+    ///
+    /// <para>History reaches back to at least <b>2000-01-03</b>, measured 2026-08-29. No row cap was reached:
+    /// a single request for 2000-01-01 to 2016-01-01 returned <b>4,025 rows</b>. Rows arrive newest
+    /// first.</para>
+    ///
+    /// <para>An unrecognised <paramref name="exchange"/> answers <c>[]</c> with HTTP 200 rather than an
+    /// error.</para></summary>
+    /// <param name="sector">The sector to report on.</param>
+    /// <param name="exchange">The exchange to answer for. Required — see
+    /// <see cref="GetSectorPerformanceSnapshotAsync"/>.</param>
+    /// <param name="from">First calendar day of the range, inclusive.</param>
+    /// <param name="to">Last calendar day of the range, inclusive. Must not be earlier than
+    /// <paramref name="from"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per trading day in the range, newest first, or <c>[]</c>. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="exchange"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
+    /// <paramref name="from"/>, or <paramref name="sector"/> is not a declared member. Both are checked before
+    /// the request is sent: FMP answers a backwards range with HTTP 200 and <c>[]</c>.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SectorPerformance>> GetHistoricalSectorPerformanceAsync(
+        Sector sector, string exchange, LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(exchange);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/historical-sector-performance")
+                .With("sector", sector.ToQueryValue())
+                .With("exchange", exchange)
+                .With("from", from)
+                .With("to", to),
+            FmpJsonContext.Default.ListSectorPerformance, ct);
+    }
+
+    /// <summary>One sector's aggregate price-to-earnings ratio over a range, on one exchange, from
+    /// <c>stable/historical-sector-pe</c>.
+    ///
+    /// <para>The stale-default measurement on
+    /// <see cref="GetHistoricalSectorPerformanceAsync"/> was taken on this path too — the same 21 rows spanning
+    /// 2024-02-01 to 2024-03-01. Read that method's summary; it applies here unchanged.</para>
+    ///
+    /// <para><b>A <c>pe</c> of exactly <c>0</c> means "no meaningful aggregate"</b> — see
+    /// <see cref="Models.IndustryPe.Pe"/>.</para></summary>
+    /// <param name="sector">The sector to report on.</param>
+    /// <param name="exchange">The exchange to answer for. Required.</param>
+    /// <param name="from">First calendar day of the range, inclusive.</param>
+    /// <param name="to">Last calendar day of the range, inclusive.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per trading day in the range, newest first, or <c>[]</c>. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="exchange"/> is null, empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
+    /// <paramref name="from"/>, or <paramref name="sector"/> is not a declared member.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SectorPe>> GetHistoricalSectorPeAsync(
+        Sector sector, string exchange, LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(exchange);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/historical-sector-pe")
+                .With("sector", sector.ToQueryValue())
+                .With("exchange", exchange)
+                .With("from", from)
+                .With("to", to),
+            FmpJsonContext.Default.ListSectorPe, ct);
+    }
+
+    /// <summary>One industry's average price change over a range, on one exchange, from
+    /// <c>stable/historical-industry-performance</c>.
+    ///
+    /// <para>The stale-default measurement on <see cref="GetHistoricalSectorPerformanceAsync"/> and the
+    /// vocabulary gap on <see cref="GetIndustryPerformanceSnapshotAsync"/> both apply here. An industry FMP
+    /// does not carry on the requested exchange answers <c>[]</c> with HTTP 200, indistinguishable from a
+    /// typo — measured 2026-08-29 with <c>industry=Banks</c>, which is in
+    /// <see cref="DirectoryEndpoints.GetIndustriesAsync"/> and returns nothing anywhere.</para></summary>
+    /// <param name="industry">The industry to report on, using FMP's own label. Labels carrying <c>&amp;</c>
+    /// and <c>,</c> are URL-encoded for you.</param>
+    /// <param name="exchange">The exchange to answer for. Required.</param>
+    /// <param name="from">First calendar day of the range, inclusive.</param>
+    /// <param name="to">Last calendar day of the range, inclusive.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per trading day in the range, newest first, or <c>[]</c>. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="industry"/> or <paramref name="exchange"/> is null,
+    /// empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryPerformance>> GetHistoricalIndustryPerformanceAsync(
+        string industry, string exchange, LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(industry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(exchange);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/historical-industry-performance")
+                .With("industry", industry)
+                .With("exchange", exchange)
+                .With("from", from)
+                .With("to", to),
+            FmpJsonContext.Default.ListIndustryPerformance, ct);
+    }
+
+    /// <summary>One industry's aggregate price-to-earnings ratio over a range, on one exchange, from
+    /// <c>stable/historical-industry-pe</c>.
+    ///
+    /// <para>Everything documented on <see cref="GetHistoricalIndustryPerformanceAsync"/> applies, and
+    /// <b>a <c>pe</c> of exactly <c>0</c> means "no meaningful aggregate"</b> — see
+    /// <see cref="Models.IndustryPe.Pe"/>, where the twelve measured zeros are recorded.</para></summary>
+    /// <param name="industry">The industry to report on, using FMP's own label.</param>
+    /// <param name="exchange">The exchange to answer for. Required.</param>
+    /// <param name="from">First calendar day of the range, inclusive.</param>
+    /// <param name="to">Last calendar day of the range, inclusive.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>One row per trading day in the range, newest first, or <c>[]</c>. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="industry"/> or <paramref name="exchange"/> is null,
+    /// empty or whitespace.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
+    /// <paramref name="from"/>.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<IndustryPe>> GetHistoricalIndustryPeAsync(
+        string industry, string exchange, LocalDate from, LocalDate to, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(industry);
+        ArgumentException.ThrowIfNullOrWhiteSpace(exchange);
+        DateRange.ThrowIfBackwards(from, to);
+
+        return transport.GetListAsync(
+            new FmpRequest("stable/historical-industry-pe")
+                .With("industry", industry)
+                .With("exchange", exchange)
+                .With("from", from)
+                .With("to", to),
             FmpJsonContext.Default.ListIndustryPe, ct);
     }
 }

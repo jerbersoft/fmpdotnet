@@ -21,8 +21,8 @@ namespace FmpDotNet;
 /// industries — <c>Banks</c>, <c>Asset Management</c>, <c>Environmental Services</c>, <c>Silver</c> and
 /// <c>Media &amp; Entertainment</c> among them — answer <c>[]</c> on every exchange. An enum whose members are
 /// one-in-eight measured to fail silently would promise a validity it cannot deliver, so industry is a
-/// <see langword="string"/> on <c>MarketPerformanceEndpoints</c> and the caller reads the live vocabulary from
-/// <see cref="Endpoints.DirectoryEndpoints.GetIndustriesAsync"/>.</para></summary>
+/// <see langword="string"/> on <see cref="Endpoints.MarketPerformanceEndpoints"/> and the caller reads the
+/// live vocabulary from <see cref="Endpoints.DirectoryEndpoints.GetIndustriesAsync"/>.</para></summary>
 public enum Sector
 {
     /// <summary>Wire <c>Basic Materials</c>.</summary>

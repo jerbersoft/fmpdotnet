@@ -18,9 +18,9 @@ namespace FmpDotNet.Models;
 /// 2026-08-28 read <c>-0.6192</c> on NASDAQ and <c>-1.7398</c> on NYSE, and across 20 shared dates in one
 /// window not a single value matched. A row is meaningless without its <see cref="Exchange"/>.</para>
 ///
-/// <para><b><see cref="Date"/> is not necessarily the date you asked for.</b> See the snapshot methods on
-/// <c>MarketPerformanceEndpoints</c> for the measurement — a snapshot for a date past the end of the data
-/// returns rows bearing three different dates.</para></summary>
+/// <para><b><see cref="Date"/> is not necessarily the date you asked for.</b> See
+/// <see cref="Endpoints.MarketPerformanceEndpoints.GetSectorPerformanceSnapshotAsync"/> for the measurement —
+/// a snapshot for a date past the end of the data returns rows bearing three different dates.</para></summary>
 public sealed record SectorPerformance
 {
     /// <summary>The trading day the row describes. Nullable because the deserialiser cannot promise a key is

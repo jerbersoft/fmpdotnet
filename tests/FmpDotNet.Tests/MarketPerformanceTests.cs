@@ -335,4 +335,87 @@ public class MarketPerformanceTests
         Assert.Equal(11, rows.Count);
         Assert.Equal(3, rows.Select(r => r.Date).Distinct().Count());
     }
+
+    [Fact]
+    public async Task The_historical_sector_path_always_sends_a_window()
+    {
+        // The point of requiring `from` and `to`: omitting them upstream returns 2024-02-01..2024-03-01,
+        // measured 2026-08-29 — thirty months stale, at HTTP 200, with nothing in the body saying so.
+        // `from` defaults to 2024-02-01 and `to` to 2024-03-01, both hard-coded, and `limit=100` does not move
+        // them. Non-nullable parameters are how that default becomes unreachable.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetHistoricalSectorPerformanceAsync(
+            Sector.Technology, "NASDAQ", new LocalDate(2026, 8, 1), new LocalDate(2026, 8, 28));
+
+        Assert.Equal("/stable/historical-sector-performance", handler.Requests[0].AbsolutePath);
+        var query = handler.Requests[0].Query;
+        Assert.Contains("sector=Technology", query);
+        Assert.Contains("exchange=NASDAQ", query);
+        Assert.Contains("from=2026-08-01", query);
+        Assert.Contains("to=2026-08-28", query);
+    }
+
+    [Theory]
+    [InlineData("sector-pe", "/stable/historical-sector-pe")]
+    [InlineData("industry-performance", "/stable/historical-industry-performance")]
+    [InlineData("industry-pe", "/stable/historical-industry-pe")]
+    public async Task Each_remaining_historical_path_is_asked_by_name(string which, string expected)
+    {
+        var (endpoints, handler) = Build();
+        var from = new LocalDate(2026, 8, 1);
+        var to = new LocalDate(2026, 8, 28);
+
+        switch (which)
+        {
+            case "sector-pe":
+                await endpoints.GetHistoricalSectorPeAsync(Sector.Technology, "NASDAQ", from, to); break;
+            case "industry-performance":
+                await endpoints.GetHistoricalIndustryPerformanceAsync("Steel", "NASDAQ", from, to); break;
+            default:
+                await endpoints.GetHistoricalIndustryPeAsync("Steel", "NASDAQ", from, to); break;
+        }
+
+        Assert.Equal(expected, handler.Requests[0].AbsolutePath);
+    }
+
+    [Fact]
+    public async Task A_backwards_range_is_rejected_before_the_request_goes_out()
+    {
+        // Measured 2026-08-29: `from=2026-08-28&to=2026-08-01` answers `[]` with HTTP 200 — a spent call that
+        // says nothing happened. Rejecting here is the only place that reads as an error.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHistoricalSectorPerformanceAsync(
+                Sector.Technology, "NASDAQ", new LocalDate(2026, 8, 28), new LocalDate(2026, 8, 1)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_blank_industry_is_rejected_on_the_historical_path()
+    {
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => endpoints.GetHistoricalIndustryPeAsync(
+                "  ", "NASDAQ", new LocalDate(2026, 8, 1), new LocalDate(2026, 8, 28)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_historical_path_binds_the_deep_history_number_formats()
+    {
+        var (endpoints, _) = Build(
+            Binding.Fixture("market-performance-historical-sector-performance.head.json"));
+
+        var rows = await endpoints.GetHistoricalSectorPerformanceAsync(
+            Sector.Technology, "NASDAQ", new LocalDate(2000, 1, 1), new LocalDate(2016, 1, 1));
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(0.0000005735079118365113m, rows[0].AverageChange);
+        Assert.Equal(-0.0000026524148173594842m, rows[1].AverageChange);
+    }
 }
