@@ -47,7 +47,11 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     /// the key at least as often as at the plan.</exception>
     /// <exception cref="FmpApiException">FMP reported an error — either in the body of a 200, or on a non-success
     /// status, whose body text becomes <see cref="FmpApiException.ErrorMessage"/> and whose status becomes
-    /// <see cref="FmpApiException.StatusCode"/>.</exception>
+    /// <see cref="FmpApiException.StatusCode"/>. Also raised when a 200 carries a body that is not JSON at
+    /// all, which <see cref="GetObjectAsync"/> has done since #21 and this method now does too. A body that
+    /// IS JSON but does not fit <typeparamref name="T"/> still raises <see cref="JsonException"/>: that is
+    /// this SDK's model being wrong, not FMP's answer, and it is deliberately left to surface as
+    /// itself.</exception>
     public Task<IReadOnlyList<T>> GetListAsync<T>(
         FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
         => ReadListAsync(request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct);
