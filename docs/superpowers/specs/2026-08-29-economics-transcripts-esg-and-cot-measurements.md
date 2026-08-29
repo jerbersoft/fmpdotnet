@@ -1,7 +1,7 @@
 # Economics, Earnings Transcripts, ESG and COT — measurements
 
 Every fact the design will rest on, with the date it was measured. Measured against the live API on
-**2026-08-29** across seventeen probe passes, **126 captured responses**, all ordinary JSON endpoints. No
+**2026-08-29** across nineteen probe passes, **133 captured responses**, all ordinary JSON endpoints. No
 `*-bulk` path was touched.
 
 Issue [#40](https://github.com/jerbersoft/fmpdotnet/issues/40) lists twelve paths. All twelve were probed.
@@ -78,8 +78,8 @@ well-formed, and nothing reports the loss.
 
 | path | cap | which rows survive |
 |---|---|---|
-| `economic-indicators` | 61 rows | newest in range |
-| `treasury-rates` | 61 rows | newest in range |
+| `economic-indicators` | ~3 months | newest in range |
+| `treasury-rates` | ~3 months | newest in range |
 | `commitment-of-traders-analysis` | **13 rows** | newest in range |
 | `commitment-of-traders-report` | none measured | — |
 | `earning-call-transcript-latest` | 100 rows | `limit` above 100 is clamped |
@@ -91,6 +91,12 @@ Measured on `treasury-rates`:
 | 2024-01-01 … 2024-01-31 (1 month) | 21 | 2024-01-02 … 2024-01-31 — complete |
 | 2024-01-01 … 2024-03-31 (3 months) | 61 | 2024-01-02 … 2024-03-28 — complete |
 | 2023-01-01 … 2024-12-31 (2 years) | **61** | **2024-10-02 … 2024-12-31 — 21 months missing** |
+| 2026-05-23 … 2026-08-21 (90 days) | 62 | 2026-05-26 … 2026-08-21 — complete |
+
+The 61 in the first two rows is a coincidence, not a cap: it is simply the number of trading days in those
+spans, and the 90-day window re-measured 2026-08-29 answered **62**. What FMP truncates to is a **window of
+about three months**, keeping the newest; the row count follows from the observation frequency. An earlier
+draft of this file called it a 61-row cap.
 
 Measured on `commitment-of-traders-analysis` versus its sibling `commitment-of-traders-report`, same symbol,
 same query, issued together:
@@ -220,8 +226,9 @@ And the **request** parameter disagrees with the response on the same endpoint: 
 queried with `quarter=3` and answers with `period: "Q3"`.
 
 `earning-call-transcript` requires three parameters, discovered one 400 at a time — `symbol`, then `year`, then
-`quarter`. It returns exactly one row, whose `content` is a single string of **46,546 characters** for
-AAPL 2025 Q3.
+`quarter`. It returns exactly one row, whose `content` is a single string of **46,487 characters** for
+AAPL 2025 Q3 — the length of the decoded string a caller receives. The JSON-escaped literal in the response
+body is 46,544, and an earlier draft of this file quoted that number as the character count.
 
 `earning-call-transcript-dates?symbol=AAPL` returned 84 rows, newest first, spanning 2026-07-30 back to
 2005-10-13 — full history, no cap observed.
@@ -271,6 +278,38 @@ Worth stating plainly because each looks like current data and is not. Measured 
 
 `treasury-rates` is the exception: its bare call returned 2026-05-29 … 2026-08-27, current as of the
 measurement date.
+
+**Every indicator series stops in late 2025**, which is what makes the staleness above a property of the data
+rather than of the default window. Measured 2026-08-29, the newest row across all 23 names:
+
+| newest row | names |
+|---|---|
+| 2025-11-26 | `inflationRate`, `30YearFixedRateMortgageAverage`, `15YearFixedRateMortgageAverage` |
+| 2025-11-22 | `initialClaims` |
+| 2025-11-01 | `CPI`, `federalFunds`, `consumerSentiment`, `durableGoods`, `industrialProductionTotalIndex`, `newPrivatelyOwnedHousingUnitsStartedTotalUnits`, `retailMoneyFunds`, `retailSales`, `smoothedUSRecessionProbabilities`, `totalNonfarmPayroll`, `totalVehicleSales`, `unemploymentRate`, `commercialBankInterestRateOnCreditCardPlansAllAccounts` |
+| 2025-10-01 | `GDP`, `realGDP`, `realGDPPerCapita`, `nominalPotentialGDP` |
+| — | `inflation`, `3MonthOr90DayRatesAndYieldsCertificatesOfDeposit` (empty) |
+
+Nine months before the measurement date, on every one of them. **A date range computed relative to today
+returns nothing from this endpoint**: `name=GDP&from=2026-05-23&to=2026-08-21` — the window the live smoke
+sweep's own `RangeStart`/`SettledWeekday` constants produce — answered HTTP 200 and an empty array,
+measured 2026-08-29.
+
+Windows measured against `name=GDP` the same day:
+
+| range | days | rows |
+|---|---|---|
+| 2026-05-23 … 2026-08-21 | 90 | **0** |
+| 2025-09-01 … 2025-11-30 | 90 | 1 — 2025-10-01 |
+| 2025-08-01 … 2025-10-31 | 91 | 1 — 2025-10-01 |
+| 2025-07-01 … 2025-12-31 | 183 | **0** |
+| 2024-01-01 … 2024-12-01 | 335 | 1 — 2024-10-01 |
+
+The 183-day miss between two hits either side of it is why no width rule is stated. A ~90-day window over a
+span the data actually covers is the only shape measured to work every time.
+
+`esg-benchmark?year=2025` answered **622 rows**, measured 2026-08-29 — fewer than 2023's 1003, but not empty.
+Only 2020, 2023 and 2025 were probed by year; an unrecognised year answers `[]`.
 
 ## Record shapes
 

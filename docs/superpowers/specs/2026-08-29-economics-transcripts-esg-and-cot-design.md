@@ -5,7 +5,7 @@ methods onto an existing one.
 
 Every claim here rests on
 [the measurements](2026-08-29-economics-transcripts-esg-and-cot-measurements.md) taken on **2026-08-29** across
-seventeen probe passes and 126 captured responses. Where this document says a value "was measured", the
+nineteen probe passes and 133 captured responses. Where this document says a value "was measured", the
 measurements file gives the row count behind it.
 
 **Spec authority:** where this design and the measurements disagree, the measurements win and this document is
@@ -112,12 +112,28 @@ to `EsgRiskRating`, as `cik → Cik` and `growthEPS → GrowthEps` already do.
 and twelve bytes of `Invalid name` that are not JSON at all. The name is case-sensitive: `GDP` works, `gdp`
 does not. A caller who lower-cases an indicator gets a deserialisation failure out of a success response.
 
-The parameter is therefore a `readonly record struct EconomicIndicator` wrapping the wire string, with 23
-static members. All 23 documented names were probed individually and all 23 are valid, so the closed set is
-complete as measured rather than merely convenient.
+The parameter is therefore a closed C# type rather than a string. All 23 documented names were probed
+individually and all 23 are valid, so the closed set is complete as measured rather than merely convenient.
 
-A plain C# `enum` cannot express this set: two wire names begin with a digit. The members are renamed and the
-wire string is the source of truth.
+**It is an `enum EconomicIndicator` with an `EconomicIndicatorExtensions.ToQueryValue()`**, which is the shape
+`FiscalPeriod`, `ChartInterval` and `BulkFiscalPeriod` already use — three closed sets, three enums, no
+`record struct` anywhere in this SDK.
+
+An earlier draft of this section specified a `readonly record struct` wrapping the wire string, on the grounds
+that "a plain C# enum cannot express this set: two wire names begin with a digit". **That reason is wrong**, and
+the codebase disproves it: `ChartInterval.OneMinute` already maps to the wire value `1min` through exactly this
+mechanism. A member identifier cannot begin with a digit; the wire string it maps to obviously can, which is why
+the member names below are renamed in the first place. Three further things favour the enum once the stated
+objection falls:
+
+- `EndpointCoverageTests.Argument` already handles any enum through `type.IsEnum`, so the README coverage
+  harness needs no change. A new struct type would need a case adding, and would fail the build until it got
+  one.
+- `default(EconomicIndicator)` on a struct wrapping a string is a **null** wire value — a new silent trap of
+  exactly the kind this slice exists to close. On the enum, `default` is `Gdp`, a valid indicator.
+- The extension method's `_ => throw` arm rejects an undeclared member, which is the guard `FiscalPeriod`
+  documents: an unrecognised `name` here answers 200 with `Invalid name`, so a value that escaped the mapping
+  would surface as a deserialisation failure rather than as an argument error.
 
 | member | wire |
 |---|---|
@@ -174,8 +190,8 @@ Four of the twelve silently return fewer rows than asked for, keeping the newest
 
 | path | cap | surfaced as |
 |---|---|---|
-| `economic-indicators` | 61 rows | XML docs on `GetIndicatorAsync` |
-| `treasury-rates` | 61 rows | XML docs on `GetTreasuryRatesAsync` |
+| `economic-indicators` | ~3 months | XML docs on `GetIndicatorAsync` |
+| `treasury-rates` | ~3 months | XML docs on `GetTreasuryRatesAsync` |
 | `commitment-of-traders-analysis` | 13 rows | XML docs on `GetAnalysisAsync`, naming the sibling contrast |
 | `earning-call-transcript-latest` | 100 rows | XML docs on `GetLatestAsync`; `limit` above 100 is clamped |
 
@@ -185,8 +201,12 @@ documented check is positional — did the returned rows reach both ends of the 
 what they need for it: the range they passed and a date on every row.
 
 The GDP family needs its own sentence in `GetIndicatorAsync`'s documentation, because it is worse than
-truncation. All four quarterly series return **zero rows** for any range of a year or more while returning data
-for a 90-day range inside it. A caller widening their window to get more history gets nothing, with no error.
+truncation: **widening the window can return fewer rows, and the rule is not a width threshold.** Re-measured
+2026-08-29 on `name=GDP`, a 90-day window answered 1 row, a 183-day window containing it answered **none**, and
+a 335-day window answered 1. An earlier draft of this section said "zero rows for any range of a year or more",
+which the 335-day result disproves. What is reliable across every window measured is the narrow one: a ~90-day
+range answered rows on all four quarterly series. A caller widening their window to get more history may get
+nothing, with no error, and no width they can compute in advance tells them which.
 
 ## Paging on `GetLatestAsync`
 
@@ -279,7 +299,7 @@ every model in this SDK is.
     [JsonPropertyName("content")] public string? Content { get; init; }
 ```
 
-`Content` is a single string measured at **46,546 characters** for AAPL 2025 Q3. It is not chunked, not
+`Content` is a single string measured at **46,487 characters** for AAPL 2025 Q3. It is not chunked, not
 parsed into speaker turns, and not offered as a stream: it is one JSON string field and the SDK transcribes it.
 
 ### `TranscriptDate` — 3 properties
