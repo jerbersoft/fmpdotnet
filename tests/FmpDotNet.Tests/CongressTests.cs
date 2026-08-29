@@ -144,4 +144,176 @@ public class CongressTests
         Assert.Equal(31.7m, rows[0].YearsActive);
         Assert.Equal(8m, rows[1].YearsActive);
     }
+
+    [Fact]
+    public void An_income_range_sent_as_the_empty_string_binds_null_and_costs_no_other_row()
+    {
+        // THE trap of this slice, and the reason NetWorthRangeJsonConverter exists. Measured 2026-08-29,
+        // `incomeRange` is an object on 136 of 250 rows, JSON null on 100, and THE EMPTY STRING on 14.
+        // System.Text.Json cannot read a string into an object, so without the converter those 14 rows throw
+        // — and the throw is not confined to its row: a three-row array where only the middle row sends ""
+        // recovered 0 of 3. On this one member that is 14 rows costing all 250.
+        //
+        // The object-valued rows either side are the point of the test: remove the converter and they are
+        // lost too.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"senateID":"H000601","incomeRange":{"min":2501,"max":5000},"income":3750.5},
+             {"senateID":"H000601","incomeRange":"","income":null,"incomeType":""},
+             {"senateID":"H000601","incomeRange":{"min":0,"max":201},"income":0}]
+            """,
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(2501m, rows[0].IncomeRange!.Min);
+        Assert.Equal(5000m, rows[0].IncomeRange!.Max);
+        Assert.Null(rows[1].IncomeRange);
+        Assert.Equal("", rows[1].IncomeType);
+        Assert.Equal(0m, rows[2].IncomeRange!.Min);
+        Assert.Equal(201m, rows[2].IncomeRange!.Max);
+
+        // Row 2 is the measured mismatch that proves `income` is not derived from `incomeRange`: the midpoint
+        // of 0 and 201 is 100.5 and FMP reports 0. Asserted so nobody "fixes" this into a computed property.
+        Assert.Equal(0m, rows[2].Income);
+        Assert.NotEqual((rows[2].IncomeRange!.Min + rows[2].IncomeRange!.Max) / 2, rows[2].Income);
+    }
+
+    [Fact]
+    public void Debt_details_binds_in_both_of_the_shapes_FMP_sends()
+    {
+        // Measured 2026-08-29, `debtDetails` is a union of two DISJOINT shapes — 87 rows carry
+        // dateIncurred/points/rate and 13 carry `source` alone. Never all four keys at once. One record with
+        // four nullable properties covers both because an absent key binds null.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"debtDetails":{"dateIncurred":"2021","points":"-","rate":1.4}},
+             {"debtDetails":{"source":"Hall Capital Management Co, LLC         Oklahoma City, OK"}}]
+            """,
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal("2021", rows[0].DebtDetails!.DateIncurred);
+        Assert.Equal("-", rows[0].DebtDetails!.Points);
+        Assert.Equal("1.4", rows[0].DebtDetails!.Rate);
+        Assert.Null(rows[0].DebtDetails!.Source);
+
+        Assert.StartsWith("Hall Capital", rows[1].DebtDetails!.Source);
+        Assert.Null(rows[1].DebtDetails!.DateIncurred);
+        Assert.Null(rows[1].DebtDetails!.Rate);
+    }
+
+    [Fact]
+    public void A_numeric_rate_or_points_reaches_the_string_property_instead_of_aborting_the_array()
+    {
+        // The second load-bearing converter in this record, and the reason ScalarAsStringJsonConverter
+        // exists. Measured 2026-08-29 over the 100 rows where debtDetails is present, `rate` is a JSON
+        // number on 23 and `points` on 5 — and a JSON number read into a plain `string?` THROWS under this
+        // library's own context options, taking the whole 250-row response with it. Both are typed string
+        // because the string forms carry a term ("(10 years)") that a numeric converter would discard.
+        //
+        // The clean rows either side are the point: without the converter they are lost too.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"debtDetails":{"rate":"N/A%                        (10 years)","points":"-"}},
+             {"debtDetails":{"rate":1.4,"points":0}},
+             {"debtDetails":{"rate":3,"points":"-"}},
+             {"debtDetails":{"rate":"NA%                        (On Demand)","points":"-"}}]
+            """,
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal(4, rows.Count);
+        Assert.Equal("N/A%                        (10 years)", rows[0].DebtDetails!.Rate);
+        Assert.Equal("1.4", rows[1].DebtDetails!.Rate);
+        Assert.Equal("0", rows[1].DebtDetails!.Points);
+        Assert.Equal("3", rows[2].DebtDetails!.Rate);
+        Assert.Equal("NA%                        (On Demand)", rows[3].DebtDetails!.Rate);
+
+        // The literal JSON text is what surfaces, not a round-trip through decimal — so trailing zeros FMP
+        // chose to send are preserved rather than normalised away.
+        var trailing = JsonSerializer.Deserialize(
+            """[{"debtDetails":{"rate":1.40}}]""",
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+        Assert.Equal("1.40", trailing[0].DebtDetails!.Rate);
+    }
+
+    [Fact]
+    public void A_rate_carrying_a_term_survives_intact_beside_a_numeric_one()
+    {
+        // `rate` arrives as float, int OR string. The strings are not placeholders — they carry a term as
+        // well as a rate, so a tolerant numeric converter would bind null and discard "10 years" with it.
+        // 64 of the 100 rows where debtDetails is present look like this.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth.json"),
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("N/A%                        (10 years)", rows[0].DebtDetails!.Rate);
+        Assert.Equal("1.4", rows[1].DebtDetails!.Rate);
+        Assert.Null(rows[2].DebtDetails);
+    }
+
+    [Fact]
+    public void A_captured_net_worth_line_binds_and_value_is_the_midpoint_of_its_range()
+    {
+        // `value` is the midpoint of `valueRange` on 214 of 214 rows where both are present, measured
+        // 2026-08-29. Neither figure is recomputed by the SDK; this pins that FMP's own arithmetic is what
+        // was measured, and it is where the `.5` endings across this group come from.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth.json"),
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal("H000601", rows[2].SenateId);
+        Assert.Equal("Annual Report", rows[2].FormType);
+        Assert.Equal(2022, rows[2].Year);
+        Assert.Equal(new LocalDate(2023, 8, 14), rows[2].FilingDate);
+        Assert.Equal("Asset", rows[2].Section);
+        Assert.Equal(100001m, rows[2].ValueRange!.Min);
+        Assert.Equal(250000m, rows[2].ValueRange!.Max);
+        Assert.Equal(175000.5m, rows[2].Value);
+        Assert.Equal((rows[2].ValueRange!.Min + rows[2].ValueRange!.Max) / 2, rows[2].Value);
+
+        // The sibling pair does NOT follow that rule — 35 hold, 101 fail — so nothing here asserts it.
+        Assert.Equal(3750.5m, rows[2].Income);
+    }
+
+    [Fact]
+    public void Date_incurred_is_a_year_string_and_not_a_date()
+    {
+        // Seven distinct values measured 2026-08-29, every one a bare four-digit year. Typing it LocalDate?
+        // would fail on every row.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth.json"),
+            FmpJsonContext.Default.ListSenateNetWorthLine)!;
+
+        Assert.Equal("2015", rows[0].DebtDetails!.DateIncurred);
+    }
+
+    [Fact]
+    public void Every_money_field_on_the_aggregate_binds_whether_or_not_it_carries_a_decimal_point()
+    {
+        // 8 of the 14 money fields changed representation across only six measured rows; the other 6 stayed
+        // integral, which proves nothing about the seventh. All fourteen are decimal?, and this test asserts
+        // one of each kind so typing any of them `int` fails here.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth-aggregated.json"),
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        Assert.Equal(2, rows.Count);
+        Assert.Equal("H000601", rows[0].SenateId);
+        Assert.Equal(2024, rows[0].Year);
+
+        Assert.Equal(45074069.5m, rows[0].Total);                    // flipped
+        Assert.Equal(97501.5m, rows[0].BusinessLiabilities);          // flipped
+        Assert.Equal(12741527.5m, rows[0].Stock);                     // flipped
+        Assert.Equal(5559509.5m, rows[0].CashAndCashEquivalents);     // flipped
+        Assert.Equal(17006511.5m, rows[0].OwnershipInterest);         // flipped
+        Assert.Equal(1075002.5m, rows[0].GovernmentSecurities);       // flipped
+        Assert.Equal(14156520m, rows[0].MutualFundsAndEtfs);          // integral here, flips on other rows
+        Assert.Equal(557502m, rows[0].RealEstate);                    // integral here, flips on other rows
+        Assert.Equal(5250002m, rows[0].RevolvingAndCreditLines);      // integral on all six
+        Assert.Equal(0m, rows[0].SalaryAndWages);
+        Assert.Equal(1500001m, rows[0].RealEstateLiabilities);
+        Assert.Equal(825001m, rows[0].OtherAssets);
+        Assert.Equal(0m, rows[0].PensionAndRetirementAssets);
+        Assert.Equal(0m, rows[0].Trusts);
+    }
 }

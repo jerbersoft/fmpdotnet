@@ -1,0 +1,38 @@
+[
+  {
+    "senateID": "H000601",
+    "year": 2024,
+    "total": 45074069.5,
+    "revolvingAndCreditLines": 5250002,
+    "salaryAndWages": 0,
+    "businessLiabilities": 97501.5,
+    "realEstateLiabilities": 1500001,
+    "mutualFundsAndETFs": 14156520,
+    "cashAndCashEquivalents": 5559509.5,
+    "ownershipInterest": 17006511.5,
+    "stock": 12741527.5,
+    "governmentSecurities": 1075002.5,
+    "otherAssets": 825001,
+    "pensionAndRetirementAssets": 0,
+    "realEstate": 557502,
+    "trusts": 0
+  },
+  {
+    "senateID": "H000601",
+    "year": 2023,
+    "total": 45904572.5,
+    "revolvingAndCreditLines": 5250002,
+    "salaryAndWages": 0,
+    "businessLiabilities": 140001.5,
+    "realEstateLiabilities": 1500001,
+    "mutualFundsAndETFs": 14488518,
+    "cashAndCashEquivalents": 5494010,
+    "ownershipInterest": 19299011.5,
+    "stock": 9730531.5,
+    "governmentSecurities": 2300003,
+    "otherAssets": 825001,
+    "pensionAndRetirementAssets": 0,
+    "realEstate": 657502,
+    "trusts": 0
+  }
+]

@@ -1,3 +1,5 @@
+using System.Buffers;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using NodaTime;
@@ -487,4 +489,89 @@ public sealed class PublisherListJsonConverter : JsonConverter<IReadOnlyList<str
     public override void Write(Utf8JsonWriter writer, IReadOnlyList<string> value, JsonSerializerOptions options)
         => writer.WriteStringValue(
             JsonSerializer.Serialize(new List<string>(value), FmpJsonContext.Default.ListString));
+}
+
+/// <summary>Reads <c>SenateNetWorthLine.incomeRange</c>, which FMP sends as an object, as JSON
+/// <see langword="null"/>, <b>or as the empty string</b>.
+///
+/// <para><b>This converter is not a convenience.</b> Measured 2026-08-29 over 250 rows for one filer,
+/// <c>incomeRange</c> was an object on 136, <c>null</c> on 100 and <c>""</c> on 14.
+/// <see cref="System.Text.Json.JsonSerializer"/> cannot read a string into an object, so a plain
+/// <see cref="Models.NetWorthRange"/> property throws on those 14 — and the throw aborts the whole array
+/// rather than the row, so on that filer 14 rows cost all 250.</para>
+///
+/// <para><b>Applied to <c>incomeRange</c> only.</b> Its sibling <c>valueRange</c> was an object on all 214
+/// rows where it was present and never a string; putting this converter there too would assert a wire form
+/// that was never measured.</para></summary>
+public sealed class NetWorthRangeJsonConverter : JsonConverter<Models.NetWorthRange?>
+{
+    /// <inheritdoc/>
+    public override Models.NetWorthRange? Read(
+        ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        // The empty string is the whole reason this type exists. Any other string is unmeasured and is also
+        // read as null rather than thrown on, because one unrecognised value must not cost the response.
+        if (reader.TokenType is JsonTokenType.String or JsonTokenType.Null) return null;
+
+        return JsonSerializer.Deserialize(ref reader, FmpJsonContext.Default.NetWorthRange);
+    }
+
+    /// <inheritdoc/>
+    public override void Write(
+        Utf8JsonWriter writer, Models.NetWorthRange? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else JsonSerializer.Serialize(writer, value, FmpJsonContext.Default.NetWorthRange);
+    }
+}
+
+/// <summary>Reads a JSON scalar of any type as its literal text, for a wire field FMP sends as more than one
+/// JSON type and the SDK reports rather than parses.
+///
+/// <para><b>Written for <see cref="Models.NetWorthDebtDetails.Rate"/> and
+/// <see cref="Models.NetWorthDebtDetails.Points"/>, and for a hard binding failure.</b> Measured 2026-08-29
+/// over the 100 net-worth rows carrying <c>debtDetails</c>, <c>rate</c> arrived as a JSON number on 23 and as
+/// a string on 64, and <c>points</c> as a number on 5 and the string <c>"-"</c> on 82. A JSON number read
+/// into a plain <see cref="string"/> property throws under this SDK's context options — and the throw aborts
+/// the whole array, so those 23 rows cost all 250.</para>
+///
+/// <para><b>Why not a numeric type instead.</b> The string forms are not placeholders: they carry a term as
+/// well as a rate — <c>"N/A%                        (10 years)"</c> — so a tolerant numeric converter would
+/// bind <see langword="null"/> on 64 rows and discard "10 years" with them. FMP has overloaded the field; the
+/// SDK hands back what was sent.</para>
+///
+/// <para>A number surfaces as its <b>literal JSON text</b> rather than a round-trip through
+/// <see cref="decimal"/>, so a trailing zero FMP chose to send survives and no value can overflow.</para></summary>
+public sealed class ScalarAsStringJsonConverter : JsonConverter<string?>
+{
+    /// <inheritdoc/>
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.String:
+                return reader.GetString();
+            case JsonTokenType.True:
+                return "true";
+            case JsonTokenType.False:
+                return "false";
+            case JsonTokenType.Number:
+                return Encoding.UTF8.GetString(
+                    reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan);
+            default:
+                // An object or an array here is a shape nobody has measured. Reading it as null costs one
+                // field; throwing would cost the whole response, which is the failure this converter exists
+                // to prevent. Skip() is required, not optional: a scalar token needs no advancing, but
+                // returning from a StartObject without consuming to its EndObject desynchronises the reader
+                // for every field after it.
+                reader.Skip();
+                return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
 }

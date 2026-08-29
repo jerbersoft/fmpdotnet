@@ -1,0 +1,67 @@
+[
+  {
+    "senateID": "H000601",
+    "formType": "Candidate Report",
+    "year": 2019,
+    "filingDate": "2020-03-12",
+    "section": "Liabilities",
+    "category": "Business Liability",
+    "name": "Contour Opportunity Fund, LP         New York, New York",
+    "assetType": "Other (Capital Commitment)",
+    "incomeType": null,
+    "owner": "Self",
+    "comment": "n/a",
+    "debtDetails": {
+      "dateIncurred": "2015",
+      "points": "-",
+      "rate": "N/A%                        (10 years)"
+    },
+    "valueRange": { "min": 50001, "max": 100000 },
+    "value": 75000.5,
+    "incomeRange": null,
+    "income": null,
+    "link": "https://efdsearch.senate.gov/search/view/annual/a03ec2f7-ec8b-4d30-9d3c-1ee97430ca85/"
+  },
+  {
+    "senateID": "H000601",
+    "formType": "Annual Report",
+    "year": 2022,
+    "filingDate": "2023-08-14",
+    "section": "Liabilities",
+    "category": "Line of Credit",
+    "name": "Roundstone Ventures LLC         Nashville, TN",
+    "assetType": "Line of Credit",
+    "incomeType": null,
+    "owner": "Child",
+    "comment": "LOC drawn by DC Trust 4",
+    "debtDetails": {
+      "dateIncurred": "2021",
+      "points": "-",
+      "rate": 1.4
+    },
+    "valueRange": { "min": 1000001, "max": 5000000 },
+    "value": 3000000.5,
+    "incomeRange": null,
+    "income": null,
+    "link": "https://efdsearch.senate.gov/search/view/annual/dcc46fee-29a4-4328-a975-0f6e559541dd/"
+  },
+  {
+    "senateID": "H000601",
+    "formType": "Annual Report",
+    "year": 2022,
+    "filingDate": "2023-08-14",
+    "section": "Asset",
+    "category": "Mutual Funds",
+    "name": "PRJIX - T. Rowe Price New Horizons Fund I Class",
+    "assetType": "Mutual Funds Mutual Fund",
+    "incomeType": "Capital Gains,",
+    "owner": "Self",
+    "comment": null,
+    "debtDetails": null,
+    "valueRange": { "min": 100001, "max": 250000 },
+    "value": 175000.5,
+    "incomeRange": { "min": 2501, "max": 5000 },
+    "income": 3750.5,
+    "link": "https://efdsearch.senate.gov/search/view/annual/dcc46fee-29a4-4328-a975-0f6e559541dd/"
+  }
+]
