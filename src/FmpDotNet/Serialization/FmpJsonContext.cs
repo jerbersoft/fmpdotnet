@@ -107,6 +107,11 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<OwnerEarnings>))]
 [JsonSerializable(typeof(List<LatestFinancialStatement>))]
 [JsonSerializable(typeof(List<FinancialReportLink>))]
+// Economics, transcripts, ESG and COT (#40). Twelve records across twelve paths and four unrelated groups;
+// see docs/superpowers/specs/2026-08-29-economics-transcripts-esg-and-cot-design.md.
+[JsonSerializable(typeof(List<EconomicObservation>))]
+[JsonSerializable(typeof(List<MarketRiskPremium>))]
+[JsonSerializable(typeof(List<TreasuryRate>))]
 // Congressional disclosures (#31). Eight of the twelve paths answer CongressionalTrade; the two nested
 // net-worth records (NetWorthRange, NetWorthDebtDetails) are reached through SenateNetWorthLine and need no
 // entry of their own.

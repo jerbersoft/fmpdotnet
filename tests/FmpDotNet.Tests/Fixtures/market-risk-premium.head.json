@@ -1,0 +1,20 @@
+[
+  {
+    "country": "Zimbabwe",
+    "continent": "Africa",
+    "countryRiskPremium": 11.66,
+    "totalEquityRiskPremium": 15.89
+  },
+  {
+    "country": "Zambia",
+    "continent": "Africa",
+    "countryRiskPremium": 11.66,
+    "totalEquityRiskPremium": 15.89
+  },
+  {
+    "country": "Yemen, Republic",
+    "continent": "Asia",
+    "countryRiskPremium": 15.54,
+    "totalEquityRiskPremium": 19.77
+  }
+]

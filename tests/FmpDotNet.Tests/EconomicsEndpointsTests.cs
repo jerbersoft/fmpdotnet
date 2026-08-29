@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using Microsoft.Extensions.Options;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
+using FmpDotNet.Serialization;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -301,5 +302,67 @@ public class EconomicsEndpointsTests
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/economic-calendar", uri.AbsolutePath);
         Assert.Equal("?from=2026-08-25&to=2026-09-01&apikey=k", uri.Query);
+    }
+
+    // ---- the three paths added in #40 --------------------------------------------------------------------
+
+    [Fact]
+    public void An_indicator_observation_binds_all_three_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Fixture("economic-indicators.federalFunds.json"),
+            FmpJsonContext.Default.ListEconomicObservation)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("federalFunds", rows[0].Name);
+        Assert.Equal(new LocalDate(2025, 11, 1), rows[0].Date);
+        Assert.Equal(3.88m, rows[0].Value);
+        Assert.Equal(new LocalDate(2025, 9, 1), rows[2].Date);
+    }
+
+    [Fact]
+    public void A_market_risk_premium_binds_all_four_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Fixture("market-risk-premium.head.json"),
+            FmpJsonContext.Default.ListMarketRiskPremium)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("Zimbabwe", rows[0].Country);
+        Assert.Equal("Africa", rows[0].Continent);
+        Assert.Equal(11.66m, rows[0].CountryRiskPremium);
+        Assert.Equal(15.89m, rows[0].TotalEquityRiskPremium);
+
+        // A country name carrying a comma. Nothing splits on one, and this is the row that proves it.
+        Assert.Equal("Yemen, Republic", rows[2].Country);
+    }
+
+    [Fact]
+    public void A_treasury_row_binds_the_date_and_all_twelve_tenors()
+    {
+        // Twelve tenors and all of them decimal?. Asserting the whole set rather than a spot-check, because
+        // every one is a bare number under a name that differs from the C# property only in casing — the
+        // exact shape in which a dropped [JsonPropertyName] costs nothing that throws.
+        var rows = JsonSerializer.Deserialize(
+            Fixture("treasury-rates.head.json"),
+            FmpJsonContext.Default.ListTreasuryRate)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal(new LocalDate(2026, 8, 27), rows[0].Date);
+        Assert.Equal(3.81m, rows[0].Month1);
+        Assert.Equal(3.81m, rows[0].Month2);
+        Assert.Equal(3.84m, rows[0].Month3);
+        Assert.Equal(3.94m, rows[0].Month6);
+        Assert.Equal(4.04m, rows[0].Year1);
+        Assert.Equal(4.2m, rows[0].Year2);
+        Assert.Equal(4.3m, rows[0].Year3);
+        Assert.Equal(4.38m, rows[0].Year5);
+        Assert.Equal(4.52m, rows[0].Year7);
+        Assert.Equal(4.67m, rows[0].Year10);
+        Assert.Equal(5.18m, rows[0].Year20);
+        Assert.Equal(5.19m, rows[0].Year30);
     }
 }
