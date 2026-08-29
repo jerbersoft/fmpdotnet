@@ -4057,11 +4057,19 @@ on top of the existing ordinary sweep.
 **Read the key from `.env` into this one command's process only.** Do not `source` it and do not `set -a`:
 that file has clobbered `PATH` for a whole shell before.
 
+**`.env` is git-ignored, so it exists only in the main checkout — a worktree does not have one.** Resolve it
+from the common git dir rather than assuming the working directory holds it; this is correct whether you are
+in the main checkout or in a linked worktree:
+
 ```bash
-FMP_API_KEY="$(grep '^FMP_API_KEY=' .env | cut -d= -f2-)" \
+ENV_FILE="$(cd "$(git rev-parse --git-common-dir)/.." && pwd -P)/.env"
+FMP_API_KEY="$(grep '^FMP_API_KEY=' "$ENV_FILE" | cut -d= -f2-)" \
 FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
     dotnet test tests/FmpDotNet.SmokeTests
 ```
+
+If `grep` finds nothing, stop rather than running the sweep with an empty key: every live probe would skip,
+and `FMPDOTNET_UPDATE_SMOKE_BASELINE=1` would then record a baseline of nothing at all.
 
 **Do not set `FMPDOTNET_SMOKE_BULK`.** None of issue #40's twelve paths is a `*-bulk` path, and FMP's own
 throttle message warns that "frequent abuse on this API Endpoint may result in restrictions placed on this
