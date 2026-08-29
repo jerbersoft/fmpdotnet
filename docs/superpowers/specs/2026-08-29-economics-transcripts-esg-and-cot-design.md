@@ -5,7 +5,7 @@ methods onto an existing one.
 
 Every claim here rests on
 [the measurements](2026-08-29-economics-transcripts-esg-and-cot-measurements.md) taken on **2026-08-29** across
-sixteen probe passes and 120 captured responses. Where this document says a value "was measured", the
+seventeen probe passes and 126 captured responses. Where this document says a value "was measured", the
 measurements file gives the row count behind it.
 
 **Spec authority:** where this design and the measurements disagree, the measurements win and this document is
@@ -383,6 +383,11 @@ the field is returned, the query parameter is ignored.
     [JsonPropertyName("marketSentiment")] public string? MarketSentiment { get; init; }
     [JsonPropertyName("reversalTrend")] public bool? ReversalTrend { get; init; }
 ```
+
+`ChangeInNetPosition` is `decimal?` while `NetPosition` and `PreviousNetPosition` beside it are `int?`, and
+that asymmetry is deliberate: the field is a **percent change, not a delta**. Measured across all 545 rows,
+545 match a percent reading and 4 match an absolute one. Its documentation must say so — a caller who adds it
+to a position count is wrong by three orders of magnitude and gets no signal.
 
 `ReversalTrend` is `bool?` because the wire sends a real JSON boolean on all 545 measured rows. This is worth
 stating because #31 met the opposite case — `capitalGainsOver200Usd` arrives as the *string* `"False"`, which

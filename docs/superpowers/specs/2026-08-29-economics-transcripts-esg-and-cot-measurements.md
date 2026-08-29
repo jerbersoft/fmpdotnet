@@ -1,7 +1,7 @@
 # Economics, Earnings Transcripts, ESG and COT — measurements
 
 Every fact the design will rest on, with the date it was measured. Measured against the live API on
-**2026-08-29** across fifteen probe passes, **120 captured responses**, all ordinary JSON endpoints. No
+**2026-08-29** across seventeen probe passes, **126 captured responses**, all ordinary JSON endpoints. No
 `*-bulk` path was touched.
 
 Issue [#40](https://github.com/jerbersoft/fmpdotnet/issues/40) lists twelve paths. All twelve were probed.
@@ -184,6 +184,26 @@ pervasive and ordinary — `countryRiskPremium` is `float` on 179 rows and `int`
 `float` on 489 and `int` on 56 — which is the usual argument for `decimal?` throughout rather than any integer
 type. The counted exceptions are the position and trader columns on the report, which are `int` on all 545
 rows.
+
+## `changeInNetPosition` is a percentage, not a delta
+
+Measured across all 545 rows of the bare `commitment-of-traders-analysis` response. The field sits between two
+absolute position counts and is neither of them:
+
+| field | first row |
+|---|---|
+| `netPostion` | -12315 |
+| `previousNetPosition` | -12453 |
+| arithmetic difference | **138** |
+| `changeInNetPosition` | **1.11** |
+
+`138 / 12453` is 1.108%. Tested against every row where the previous position is non-zero: **545 of 545 match
+the percent-change reading**, and 4 of 545 match an absolute-delta reading — those four being values where the
+two happen to coincide.
+
+This is why `ChangeInNetPosition` is `decimal?` while `NetPosition` and `PreviousNetPosition` are `int?`. A
+caller who reads the name as a delta and adds it to a position count gets a number that is wrong by three
+orders of magnitude, with nothing to signal it.
 
 ## The three transcript endpoints disagree on their own field names
 
