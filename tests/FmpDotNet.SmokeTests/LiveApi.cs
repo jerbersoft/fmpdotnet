@@ -232,6 +232,52 @@ internal static class LiveApi
     /// <c>"Apple"</c> for three different endpoints, and that repetition is the point.</para></summary>
     public const string InsiderNameQuery = "Apple";
 
+    /// <summary>A Senator's Bioguide identifier for the three <c>senateID</c>-keyed Senate probes —
+    /// Bill Hagerty, <c>H000601</c>.
+    ///
+    /// <para><b>Chosen because he answers on all three.</b> Measured 2026-08-29 he returns 57 rows from
+    /// <c>senate-trades-by-id</c>, 250 from <c>senate-net-worth</c> and six from
+    /// <c>senate-net-worth-aggregated</c>. The same silent green <see cref="FilerCik"/> was named for applies
+    /// here with a sharper edge: the two <c>-by-id</c> paths answer 200 with the WRONG member's data rather
+    /// than zero rows when the parameter does not reach them.</para>
+    ///
+    /// <para><b>A Senator cannot probe the House path.</b> <c>house-trades-by-id</c> takes the same
+    /// <c>senateID</c> parameter and this value answers zero rows on it, because Hagerty has never sat in the
+    /// House. See <see cref="HouseMemberId"/>.</para></summary>
+    public const string SenateId = "H000601";
+
+    /// <summary>A Representative's Bioguide identifier for <c>house-trades-by-id</c> — Nancy Pelosi,
+    /// <c>P000197</c>.
+    ///
+    /// <para><b>A separate constant because a member sits in one chamber.</b> The parameter is spelled
+    /// <c>senateID</c> on the House path too — FMP's naming — but <see cref="SenateId"/> answered
+    /// <c>rows 0</c> against it when first recorded on 2026-08-29, which is exactly the <c>outcome empty</c>
+    /// baseline that then matches itself green forever. Measured the same day, <c>P000197</c> answers 100
+    /// rows, all of them hers.</para></summary>
+    public const string HouseMemberId = "P000197";
+
+    /// <summary>A surname for <c>house-trades-by-name</c> — <c>Pelosi</c>, the member
+    /// <see cref="HouseMemberId"/> identifies.
+    ///
+    /// <para>Measured 2026-08-29, answers 142 rows. Its own constant rather than
+    /// <see cref="InsiderNameQuery"/>'s, so a change to the insider probe cannot silently move this one — the
+    /// same separation that constant was created for.</para>
+    ///
+    /// <para><b>Deliberately not a member with no disclosures.</b> <c>Nunn</c> answers zero rows and is a
+    /// sitting Representative, so it would record <c>rows 0</c> as the baseline and match it green
+    /// forever.</para></summary>
+    public const string HouseNameQuery = "Pelosi";
+
+    /// <summary>A surname for <c>senate-trades-by-name</c> — <c>Hagerty</c>, the member
+    /// <see cref="SenateId"/> identifies.
+    ///
+    /// <para>Measured 2026-08-29, answers 57 rows — the same 57 <see cref="SenateId"/> reaches by identifier,
+    /// so the two Senate probes agree on their subject the way the House pair does.</para>
+    ///
+    /// <para><b>Not <see cref="HouseNameQuery"/>.</b> Pelosi is a Representative and answers zero rows here;
+    /// that was the recorded <c>outcome empty</c> this constant was added to fix.</para></summary>
+    public const string SenateNameQuery = "Hagerty";
+
     /// <summary>Apple's CUSIP, for the <c>search-cusip</c> probe. Named for the reason on <see cref="Cik"/>.</summary>
     public const string Cusip = "037833100";
 

@@ -331,6 +331,25 @@ internal static class Probe
                 "name" when parameter.Member.DeclaringType == typeof(Endpoints.InsiderTradesEndpoints)
                     => LiveApi.InsiderNameQuery,
 
+                // The two congressional by-name paths match a surname, not a company and not an insider.
+                // Its own constant for the reason the InsiderTrades arm above has one — and split by CHAMBER,
+                // because a member sits in one: probing the Senate path with a Representative's surname
+                // answers zero rows, which is the `outcome empty` baseline that matches itself green forever.
+                "name" when parameter.Member.DeclaringType == typeof(Endpoints.CongressEndpoints)
+                    => parameter.Member.Name == nameof(Endpoints.CongressEndpoints.GetSenateTradesByNameAsync)
+                        ? LiveApi.SenateNameQuery
+                        : LiveApi.HouseNameQuery,
+
+                // Four congressional paths key on a member's Bioguide id, and FMP spells the parameter
+                // `senateID` on the House path too — so the chamber is a property of the METHOD, not of the
+                // parameter name, and the dispatch has to read it there. No default would be right here: the
+                // two -by-id paths answer 200 with the unfiltered feed when the parameter is wrong, so a
+                // fallen-through AAPL would record a green baseline over someone else's data.
+                "senateId" when parameter.Member.Name
+                        == nameof(Endpoints.CongressEndpoints.GetHouseTradesByMemberAsync)
+                    => LiveApi.HouseMemberId,
+                "senateId" => LiveApi.SenateId,
+
                 "exchange" => LiveApi.Exchange,
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,

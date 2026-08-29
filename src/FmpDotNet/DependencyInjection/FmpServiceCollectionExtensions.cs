@@ -129,6 +129,7 @@ public static class FmpServiceCollectionExtensions
         services.TryAddTransient<SecFilingsEndpoints>();
         services.TryAddTransient<InstitutionalOwnershipEndpoints>();
         services.TryAddTransient<InsiderTradesEndpoints>();
+        services.TryAddTransient<CongressEndpoints>();
         services.TryAddTransient<QuoteEndpoints>();
         services.TryAddTransient<ChartEndpoints>();
         services.TryAddTransient<BulkEndpoints>();

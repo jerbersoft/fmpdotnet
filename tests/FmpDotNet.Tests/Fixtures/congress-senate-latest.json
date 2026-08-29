@@ -1,0 +1,36 @@
+[
+  {
+    "symbol": "GS",
+    "senateID": "M001243",
+    "disclosureDate": "2026-08-27",
+    "transactionDate": "2026-08-12",
+    "firstName": "Dave",
+    "lastName": "McCormick",
+    "office": "Dave McCormick",
+    "district": "PA",
+    "owner": "Spouse",
+    "assetDescription": "The Goldman Sachs Group Inc (1)",
+    "assetType": "Corporate Bond",
+    "type": "Purchase",
+    "amount": "$100,001 - $250,000",
+    "comment": "",
+    "link": "https://efdsearch.senate.gov/search/view/ptr/257795ae-e1b2-411d-b562-8fe4c2a4f2a1/"
+  },
+  {
+    "symbol": "GS",
+    "senateID": "M001243",
+    "disclosureDate": "2026-08-27",
+    "transactionDate": "2026-08-05",
+    "firstName": "Dave",
+    "lastName": "McCormick",
+    "office": "Dave McCormick",
+    "district": "PA",
+    "owner": "Spouse",
+    "assetDescription": "The Goldman Sachs Group Inc (1)",
+    "assetType": "Corporate Bond",
+    "type": "Purchase",
+    "amount": "$100,001 - $250,000",
+    "comment": "",
+    "link": "https://efdsearch.senate.gov/search/view/ptr/257795ae-e1b2-411d-b562-8fe4c2a4f2a1/"
+  }
+]

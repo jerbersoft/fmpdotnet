@@ -1,0 +1,26 @@
+[
+  {
+    "senateID": "L000397",
+    "firstName": "Zoe",
+    "lastName": "Lofgren",
+    "birthDate": "1947-12-20",
+    "latestParty": "Democrat",
+    "latestState": "CA",
+    "latestPosition": "Representative",
+    "image": "https://images.financialmodelingprep.com/senate/L000397.jpg",
+    "active": true,
+    "yearsActive": 31.7
+  },
+  {
+    "senateID": "B001306",
+    "firstName": "Troy",
+    "lastName": "Balderson",
+    "birthDate": "1962-01-15",
+    "latestParty": "Republican",
+    "latestState": "OH",
+    "latestPosition": "Representative",
+    "image": "https://images.financialmodelingprep.com/senate/B001306.jpg",
+    "active": true,
+    "yearsActive": 8
+  }
+]

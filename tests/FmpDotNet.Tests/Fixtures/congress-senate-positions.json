@@ -1,0 +1,32 @@
+[
+  {
+    "senateID": "Z000018",
+    "congressNumber": 118,
+    "startDate": "2023-01-02",
+    "endDate": "2025-01-02",
+    "party": "Republican",
+    "position": "Representative",
+    "state": "MT",
+    "yearsInTerm": 2
+  },
+  {
+    "senateID": "Z000018",
+    "congressNumber": 119,
+    "startDate": "2025-01-02",
+    "endDate": null,
+    "party": "Republican",
+    "position": "Representative",
+    "state": "MT",
+    "yearsInTerm": 0.7
+  },
+  {
+    "senateID": "Y000064",
+    "congressNumber": 119,
+    "startDate": "2025-01-02",
+    "endDate": null,
+    "party": "Republican",
+    "position": "Senator",
+    "state": "IN",
+    "yearsInTerm": 0.7
+  }
+]

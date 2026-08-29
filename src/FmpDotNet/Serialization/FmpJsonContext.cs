@@ -107,6 +107,17 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<OwnerEarnings>))]
 [JsonSerializable(typeof(List<LatestFinancialStatement>))]
 [JsonSerializable(typeof(List<FinancialReportLink>))]
+// Congressional disclosures (#31). Eight of the twelve paths answer CongressionalTrade; the two nested
+// net-worth records (NetWorthRange, NetWorthDebtDetails) are reached through SenateNetWorthLine and need no
+// entry of their own.
+[JsonSerializable(typeof(List<CongressionalTrade>))]
+[JsonSerializable(typeof(List<CongressMemberPosition>))]
+[JsonSerializable(typeof(List<CongressMemberProfile>))]
+[JsonSerializable(typeof(List<SenateNetWorthLine>))]
+[JsonSerializable(typeof(List<SenateNetWorthSummary>))]
+// The bare type, not a list: NetWorthRangeJsonConverter deserialises through
+// FmpJsonContext.Default.NetWorthRange, which only exists if it is registered on its own.
+[JsonSerializable(typeof(NetWorthRange))]
 // Not a list — the only object-shaped response in this slice. See FinancialReport.
 [JsonSerializable(typeof(FinancialReport))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and
