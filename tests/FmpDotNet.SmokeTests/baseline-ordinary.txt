@@ -3,7 +3,7 @@
 # The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
 # them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
 #
-# Measured 2026-08-28. Regenerate — after checking the diff is drift and not
+# Measured 2026-08-29. Regenerate — after checking the diff is drift and not
 # a break — with:
 #
 #     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
@@ -620,6 +620,259 @@ set Previous
 set Timestamp
 set Unit
 
+[InsiderTrades.GetLatestAsync]
+outcome rows
+set AcquisitionOrDisposition
+set CompanyCik
+set DirectOrIndirect
+set FilingDate
+set FormType
+set Price
+set ReportingCik
+set ReportingName
+set SecuritiesOwned
+set SecuritiesTransacted
+set SecurityName
+set Symbol
+set TransactionDate
+set TransactionType
+set TypeOfOwner
+set Url
+
+[InsiderTrades.GetStatisticsAsync]
+outcome rows
+set AcquiredDisposedRatio
+set AcquiredTransactions
+set AverageAcquired
+set AverageDisposed
+set Cik
+set DisposedTransactions
+set Quarter
+set Symbol
+set TotalAcquired
+set TotalDisposed
+set TotalPurchases
+set TotalSales
+set Year
+
+[InsiderTrades.GetTransactionTypesAsync]
+outcome rows
+set TransactionType
+
+[InsiderTrades.SearchAsync]
+outcome rows
+set AcquisitionOrDisposition
+set CompanyCik
+set DirectOrIndirect
+set FilingDate
+set FormType
+set Price
+set ReportingCik
+set ReportingName
+set SecuritiesOwned
+set SecuritiesTransacted
+set SecurityName
+set Symbol
+set TransactionDate
+set TransactionType
+set TypeOfOwner
+set Url
+
+[InsiderTrades.SearchReportingNameAsync]
+outcome rows
+set ReportingCik
+set ReportingName
+
+[InstitutionalOwnership.GetBeneficialOwnershipAsync]
+outcome rows
+set AcceptedDate
+set AmountBeneficiallyOwned
+set Cik
+set CitizenshipOrPlaceOfOrganization
+set Cusip
+set FilingDate
+set NameOfReportingPerson
+set PercentOfClass
+set SharedDispositivePower
+set SharedVotingPower
+set SoleDispositivePower
+set SoleVotingPower
+set Symbol
+set TypeOfReportingPerson
+set Url
+
+[InstitutionalOwnership.GetFilingDatesAsync]
+outcome rows
+set Date
+set Quarter
+set Year
+
+[InstitutionalOwnership.GetHolderAnalyticsAsync]
+outcome rows
+set AvgPricePaid
+set ChangeInMarketValue
+set ChangeInMarketValuePercentage
+set ChangeInOwnership
+set ChangeInOwnershipPercentage
+set ChangeInPerformance
+set ChangeInSharesNumber
+set ChangeInSharesNumberPercentage
+set ChangeInWeight
+set ChangeInWeightPercentage
+set Cik
+set Date
+set FilingDate
+set FirstAdded
+set HoldingPeriod
+set IndustryTitle
+set InvestmentDiscretion
+set InvestorName
+set IsCountedForPerformance
+set IsNew
+set IsSoldOut
+set LastMarketValue
+set LastOwnership
+set LastPerformance
+set LastSharesNumber
+set LastWeight
+set MarketValue
+set Ownership
+set Performance
+set PerformancePercentage
+set PutCallShare
+set QuarterEndPrice
+set SecurityCusip
+set SecurityName
+set SharesNumber
+set SharesType
+set Symbol
+set TypeOfSecurity
+set Weight
+
+[InstitutionalOwnership.GetHolderIndustryBreakdownAsync]
+outcome rows
+set ChangeInPerformance
+set ChangeInWeight
+set ChangeInWeightPercentage
+set Cik
+set Date
+set IndustryTitle
+set InvestorName
+set LastPerformance
+set LastWeight
+set Performance
+set PerformancePercentage
+set Weight
+
+[InstitutionalOwnership.GetHolderPerformanceAsync]
+outcome rows
+set AverageHoldingPeriod
+set AverageHoldingPeriodTop10
+set AverageHoldingPeriodTop20
+set ChangeInMarketValue
+set ChangeInMarketValuePercentage
+set ChangeInPerformance
+set Cik
+set Date
+set InvestorName
+set LastPerformance
+set MarketValue
+set Performance
+set Performance1Year
+set Performance1YearRelativeToSP500Percentage
+set Performance3Year
+set Performance3YearRelativeToSP500Percentage
+set Performance5Year
+set Performance5YearRelativeToSP500Percentage
+set PerformancePercentage
+set PerformancePercentage1Year
+set PerformancePercentage3Year
+set PerformancePercentage5Year
+set PerformanceRelativeToSP500Percentage
+set PerformanceSinceInception
+set PerformanceSinceInceptionPercentage
+set PerformanceSinceInceptionRelativeToSP500Percentage
+set PortfolioSize
+set PreviousMarketValue
+set SecuritiesAdded
+set SecuritiesRemoved
+set Turnover
+set TurnoverAlternateBuy
+set TurnoverAlternateSell
+
+[InstitutionalOwnership.GetHoldingsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set Date
+set FilingDate
+set FinalLink
+set Link
+set NameOfIssuer
+set SecurityCusip
+set Shares
+set SharesType
+set Symbol
+set TitleOfClass
+set Value
+null PutCallShare
+
+[InstitutionalOwnership.GetIndustrySummaryAsync]
+outcome rows
+set Date
+set IndustryTitle
+set IndustryValue
+
+[InstitutionalOwnership.GetLatestFilingsAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set Date
+set FilingDate
+set FinalLink
+set FormType
+set Link
+set Name
+
+[InstitutionalOwnership.GetSymbolPositionsAsync]
+outcome rows
+set Cik
+set ClosedPositions
+set ClosedPositionsChange
+set Date
+set IncreasedPositions
+set IncreasedPositionsChange
+set InvestorsHolding
+set InvestorsHoldingChange
+set LastClosedPositions
+set LastIncreasedPositions
+set LastInvestorsHolding
+set LastNewPositions
+set LastNumberOf13FShares
+set LastOwnershipPercent
+set LastPutCallRatio
+set LastReducedPositions
+set LastTotalCalls
+set LastTotalInvested
+set LastTotalPuts
+set NewPositions
+set NewPositionsChange
+set NumberOf13FShares
+set NumberOf13FSharesChange
+set OwnershipPercent
+set OwnershipPercentChange
+set PutCallRatio
+set PutCallRatioChange
+set ReducedPositions
+set ReducedPositionsChange
+set Symbol
+set TotalCalls
+set TotalCallsChange
+set TotalInvested
+set TotalInvestedChange
+set TotalPuts
+set TotalPutsChange
+
 [Quote.GetAftermarketQuoteAsync]
 outcome rows
 set AskPrice
@@ -645,14 +898,14 @@ outcome rows
 set Price
 set Symbol
 set Timestamp
-set TradeSize
+null TradeSize
 
 [Quote.GetAftermarketTradesAsync]
 outcome rows
 set Price
 set Symbol
 set Timestamp
-set TradeSize
+null TradeSize
 
 [Quote.GetCommodityQuotesAsync]
 outcome rows
