@@ -13,11 +13,11 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b>They do not answer the same amount of history.</b> Measured 2026-08-29 with one symbol and one
 /// two-year range, this path answered <b>13 rows</b> and <see cref="CotReport"/> answered <b>105</b> — and
-/// both looked equally healthy. See <c>GetAnalysisAsync</c>.</para></summary>
+/// both looked equally healthy. See <see cref="Endpoints.CotEndpoints.GetAnalysisAsync"/>.</para></summary>
 public sealed record CotAnalysis
 {
     /// <summary>The contract symbol — <c>NG</c>, <c>ZC</c>. FMP's own codes, listed by
-    /// <c>GetSymbolsAsync</c>, and not exchange tickers.</summary>
+    /// <see cref="Endpoints.CotEndpoints.GetSymbolsAsync"/>, and not exchange tickers.</summary>
     [JsonPropertyName("symbol")] public string? Symbol { get; init; }
 
     /// <summary>The report date — the Tuesday the CFTC's positions were taken. Arrives as

@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**175 of FMP's 243 endpoint paths are modelled.**
+**178 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -217,6 +217,14 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/senate-trades` | `GetSenateTradesAsync` |
 | `stable/senate-trades-by-id` | `GetSenateTradesByMemberAsync` |
 | `stable/senate-trades-by-name` | `GetSenateTradesByNameAsync` |
+
+`fmp.Cot`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/commitment-of-traders-analysis` | `GetAnalysisAsync` |
+| `stable/commitment-of-traders-list` | `GetSymbolsAsync` |
+| `stable/commitment-of-traders-report` | `GetReportAsync` |
 
 `fmp.Directory`
 

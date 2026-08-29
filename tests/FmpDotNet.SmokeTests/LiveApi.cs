@@ -142,6 +142,39 @@ internal static class LiveApi
     /// <summary>The end of <see cref="IndicatorRangeStart"/>'s window.</summary>
     public static readonly LocalDate IndicatorRangeEnd = new(2025, 11, 30);
 
+    /// <summary>The contract the two dated COT probes ask for — <c>NG</c>, Natural Gas.
+    ///
+    /// <para><b>Named rather than falling out of the default string case, for the reason recorded on
+    /// <see cref="Exchange"/>.</b> <c>Probe.Argument</c> maps any unrecognised string to
+    /// <see cref="Symbol"/>, and the COT paths take a <b>futures contract code</b> — FMP's own <c>NG</c>,
+    /// <c>ZC</c>, <c>EURGBP</c>, listed by <c>GetSymbolsAsync</c> — not an equity ticker.
+    /// <c>symbol=AAPL</c> is not an error there; it is an empty array under HTTP 200.</para>
+    ///
+    /// <para><c>NG</c> because it answers on both paths at the same range: measured 2026-08-29,
+    /// <c>?symbol=NG&amp;from=2024-01-01&amp;to=2024-03-31</c> returned 13 rows from
+    /// <c>commitment-of-traders-report</c> and 13 from <c>commitment-of-traders-analysis</c>. Deliberately
+    /// not one of the 14 contracts whose <c>Other</c> block is populated: those are the exception rather than
+    /// the shape, and the baseline should record the common one.</para></summary>
+    public const string CotContract = "NG";
+
+    /// <summary>The start of the window the two dated COT probes ask for — <b>fixed dates</b>, like
+    /// <see cref="IndicatorRangeStart"/> and for the same kind of reason.
+    ///
+    /// <para><b>The COT data on this key stops at 2024-02-27.</b> Measured 2026-08-29, every response from
+    /// both dated paths covered 2024-01-02 to 2024-02-27 and nothing later — about two and a half years
+    /// earlier. A range computed from today returns an empty array at HTTP 200, so a relative window records
+    /// <c>outcome empty</c> on the day it is written and agrees with itself forever.</para>
+    ///
+    /// <para>2024-01-01 … 2024-03-31 is one quarter, which is the widest window that keeps the two paths
+    /// <b>agreeing</b>: measured 2026-08-29 it answered 13 rows from each, while a six-month window answered
+    /// 13 from <c>analysis</c> and 26 from <c>report</c>. Thirteen is <c>analysis</c>'s hard cap, so anything
+    /// wider records two probes that look inconsistent for a reason that has nothing to do with
+    /// drift.</para></summary>
+    public static readonly LocalDate CotRangeStart = new(2024, 1, 1);
+
+    /// <summary>The end of <see cref="CotRangeStart"/>'s window.</summary>
+    public static readonly LocalDate CotRangeEnd = new(2024, 3, 31);
+
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 

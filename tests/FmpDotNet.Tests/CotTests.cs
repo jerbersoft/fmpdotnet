@@ -1,5 +1,7 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -206,5 +208,74 @@ public class CotTests
         Assert.Empty(Binding.Unbound(rows[0]));
         Assert.Equal("NG", rows[0].Symbol);
         Assert.Equal("Natural Gas (NG)", rows[0].Name);
+    }
+
+    // ---- the request surface -----------------------------------------------------------------------------
+
+    private static (CotEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new CotEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Every_parameter_on_the_two_dated_paths_is_optional()
+    {
+        // All three optional on both, and a bare call is legal: measured 2026-08-29 it answered 545 rows on
+        // each. Omitted parameters must not reach the wire as empty values.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetReportAsync();
+
+        var query = handler.Requests[0].Query;
+        Assert.Equal("/stable/commitment-of-traders-report", handler.Requests[0].AbsolutePath);
+        Assert.DoesNotContain("symbol=", query);
+        Assert.DoesNotContain("from=", query);
+        Assert.DoesNotContain("to=", query);
+    }
+
+    [Fact]
+    public async Task Each_path_is_requested_at_the_url_it_lives_at()
+    {
+        var (report, reportHandler) = Build();
+        await report.GetReportAsync("NG", new LocalDate(2024, 1, 1), new LocalDate(2024, 3, 31));
+
+        var (analysis, analysisHandler) = Build();
+        await analysis.GetAnalysisAsync("NG");
+
+        var (symbols, symbolsHandler) = Build();
+        await symbols.GetSymbolsAsync();
+
+        Assert.Equal("/stable/commitment-of-traders-report", reportHandler.Requests[0].AbsolutePath);
+        Assert.Contains("symbol=NG", reportHandler.Requests[0].Query);
+        Assert.Contains("from=2024-01-01", reportHandler.Requests[0].Query);
+        Assert.Contains("to=2024-03-31", reportHandler.Requests[0].Query);
+        Assert.Equal("/stable/commitment-of-traders-analysis", analysisHandler.Requests[0].AbsolutePath);
+        Assert.Equal("/stable/commitment-of-traders-list", symbolsHandler.Requests[0].AbsolutePath);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_backwards_range_is_refused_before_the_request_goes_out(bool analysis)
+    {
+        var (endpoints, handler) = Build();
+        var from = new LocalDate(2024, 3, 31);
+        var to = new LocalDate(2024, 1, 1);
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => analysis
+                ? endpoints.GetAnalysisAsync("NG", from, to)
+                : endpoints.GetReportAsync("NG", from, to));
+
+        Assert.Equal("to", thrown.ParamName);
+        Assert.Empty(handler.Requests);
     }
 }

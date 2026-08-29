@@ -42,7 +42,7 @@ namespace FmpDotNet.Models;
 /// <para><b>The data is about two and a half years stale.</b> Measured 2026-08-29, every COT response on this
 /// key — bare, by symbol, and by range — covered 2024-01-02 to 2024-02-27 and nothing later. A caller asking
 /// for a recent range gets an empty array with HTTP 200. See
-/// <c>GetReportAsync</c>.</para>
+/// <see cref="Endpoints.CotEndpoints.GetReportAsync"/>.</para>
 ///
 /// <para><see cref="Date"/> arrives as <c>"2024-02-27 00:00:00"</c> on every row of both COT paths, which is
 /// why it takes <see cref="NullableDateAtMidnightJsonConverter"/> rather than the plain-date converter the

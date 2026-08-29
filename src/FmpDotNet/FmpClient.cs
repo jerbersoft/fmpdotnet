@@ -11,7 +11,7 @@ public sealed class FmpClient(
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     SearchEndpoints search, SecFilingsEndpoints secFilings,
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
-    CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg,
+    CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -93,6 +93,15 @@ public sealed class FmpClient(
     /// no symbol at all, and the benchmark is a whole-market reference table. See
     /// <see cref="EsgEndpoints"/>.</para></summary>
     public EsgEndpoints Esg { get; } = esg;
+
+    /// <summary>The CFTC's weekly Commitment of Traders report — who is positioned how in the futures
+    /// markets.
+    ///
+    /// <para>The only group in this SDK keyed on a futures contract code rather than an equity symbol, which
+    /// is why it is its own facade and not a corner of <see cref="Quote"/>. Its data is years stale on the
+    /// current key — see <see cref="CotEndpoints"/> before reading an empty result as "no
+    /// positions".</para></summary>
+    public CotEndpoints Cot { get; } = cot;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.

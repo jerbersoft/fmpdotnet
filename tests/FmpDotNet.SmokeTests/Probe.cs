@@ -358,6 +358,11 @@ internal static class Probe
                 "company" => LiveApi.CompanyNameQuery,
                 "formType" => LiveApi.FormType,
                 "sicCode" => LiveApi.SicCode,
+
+                // The COT paths take a futures contract code, not an equity ticker. AAPL answers `[]` with
+                // HTTP 200 there, which is the silent green this file's other named constants exist to stop.
+                "symbol" when parameter.Member.DeclaringType == typeof(Endpoints.CotEndpoints)
+                    => LiveApi.CotContract,
                 _ => LiveApi.Symbol,
             };
 
@@ -430,6 +435,13 @@ internal static class Probe
                 // than the 81% a fortnight would give it. See LiveApi.CalendarWeekStart.
                 "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
                     => LiveApi.CalendarWeekStart,
+
+                // The COT data stops at 2024-02-27, so this range is FIXED — see LiveApi.CotRangeStart. One
+                // quarter, because it is the widest window over which `analysis` and `report` still agree.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.CotEndpoints)
+                    => LiveApi.CotRangeStart,
+                "to" when parameter.Member.DeclaringType == typeof(Endpoints.CotEndpoints)
+                    => LiveApi.CotRangeEnd,
 
                 // Everything else -- the three sec-filings-search paths this dispatch was written for, plus the
                 // per-symbol chart and market-cap methods -- is unaffected by width and keeps the 90-day range.
