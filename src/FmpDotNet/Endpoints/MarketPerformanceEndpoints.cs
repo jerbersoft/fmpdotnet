@@ -279,8 +279,10 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <see cref="GetHistoricalSectorPerformanceAsync"/> was taken on this path too — the same 21 rows spanning
     /// 2024-02-01 to 2024-03-01. Read that method's summary; it applies here unchanged.</para>
     ///
-    /// <para><b>A <c>pe</c> of exactly <c>0</c> means "no meaningful aggregate"</b> — see
-    /// <see cref="Models.IndustryPe.Pe"/>.</para></summary>
+    /// <para><b>No sector-PE row has read <c>pe: 0</c> in any measurement.</b> 41 of the 64 measured
+    /// sector-PE values came from this historical path itself (measured 2026-08-29), and none of them was
+    /// zero. Where FMP does emit the sentinel it means "no meaningful aggregate" rather than a ratio of zero
+    /// — see <see cref="Models.IndustryPe.Pe"/>, the shape it was actually observed on.</para></summary>
     /// <param name="sector">The sector to report on.</param>
     /// <param name="exchange">The exchange to answer for. Required.</param>
     /// <param name="from">First calendar day of the range, inclusive.</param>

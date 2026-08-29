@@ -394,13 +394,31 @@ public class MarketPerformanceTests
     }
 
     [Fact]
-    public async Task A_blank_industry_is_rejected_on_the_historical_path()
+    public async Task A_blank_exchange_is_rejected_on_the_historical_path()
     {
         var (endpoints, handler) = Build();
 
         await Assert.ThrowsAsync<ArgumentException>(
-            () => endpoints.GetHistoricalIndustryPeAsync(
-                "  ", "NASDAQ", new LocalDate(2026, 8, 1), new LocalDate(2026, 8, 28)));
+            () => endpoints.GetHistoricalSectorPerformanceAsync(
+                Sector.Technology, "  ", new LocalDate(2026, 8, 1), new LocalDate(2026, 8, 28)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("industry-pe")]
+    [InlineData("industry-performance")]
+    public async Task A_blank_industry_is_rejected_on_the_historical_path(string which)
+    {
+        var (endpoints, handler) = Build();
+        var from = new LocalDate(2026, 8, 1);
+        var to = new LocalDate(2026, 8, 28);
+
+        Task Call() => which == "industry-pe"
+            ? endpoints.GetHistoricalIndustryPeAsync("  ", "NASDAQ", from, to)
+            : endpoints.GetHistoricalIndustryPerformanceAsync("  ", "NASDAQ", from, to);
+
+        await Assert.ThrowsAsync<ArgumentException>(Call);
 
         Assert.Empty(handler.Requests);
     }
