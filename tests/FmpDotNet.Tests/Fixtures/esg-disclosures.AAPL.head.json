@@ -1,0 +1,28 @@
+[
+  {
+    "date": "2026-06-27",
+    "acceptedDate": "2026-07-31",
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "companyName": "Apple Inc.",
+    "formType": "10-Q",
+    "environmentalScore": 68.41,
+    "socialScore": 47.36,
+    "governanceScore": 61.32,
+    "ESGScore": 59.03,
+    "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000020/0000320193-26-000020-index.htm"
+  },
+  {
+    "date": "2026-03-28",
+    "acceptedDate": "2026-05-01",
+    "symbol": "AAPL",
+    "cik": "0000320193",
+    "companyName": "Apple Inc.",
+    "formType": "10-Q",
+    "environmentalScore": 61.24,
+    "socialScore": 47.64,
+    "governanceScore": 59.71,
+    "ESGScore": 56.2,
+    "url": "https://www.sec.gov/Archives/edgar/data/320193/000032019326000013/0000320193-26-000013-index.htm"
+  }
+]

@@ -11,7 +11,7 @@ public sealed class FmpClient(
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     SearchEndpoints search, SecFilingsEndpoints secFilings,
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
-    CongressEndpoints congress, TranscriptsEndpoints transcripts,
+    CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -85,6 +85,14 @@ public sealed class FmpClient(
     /// nothing on <see cref="Calendar"/> takes. Which symbols have transcripts at all is on
     /// <see cref="Directory"/>. See <see cref="TranscriptsEndpoints"/>.</para></summary>
     public TranscriptsEndpoints Transcripts { get; } = transcripts;
+
+    /// <summary>Environmental, social and governance data — per-filing scores, rating history, and the
+    /// sector averages to read either against.
+    ///
+    /// <para>Its own facade rather than a corner of <see cref="Company"/> because two of its three paths take
+    /// no symbol at all, and the benchmark is a whole-market reference table. See
+    /// <see cref="EsgEndpoints"/>.</para></summary>
+    public EsgEndpoints Esg { get; } = esg;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.

@@ -1,0 +1,29 @@
+[
+  {
+    "fiscalYear": 2023,
+    "period": "Q2",
+    "sector": "APPAREL RETAIL",
+    "environmentalScore": 61.36,
+    "socialScore": 67.44,
+    "governanceScore": 68.1,
+    "ESGScore": 65.63
+  },
+  {
+    "fiscalYear": 2023,
+    "period": "Q2",
+    "sector": "MEDICAL - CARE FACILITIES",
+    "environmentalScore": 64.87,
+    "socialScore": 67.26,
+    "governanceScore": 67.59,
+    "ESGScore": 66.57
+  },
+  {
+    "fiscalYear": 2023,
+    "period": "FY",
+    "sector": "PROPERTY/CASUALTY INSURANCE",
+    "environmentalScore": 55.41,
+    "socialScore": 51.5,
+    "governanceScore": 57.98,
+    "ESGScore": 54.96
+  }
+]
