@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using FmpDotNet.Models;
@@ -47,27 +48,32 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
             var name = reader.GetString()!;
             reader.Read();
 
-            switch (name)
+            // Matched case-insensitively, like every other property in the SDK: FmpJsonContext sets
+            // PropertyNameCaseInsensitive SDK-wide, and a custom converter such as this one does not inherit
+            // that from the source generator — it has to implement it itself.
+            if (string.Equals(name, "date", StringComparison.OrdinalIgnoreCase))
+                timestamp = Timestamps.Read(ref reader, typeof(LocalDateTime?), options);
+            else if (string.Equals(name, "open", StringComparison.OrdinalIgnoreCase))
+                open = ReadDecimal(ref reader, options);
+            else if (string.Equals(name, "high", StringComparison.OrdinalIgnoreCase))
+                high = ReadDecimal(ref reader, options);
+            else if (string.Equals(name, "low", StringComparison.OrdinalIgnoreCase))
+                low = ReadDecimal(ref reader, options);
+            else if (string.Equals(name, "close", StringComparison.OrdinalIgnoreCase))
+                close = ReadDecimal(ref reader, options);
+            else if (string.Equals(name, "volume", StringComparison.OrdinalIgnoreCase))
+                volume = ReadDecimal(ref reader, options);
+            else
             {
-                case "date":
-                    timestamp = Timestamps.Read(ref reader, typeof(LocalDateTime?), options);
-                    break;
-                case "open": open = ReadDecimal(ref reader); break;
-                case "high": high = ReadDecimal(ref reader); break;
-                case "low": low = ReadDecimal(ref reader); break;
-                case "close": close = ReadDecimal(ref reader); break;
-                case "volume": volume = ReadDecimal(ref reader); break;
-                default:
-                    if (!TechnicalIndicatorExtensions.TryFromJsonField(name, out var found))
-                        throw new JsonException(
-                            $"'{name}' is not a price field or a known indicator column.");
-                    if (indicator is not null)
-                        throw new JsonException(
-                            $"A technical-indicator row carried two indicator columns: "
-                            + $"'{indicator.Value.ToJsonField()}' and '{name}'.");
-                    indicator = found;
-                    value = ReadDecimal(ref reader);
-                    break;
+                if (!TechnicalIndicatorExtensions.TryFromJsonField(name, out var found))
+                    throw new JsonException(
+                        $"'{name}' is not a price field or a known indicator column.");
+                if (indicator is not null)
+                    throw new JsonException(
+                        $"A technical-indicator row carried two indicator columns: "
+                        + $"'{indicator.Value.ToJsonField()}' and '{name}'.");
+                indicator = found;
+                value = ReadDecimal(ref reader, options);
             }
         }
 
@@ -103,8 +109,22 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
         writer.WriteEndObject();
     }
 
-    private static decimal? ReadDecimal(ref Utf8JsonReader reader) =>
-        reader.TokenType == JsonTokenType.Null ? null : reader.GetDecimal();
+    private static decimal? ReadDecimal(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+
+        // FmpJsonContext sets NumberHandling = AllowReadingFromString SDK-wide, and FMP quoting a number is
+        // measured, recurring behaviour this SDK treats as load-bearing — see
+        // FmpTransportTests.Reads_numbers_fmp_delivers_as_strings, DirectoryListsTests and
+        // FinancialScoresTests. A custom converter does not inherit that option from the source generator, so
+        // without this check a single quoted field here would abort the whole response instead of binding,
+        // unlike every other model.
+        if (reader.TokenType == JsonTokenType.String
+            && options.NumberHandling.HasFlag(JsonNumberHandling.AllowReadingFromString))
+            return decimal.Parse(reader.GetString()!, CultureInfo.InvariantCulture);
+
+        return reader.GetDecimal();
+    }
 
     private static void WriteDecimal(Utf8JsonWriter writer, string name, decimal? value)
     {

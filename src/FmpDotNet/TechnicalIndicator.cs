@@ -58,9 +58,9 @@ public enum TechnicalIndicator
     ///
     /// <para><b>Recursive by construction and measured exact.</b> RSI uses Wilder smoothing, so theory says it
     /// carries state from before the window — yet measured 2026-08-29, every row of a ten-row window matched
-    /// the full series to every digit. Whatever history FMP buffers ahead of the requested range is enough for
-    /// this one. <see cref="TechnicalIndicatorExtensions.NeedsWarmUp"/> reports <see langword="false"/> here,
-    /// on the measurement rather than on the textbook.</para></summary>
+    /// the full series to within 0.0000%. Whatever history FMP buffers ahead of the requested range is enough
+    /// for this one. <see cref="TechnicalIndicatorExtensions.NeedsWarmUp"/> reports <see langword="false"/>
+    /// here, on the measurement rather than on the textbook.</para></summary>
     Rsi,
 
     /// <summary>Simple Moving Average — segment <c>sma</c>, field <c>sma</c>. Measured 2026-08-29: exact on
@@ -197,22 +197,62 @@ public static class TechnicalIndicatorExtensions
     };
 
     /// <summary>Resolves a JSON field name back to the indicator it carries, for the converter that reads
-    /// whichever ninth key arrived. Case-sensitive: the wire field is, even though the path segment is
-    /// not.</summary>
+    /// whichever ninth key arrived.
+    ///
+    /// <para>The path segment is case-insensitive — measured 2026-08-29, <c>SMA</c> returned a response
+    /// byte-identical to <c>sma</c> — and the field itself arrived camelCase on 2026-08-29. A response key is
+    /// an output, not a property that can itself be case-sensitive or not, so nothing could have measured the
+    /// opposite claim this doc used to make. This map matches case-insensitively, to match
+    /// <c>FmpJsonContext</c>'s SDK-wide <c>PropertyNameCaseInsensitive</c>.</para></summary>
     internal static bool TryFromJsonField(string field, out TechnicalIndicator indicator)
     {
-        switch (field)
+        if (string.Equals(field, "adx", StringComparison.OrdinalIgnoreCase))
         {
-            case "adx": indicator = TechnicalIndicator.Adx; return true;
-            case "dema": indicator = TechnicalIndicator.Dema; return true;
-            case "ema": indicator = TechnicalIndicator.Ema; return true;
-            case "rsi": indicator = TechnicalIndicator.Rsi; return true;
-            case "sma": indicator = TechnicalIndicator.Sma; return true;
-            case "standardDeviation": indicator = TechnicalIndicator.StandardDeviation; return true;
-            case "tema": indicator = TechnicalIndicator.Tema; return true;
-            case "williams": indicator = TechnicalIndicator.WilliamsR; return true;
-            case "wma": indicator = TechnicalIndicator.Wma; return true;
-            default: indicator = default; return false;
+            indicator = TechnicalIndicator.Adx;
+            return true;
         }
+        if (string.Equals(field, "dema", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Dema;
+            return true;
+        }
+        if (string.Equals(field, "ema", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Ema;
+            return true;
+        }
+        if (string.Equals(field, "rsi", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Rsi;
+            return true;
+        }
+        if (string.Equals(field, "sma", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Sma;
+            return true;
+        }
+        if (string.Equals(field, "standardDeviation", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.StandardDeviation;
+            return true;
+        }
+        if (string.Equals(field, "tema", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Tema;
+            return true;
+        }
+        if (string.Equals(field, "williams", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.WilliamsR;
+            return true;
+        }
+        if (string.Equals(field, "wma", StringComparison.OrdinalIgnoreCase))
+        {
+            indicator = TechnicalIndicator.Wma;
+            return true;
+        }
+
+        indicator = default;
+        return false;
     }
 }

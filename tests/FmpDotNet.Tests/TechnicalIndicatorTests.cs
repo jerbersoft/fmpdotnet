@@ -41,12 +41,21 @@ public class TechnicalIndicatorTests
     [InlineData("open")]
     [InlineData("volume")]
     [InlineData("macd")]
-    [InlineData("SMA")]
     public void A_field_that_is_not_an_indicator_column_is_rejected(string field)
     {
-        // `SMA` is here deliberately: the PATH segment is case-insensitive (measured 2026-08-29, `SMA` returned
-        // a byte-identical response to `sma`) but the JSON FIELD is not, and this map reads fields.
+        // `macd` is a real FMP indicator this SDK does not model — it must still be rejected rather than
+        // silently accepted because it looks like a plausible column name.
         Assert.False(TechnicalIndicatorExtensions.TryFromJsonField(field, out _));
+    }
+
+    [Fact]
+    public void A_field_that_differs_only_in_case_still_resolves()
+    {
+        // Not hypothetical: measured 2026-08-29, the PATH segment `SMA` returned a response byte-identical to
+        // `sma`. The map now matches case-insensitively too, to match FmpJsonContext's SDK-wide
+        // PropertyNameCaseInsensitive — a custom converter has to opt into that itself.
+        Assert.True(TechnicalIndicatorExtensions.TryFromJsonField("SMA", out var found));
+        Assert.Equal(TechnicalIndicator.Sma, found);
     }
 
     [Theory]
@@ -98,5 +107,19 @@ public class TechnicalIndicatorTests
         var undeclared = (TechnicalIndicator)999;
         Assert.Throws<ArgumentOutOfRangeException>(() => undeclared.ToPathSegment());
         Assert.Throws<ArgumentOutOfRangeException>(() => undeclared.ToJsonField());
+    }
+
+    [Fact]
+    public void The_enum_has_exactly_nine_members()
+    {
+        // Warm_up_is_classified_by_measurement_not_by_theory and Suggested_warm_up_follows_the_measured_
+        // convergence above are fixed InlineData tables keyed by hand to the nine members measured 2026-08-29.
+        // Both NeedsWarmUp and SuggestedWarmUpBars end in a catch-all (`_ => false` / `_ => 0`), which is the
+        // UNSAFE direction for a member neither table has a row for — "no warm-up needed". A tenth member added
+        // later would silently inherit that catch-all in both switches AND pass both InlineData tables, since
+        // neither table has a row asserting anything about it. Pinning the count here means a tenth member
+        // fails this test first, sending someone to look at all four switches in TechnicalIndicator.cs and both
+        // tables above rather than the unmeasured claim shipping by omission.
+        Assert.Equal(9, Enum.GetValues<TechnicalIndicator>().Length);
     }
 }

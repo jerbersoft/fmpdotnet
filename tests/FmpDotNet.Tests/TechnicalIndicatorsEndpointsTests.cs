@@ -92,6 +92,21 @@ public class TechnicalIndicatorsEndpointsTests
         Assert.NotNull(rows[0].Value);
     }
 
+    [Fact]
+    public async Task Indicator_is_resolved_from_the_body_not_the_argument_that_was_sent()
+    {
+        // TechnicalIndicatorBar.Indicator's doc promises it is "resolved from the column that arrived, not
+        // stamped from the argument that was sent." Every other test in this file asks for the same indicator
+        // the stub answers, so none of them would notice a future change that stamped Indicator from the
+        // caller's argument instead of reading the column FMP actually sent. Here the stub answers `adx` while
+        // the call asks for `sma`, and the resolved value is required to be the one that arrived.
+        var (endpoints, _) = Build(Fixture("technical-indicators-adx.AAPL.head.json"));
+
+        var rows = await endpoints.GetAsync("AAPL", TechnicalIndicator.Sma, 10, TechnicalIndicatorTimeframe.OneDay);
+
+        Assert.Equal(TechnicalIndicator.Adx, rows[0].Indicator);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-5)]
