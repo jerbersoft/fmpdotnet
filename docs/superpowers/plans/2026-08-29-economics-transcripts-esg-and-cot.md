@@ -21,6 +21,14 @@ none. `CotReport` is 128 properties, the widest record in the SDK against `Finan
   are added across this plan: `EconomicObservation`, `MarketRiskPremium`, `TreasuryRate`,
   `EarningsTranscript`, `TranscriptDate`, `LatestTranscript`, `EsgDisclosure`, `EsgRating`, `EsgBenchmark`,
   `CotReport`, `CotAnalysis`, `CotSymbol`.
+- **Adding a facade to `FmpClient` is four edits, not three.** The constructor parameter, the property, the DI
+  registration in `FmpServiceCollectionExtensions` — and `tests/FmpDotNet.Tests/AddFmpTests.cs`, whose
+  `Resolves_the_client_and_every_endpoint_group` asserts `typeof(FmpClient).GetProperties(...).Length` against a
+  hard-coded count and goes red the moment a property appears. That assertion is deliberate: its own comment
+  records that the list "was three short when SecFilings was added", so a forgotten facade fails loudly instead
+  of going untested. Each of Tasks 4, 5 and 7 must add its `Assert.NotNull(client.X)` line and bump the count
+  by one — 14 → 15 → 16 → 17. `EndpointCoverageTests` and `Probe` also reflect over `FmpClient`, but both
+  enumerate rather than count and need no edit.
 - **`TreatWarningsAsErrors` is on and covers XML-doc warnings.** Every public member needs a doc comment, and
   every `<see cref="..."/>` must resolve or the build fails (CS1574). **Tasks are ordered so that no task
   references a type a later task creates.** Do not reorder them.
@@ -1337,6 +1345,7 @@ git commit -m "feat: add the three remaining Economics paths to fmp.Economics (#
 - Modify: `src/FmpDotNet/Serialization/FmpJsonContext.cs`
 - Modify: `src/FmpDotNet/FmpClient.cs`
 - Modify: `src/FmpDotNet/DependencyInjection/FmpServiceCollectionExtensions.cs`
+- Modify: `tests/FmpDotNet.Tests/AddFmpTests.cs` (the property-count assertion, 14 → 15)
 - Modify: `src/FmpDotNet/Endpoints/DirectoryEndpoints.cs`
 - Modify: `tests/FmpDotNet.SmokeTests/LiveApi.cs` (a doc comment only)
 - Modify: `README.md` (generated block only)
@@ -1992,6 +2001,7 @@ git add -A && git commit -m "feat: add fmp.Transcripts over the three earnings-t
 - Modify: `src/FmpDotNet/Serialization/FmpJsonContext.cs`
 - Modify: `src/FmpDotNet/FmpClient.cs`
 - Modify: `src/FmpDotNet/DependencyInjection/FmpServiceCollectionExtensions.cs`
+- Modify: `tests/FmpDotNet.Tests/AddFmpTests.cs` (the property-count assertion, 15 → 16)
 - Modify: `README.md` (generated block only)
 
 **Interfaces:**
@@ -3564,6 +3574,7 @@ git commit -m "feat: add CotReport, CotAnalysis and CotSymbol (#40)"
 - Modify: `src/FmpDotNet/Models/CotAnalysis.cs` (promote two crefs)
 - Modify: `src/FmpDotNet/FmpClient.cs`
 - Modify: `src/FmpDotNet/DependencyInjection/FmpServiceCollectionExtensions.cs`
+- Modify: `tests/FmpDotNet.Tests/AddFmpTests.cs` (the property-count assertion, 16 → 17)
 - Modify: `tests/FmpDotNet.Tests/CotTests.cs`
 - Modify: `tests/FmpDotNet.SmokeTests/LiveApi.cs`
 - Modify: `tests/FmpDotNet.SmokeTests/Probe.cs`
