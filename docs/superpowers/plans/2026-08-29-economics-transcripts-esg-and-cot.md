@@ -29,8 +29,10 @@ none. `CotReport` is 128 properties, the widest record in the SDK against `Finan
   rule is uniform: **write the cref as plain `<c>GetSomethingAsync</c>` when you write the model, then promote
   it to `<see cref="Endpoints.SomethingEndpoints.GetSomethingAsync"/>` at the step that creates the facade.**
   Skipping the promotion is not a build failure, only a weaker doc — so it is easy to lose. Each affected task
-  has an explicit promotion step; do not treat it as optional. There are eight of these across the plan: one
-  in Task 2, one in Task 3, three in Task 4, one in Task 5, and three in Task 6 (promoted in Task 7).
+  has an explicit promotion step; do not treat it as optional. There are **eleven** of these across the plan:
+  three in Task 2 and one in Task 3, both promoted together in **Task 3 Step 12**; three in Task 4, promoted in
+  **Task 4 Step 6b**; one in Task 5, promoted in **Task 5 Step 6b**; and three in Task 6, promoted in
+  **Task 7 Step 4**.
 - **CS1591 is not suppressed project-wide.** `CotReport` gets a file-scoped `#pragma warning disable CS1591`,
   becoming the **eighth** exemption. `src/FmpDotNet/FmpDotNet.csproj` currently says the seven fundamentals
   models "are the only exemptions" — that sentence is load-bearing and is updated in the same task.
@@ -121,7 +123,10 @@ disagrees with the measurements is a defect in the spec.
 **Interfaces:**
 - Consumes: nothing.
 - Produces: nothing new in the public API. `GetListAsync` and every method built on it now raise
-  `FmpApiException` instead of `JsonException` when FMP answers HTTP 200 with a body that is not JSON.
+  `FmpApiException` instead of `JsonException` when FMP answers HTTP 200 with a body that is not JSON —
+  and **only** then. A body that is well-formed JSON but does not fit the model still raises `JsonException`,
+  because that is this SDK's defect rather than FMP's answer, and several models document that throw as the
+  outcome they want.
 
 **Why this is first and why it is alone.** This is shared transport on the SDK's busiest path — every
 `GetListAsync` call in the SDK goes through `ReadListAsync`. It closes more than issue #40:
@@ -174,27 +179,50 @@ If it fails any other way, stop — the premise of this task is that the excepti
 
 - [ ] **Step 3: Add the guard**
 
-In `src/FmpDotNet/FmpTransport.cs`, replace the last line of `ReadListAsync`:
+In `src/FmpDotNet/FmpTransport.cs`, the first meaningful byte is currently computed inline in the
+error-envelope check and thrown away. Hoist it into a local, because the guard below needs it too. Replace:
 
 ```csharp
+        // An error envelope is a JSON OBJECT where success is a JSON ARRAY, so the first non-space byte separates
+        // them without parsing either.
+        if (FirstMeaningfulByte(prefix, prefixLength) == (byte)'{')
+            throw await ReadErrorAsync(body, request, ct).ConfigureAwait(false);
+
         return await deserialise(body, ct).ConfigureAwait(false) ?? [];
 ```
 
 with:
 
 ```csharp
+        // An error envelope is a JSON OBJECT where success is a JSON ARRAY, so the first non-space byte separates
+        // them without parsing either.
+        var first = FirstMeaningfulByte(prefix, prefixLength);
+        if (first == (byte)'{')
+            throw await ReadErrorAsync(body, request, ct).ConfigureAwait(false);
+
         // A 200 whose body is not JSON at all. Measured 2026-08-29, `stable/economic-indicators` answers an
         // unrecognised `name` with HTTP 200, `content-type: application/json; charset=utf-8`, and twelve
-        // bytes of `Invalid name`. The prefix check above cannot catch it: the first meaningful byte is `I`,
-        // neither `{` nor the start of an array. Without this the caller gets a raw JsonException naming the
-        // byte offset and nothing else — not the request, not what FMP said. GetObjectAsync has had this
-        // guard since #21 and this pipeline had not; they were divergent by accident rather than by
-        // decision. `stable/financial-reports-xlsx` answers a MISS the same way, with `Error with query`.
+        // bytes of `Invalid name`. The check above cannot catch it: the first meaningful byte is `I`, neither
+        // `{` nor the start of an array. Without this the caller gets a raw JsonException naming the byte
+        // offset and nothing else — not the request, not what FMP said. GetObjectAsync has had this guard
+        // since #21 and this pipeline had not; they were divergent by accident rather than by decision.
+        // `stable/financial-reports-xlsx` answers a MISS the same way, with `Error with query`.
+        //
+        // The filter is what keeps the guard honest, and it is not optional. `deserialise` both PARSES and
+        // BINDS, so an unfiltered catch would also swallow a well-formed array whose field is the wrong type
+        // — and report it as "not JSON", which is false, and blame FMP for what is a defect in THIS SDK's
+        // model. Several models document that throw as the outcome they want: "a non-numeric segment revenue
+        // would be a defect worth hearing about, so the decimal dictionary is the right type and this throw
+        // is the right outcome" (AsReportedTests), and CompanyMarketCap, PriceTarget and the directory lists
+        // all record the same. FmpApiException has no inner-exception constructor, so wrapping would lose the
+        // distinction outright. GetObjectAsync's guard makes the same cut for the same reason — it wraps
+        // JsonDocument.ParseAsync and leaves RootElement.Deserialize alone. Here the peeked prefix draws the
+        // line for free: a body that begins `[` is JSON, and a JsonException out of one is ours, not FMP's.
         try
         {
             return await deserialise(body, ct).ConfigureAwait(false) ?? [];
         }
-        catch (JsonException ex)
+        catch (JsonException ex) when (first != (byte)'[')
         {
             throw new FmpApiException(
                 $"FMP answered a body that is not JSON: {ex.Message}", request.ToString());
@@ -202,6 +230,42 @@ with:
 ```
 
 `System.Text.Json` is already imported at the top of the file; no using directive changes.
+
+`FirstMeaningfulByte` returns `0` when the prefix holds nothing but whitespace or a BOM, so an empty body
+takes the guard too — an empty body is not JSON either.
+
+- [ ] **Step 3b: Write the test for the half that must keep throwing**
+
+The filter is exactly the kind of thing a later "simplification" deletes, and nothing in the suite would
+notice. Add this beside the test from Step 1:
+
+```csharp
+    [Fact]
+    public async Task A_well_formed_array_with_a_field_of_the_wrong_type_still_raises_JsonException()
+    {
+        // The other side of the guard above, and the reason it carries a filter. This body IS JSON — it just
+        // does not match the model, which makes it a defect in THIS SDK rather than a bad answer from FMP.
+        // Several models say so in as many words: "a non-numeric segment revenue would be a defect worth
+        // hearing about, so the decimal dictionary is the right type and this throw is the right outcome."
+        // Wrapping it in FmpApiException would report "FMP answered a body that is not JSON" about a body
+        // that is, blame FMP for our own modelling, and — FmpApiException taking no inner exception — throw
+        // the JSON path and byte offset away with it. GetObjectAsync draws the same line: its guard wraps the
+        // parse and leaves the bind alone.
+        var (transport, _) = Build(StubHandler.Json("""[{"impact":7}]"""));
+
+        await Assert.ThrowsAsync<JsonException>(
+            () => transport.GetListAsync(
+                new FmpRequest("stable/economic-calendar"),
+                FmpJsonContext.Default.ListEconomicRelease));
+    }
+```
+
+`EconomicRelease.Impact` is `string?` (`src/FmpDotNet/Models/EconomicRelease.cs:138`), so a bare `7` cannot
+bind to it — and the body's first meaningful byte is `[`, so the filter declines and `System.Text.Json`'s own
+exception reaches the caller unchanged. The body carries that one field and nothing else, so no other
+property's converter can throw first and make the test pass for the wrong reason. Confirm the property is
+still typed `string?` before running: if a later slice retyped it, pick another field on the same record whose
+JSON type this fixture can violate, and name it in the comment.
 
 - [ ] **Step 4: Run the test and the whole unit suite**
 
@@ -499,7 +563,7 @@ public static class EconomicIndicatorExtensions
 **Note on the `<see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>` references above.** They point at
 a method Task 3 creates, and `TreatWarningsAsErrors` turns an unresolvable cref into CS1574 — a **build
 error**. Write the file with those three crefs rendered as plain `<c>GetIndicatorAsync</c>` in this task, and
-promote them to real crefs in Task 3 Step 6, which is where the method exists. Do not skip that step: the
+promote them to real crefs in Task 3 Step 12, which is where the method exists. Do not skip that step: the
 cross-reference is what makes the staleness note reachable from the method a caller is actually looking at.
 
 - [ ] **Step 4: Run the tests**
@@ -1536,7 +1600,7 @@ Expected: FAIL — `CS0246` on `TranscriptsEndpoints`, `EarningsTranscript`, `Tr
 **Three deferred crefs.** The block below points at `Endpoints.TranscriptsEndpoints.GetTranscriptAsync` three
 times — once in `EarningsTranscript`'s summary, and twice in `TranscriptDate` (its type summary and its
 `Quarter` property). That facade does not exist until Step 6. Write all three as plain
-`<c>GetTranscriptAsync</c>` now; Step 6 ends with the promotion.
+`<c>GetTranscriptAsync</c>` now; Step 6b is the promotion.
 
 Create `src/FmpDotNet/Models/EarningsTranscript.cs`:
 
@@ -2235,7 +2299,7 @@ Expected: FAIL — `CS0246` on `EsgEndpoints`, `EsgDisclosure`, `EsgRating` and 
 
 **One deferred cref.** `EsgBenchmark`'s type summary ends with
 `<see cref="Endpoints.EsgEndpoints.GetBenchmarkAsync"/>`, and that facade does not exist until Step 6. Write
-it as plain `<c>GetBenchmarkAsync</c>` now; Step 6 ends with the promotion.
+it as plain `<c>GetBenchmarkAsync</c>` now; Step 6b is the promotion.
 `<see cref="Endpoints.DirectoryEndpoints.GetIndustriesAsync"/>` on `EsgRating.Industry` is **not** deferred —
 that method already exists.
 
