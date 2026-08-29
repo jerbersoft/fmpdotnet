@@ -485,6 +485,221 @@ set TargetedCompanyName
 set TargetedSymbol
 set TransactionDate
 
+[Congress.GetHouseLatestAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+null Comment
+
+[Congress.GetHouseTradesAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set Comment
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+
+[Congress.GetHouseTradesByMemberAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+null Comment
+
+[Congress.GetHouseTradesByNameAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+null Comment
+
+[Congress.GetNetWorthAsync]
+outcome rows
+set AssetType
+set Category
+set Comment
+set DebtDetails
+set FilingDate
+set FormType
+set Income
+set IncomeRange
+set IncomeType
+set Link
+set Name
+set Owner
+set Section
+set SenateId
+set Value
+set ValueRange
+set Year
+
+[Congress.GetNetWorthSummaryAsync]
+outcome rows
+set BusinessLiabilities
+set CashAndCashEquivalents
+set GovernmentSecurities
+set MutualFundsAndEtfs
+set OtherAssets
+set OwnershipInterest
+set PensionAndRetirementAssets
+set RealEstate
+set RealEstateLiabilities
+set RevolvingAndCreditLines
+set SalaryAndWages
+set SenateId
+set Stock
+set Total
+set Trusts
+set Year
+
+[Congress.GetPositionsAsync]
+outcome rows
+set CongressNumber
+set EndDate
+set Party
+set Position
+set SenateId
+set StartDate
+set State
+set YearsInTerm
+
+[Congress.GetProfilesAsync]
+outcome rows
+set Active
+set BirthDate
+set FirstName
+set Image
+set LastName
+set LatestParty
+set LatestPosition
+set LatestState
+set SenateId
+set YearsActive
+
+[Congress.GetSenateLatestAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+null CapitalGainsOver200Usd
+null Comment
+
+[Congress.GetSenateTradesAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set Comment
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+
+[Congress.GetSenateTradesByMemberAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set Comment
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+
+[Congress.GetSenateTradesByNameAsync]
+outcome rows
+set Amount
+set AssetDescription
+set AssetType
+set CapitalGainsOver200Usd
+set Comment
+set DisclosureDate
+set District
+set FirstName
+set LastName
+set Link
+set Office
+set Owner
+set SenateId
+set Symbol
+set TransactionDate
+set Type
+
 [Directory.GetActivelyTradingAsync]
 outcome rows
 set Name
