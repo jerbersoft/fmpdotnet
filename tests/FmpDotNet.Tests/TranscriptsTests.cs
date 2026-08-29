@@ -156,6 +156,7 @@ public class TranscriptsTests
         var (endpoints, handler) = Build();
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() => endpoints.GetDatesAsync(symbol!));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => endpoints.GetTranscriptAsync(symbol!, 2025, 3));
 
         Assert.Empty(handler.Requests);
     }

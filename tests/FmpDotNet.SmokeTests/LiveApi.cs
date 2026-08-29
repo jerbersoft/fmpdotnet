@@ -176,7 +176,14 @@ internal static class LiveApi
     /// <summary>The end of <see cref="CotRangeStart"/>'s window.</summary>
     public static readonly LocalDate CotRangeEnd = new(2024, 3, 31);
 
-    /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
+    /// <summary>The last fiscal year complete enough that every company has filed for it.
+    ///
+    /// <para>Also drives <c>Endpoints.EsgEndpoints.GetBenchmarkAsync</c>'s and
+    /// <c>Endpoints.TranscriptsEndpoints.GetTranscriptAsync</c>'s <c>year</c>, added in #40. Of the two, the
+    /// benchmark is the one worth watching: its own bare-call default is fiscal year 2023, a fixed value
+    /// rather than a moving one, so asking it for the relative <see cref="SettledYear"/> is the one new probe
+    /// that could roll out from under a benchmark FMP has not yet published. Measured 2026-08-29,
+    /// <c>esg-benchmark?year=2025</c> still answered 622 rows.</para></summary>
     public static int SettledYear => Today.Year - 1;
 
     /// <summary>The fiscal quarter the five 13F probes and the transcript probe ask for, paired with

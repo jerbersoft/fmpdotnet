@@ -190,6 +190,7 @@ public class EsgTests
         var (endpoints, handler) = Build();
 
         await Assert.ThrowsAnyAsync<ArgumentException>(() => endpoints.GetRatingsAsync(symbol!));
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => endpoints.GetDisclosuresAsync(symbol!));
 
         Assert.Empty(handler.Requests);
     }

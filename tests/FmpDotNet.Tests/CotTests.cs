@@ -24,8 +24,10 @@ public class CotTests
 
         Assert.Equal(2, rows.Count);
 
-        // Row 1 is ZC, whose `Other` block carries real values — the only row of the two on which every one
-        // of the 128 is non-zero and non-null, and therefore the only one this assertion can be made against.
+        // Row 1 is ZC, whose `Other` block carries non-zero values — unlike row 0 (NG), where all 36 `Other`
+        // fields are legitimately zero. Binding.Unbound counts zero as bound, so this assertion would pass on
+        // either row; ZC is chosen because it is the row that proves the block binds real data rather than 36
+        // zeroes that would bind the same way whether or not the mapping worked.
         Assert.Empty(Binding.Unbound(rows[1]));
     }
 

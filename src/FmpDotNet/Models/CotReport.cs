@@ -25,14 +25,14 @@ namespace FmpDotNet.Models;
 /// <para><b>Twenty-seven property names deliberately differ from their <c>[JsonPropertyName]</c>, because
 /// FMP's spelling is wrong.</b> The attribute carries the wire verbatim and the property carries correct
 /// English — the same rule under which <c>senateID</c> binds to <c>SenateId</c>. They come in two kinds.
-/// <b>Twenty-six</b> are the suffix <c>Ol</c> where the block it belongs to is <c>Old</c>; they are a family
-/// rather than accidents, and this paragraph is their comment — repeating it twenty-six times at the
-/// declarations would bury the two that are not. <b>Two</b> are the misspelling <c>Spead</c> for
-/// <c>Spread</c>, and those carry <c>// sic</c> where they are declared.
-/// <c>tradersNoncommSpeadOl</c> is in both counts at once, which is why 26 and 2 total 27 rather than 28.
-/// (<c>netPostion</c> on <see cref="CotAnalysis"/> is a third misspelling, on a different record, and is not
-/// in this record's twenty-seven.) Do not "fix" an attribute: the property would then bind nothing,
-/// silently.</para>
+/// <b>Twenty-six</b> are the suffix <c>Ol</c> where the block it belongs to is <c>Old</c>; each carries its
+/// own inline comment naming the wire suffix, since twenty-six is too many for this paragraph alone to stand
+/// in for. <b>Two</b> are the misspelling <c>Spead</c> for <c>Spread</c>, and those alone carry the
+/// <c>// sic</c> marker — reserved to a genuine typo in FMP's own spelling, not to the deliberate <c>Ol</c>
+/// shortening. <c>tradersNoncommSpeadOl</c> is in both counts at once, which is why 26 and 2 total 27 rather
+/// than 28. (<c>netPostion</c> on <see cref="CotAnalysis"/> is a third misspelling, on a different record,
+/// carrying the same <c>// sic</c> marker; it is not in this record's twenty-seven.) Do not "fix" an
+/// attribute: the property would then bind nothing, silently.</para>
 ///
 /// <para><b>The <c>Other</c> block is 36 of the 128 and is not dead weight.</b> Measured 2026-08-29, 118 of
 /// 545 rows carry a non-zero value in at least one <c>Other</c> field, across 14 distinct symbols — the

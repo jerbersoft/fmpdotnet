@@ -119,7 +119,9 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     /// data behind them.</para></summary>
     /// <param name="indicator">The series. An <see cref="EconomicIndicator"/> rather than a string because
     /// the name is case-sensitive and a wrong one answers HTTP 200 with a body that is not JSON.</param>
-    /// <param name="from">First day of the range, inclusive. Omit for the newest ~3 months.</param>
+    /// <param name="from">First day of the range, inclusive. Omit for FMP's default window, which starts
+    /// exactly one year back from today — it only looks like the ~3-month truncation
+    /// <see cref="GetTreasuryRatesAsync"/> applies, because every series stops in late 2025.</param>
     /// <param name="to">Last day of the range, inclusive. Must not be earlier than
     /// <paramref name="from"/>.</param>
     /// <param name="ct">Cancels the request.</param>

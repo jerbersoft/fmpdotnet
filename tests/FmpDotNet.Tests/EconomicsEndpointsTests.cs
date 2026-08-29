@@ -454,4 +454,27 @@ public class EconomicsEndpointsTests
         // guard that a null `from`/`to` stays off the wire rather than going out empty.
         Assert.Equal("", treasuryHandler.Requests[0].Query.Replace("?apikey=k", ""));
     }
+
+    [Fact]
+    public async Task An_empty_answer_is_an_empty_list_rather_than_null_on_all_three_methods()
+    {
+        // Pins the "never null" half of each method's doc comment: GetIndicatorAsync's "The observations in
+        // the range, or an empty list — never null", GetMarketRiskPremiumsAsync's "Every country FMP
+        // publishes a premium for. Never null", and GetTreasuryRatesAsync's "...truncated to about three
+        // months. Never null". A separate Build() per call, since each stub handler answers one request only.
+        var (indicator, _) = Build();
+        var (premiums, _) = Build();
+        var (treasury, _) = Build();
+
+        var indicatorRows = await indicator.GetIndicatorAsync(EconomicIndicator.Gdp);
+        var premiumRows = await premiums.GetMarketRiskPremiumsAsync();
+        var treasuryRows = await treasury.GetTreasuryRatesAsync();
+
+        Assert.NotNull(indicatorRows);
+        Assert.Empty(indicatorRows);
+        Assert.NotNull(premiumRows);
+        Assert.Empty(premiumRows);
+        Assert.NotNull(treasuryRows);
+        Assert.Empty(treasuryRows);
+    }
 }

@@ -487,6 +487,13 @@ Measured against the live API on 2026-08-26 unless noted.
   on an endpoint whose success shape is CSV. `EnsureSuccessStatusCode` passes and a naive CSV parse yields zero
   rows, so a caller sees "no data today" instead of "you were throttled". The transport inspects the payload and
   raises `FmpApiException`.
+- **An HTTP 200 on the ordinary array pipeline can carry a body that is not JSON at all.**
+  `stable/economic-indicators` answers an unrecognised `name` this way: HTTP 200,
+  `content-type: application/json; charset=utf-8`, and twelve bytes of `Invalid name` — not JSON. Every
+  `GetListAsync` call now classifies the body before handing it to the deserialiser and raises `FmpApiException`
+  naming the request, rather than a bare `JsonException` naming only a byte offset. A well-formed array that
+  simply does not fit the model still raises `JsonException` unchanged — that is this SDK's own modelling at
+  fault, not FMP's answer.
 - **Bulk is throttled separately** from the account's per-minute cap, and much more tightly. FMP warns that
   frequent use "may result in restrictions placed on this API Key". Bulk data refreshes only once every few hours
   — cache a successful download rather than repeating it.
