@@ -141,4 +141,8 @@ namespace FmpDotNet.Serialization;
 // declares IsAotCompatible and a reflection-based Deserialize would fail the build on IL2026/IL3050.
 [JsonSerializable(typeof(List<string>))]
 [JsonSerializable(typeof(List<MarketMover>))]
+[JsonSerializable(typeof(List<SectorPerformance>))]
+[JsonSerializable(typeof(List<IndustryPerformance>))]
+[JsonSerializable(typeof(List<SectorPe>))]
+[JsonSerializable(typeof(List<IndustryPe>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;

@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2005-09-02",
+    "sector": "Technology",
+    "exchange": "NASDAQ",
+    "averageChange": 5.735079118365113e-7
+  },
+  {
+    "date": "2006-10-05",
+    "sector": "Technology",
+    "exchange": "NASDAQ",
+    "averageChange": -0.0000026524148173594842
+  },
+  {
+    "date": "2015-12-31",
+    "sector": "Technology",
+    "exchange": "NASDAQ",
+    "averageChange": -1.171486877582397
+  }
+]
