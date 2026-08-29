@@ -206,14 +206,38 @@ AAPL 2025 Q3.
 `earning-call-transcript-dates?symbol=AAPL` returned 84 rows, newest first, spanning 2026-07-30 back to
 2005-10-13 — full history, no cap observed.
 
-## Row order and stability
+## Paging on `earning-call-transcript-latest` advances by less than a page
 
-`earning-call-transcript-latest` is a live feed and is **not stable between calls**. Three calls issued
-seconds apart: `page=0` and `page=1` each returned 100 rows, and the two pages **overlap on 28 rows** rather
-than partitioning. The bare call shares 71 rows with `page=0` and 16 with `page=1`.
+Re-measured 2026-08-29 after an initial reading conflated two separate effects. Both are real, and they operate
+on different timescales.
 
-Paging on this path therefore cannot be trusted to enumerate without duplicates, and — as in #31 — nothing here
-may be tested by index against live data. The live sweep must assert on counts and sets, never on `rows[0]`.
+**Within a burst of calls the endpoint is deterministic.** `page=0` issued twice, either side of a `page=1`,
+returned the **same 100 rows both times** — a set intersection of 100 of 100. Nothing here is random.
+
+**Paging advances with a stride smaller than the page size.** Every page returns 100 distinct rows, but
+consecutive pages share some of them:
+
+| comparison | rows in common |
+|---|---|
+| `page=0` vs `page=0` (same burst) | **100** of 100 — identical |
+| `page=0` vs `page=1` | 28 |
+| `page=1` vs `page=2` | 21 |
+| `page=0` vs `page=2` | **0** — disjoint |
+| union of pages 0, 1, 2 | 251 distinct of 300 returned |
+
+The stride is therefore roughly 72–79 rows against a page size of 100. Adjacent pages overlap, pages two apart
+do not. **Paging is usable for enumeration provided the caller de-duplicates** — it is not the broken pagination
+the overlap alone suggests.
+
+**Separately, the feed does churn — but over tens of minutes, not seconds.** Two bare calls about twenty
+minutes apart shared **90 of 100** rows. That is the effect that makes index-based assertions unsafe; it is not
+what produces the page overlap above.
+
+**The bare call is not `page=0`.** Issued at the same moment, they share 71 of 100 rows, so the default is its
+own offset rather than the first page. `limit=10` is a strict subset of `page=0`.
+
+As in #31, nothing here may be tested by index against live data. The live sweep must assert on counts and
+sets, never on `rows[0]`.
 
 ## Default windows are stale on three paths
 
