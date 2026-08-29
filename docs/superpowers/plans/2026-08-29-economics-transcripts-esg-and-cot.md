@@ -4105,9 +4105,15 @@ suite. The three likely causes, in order:
    answered 622 rows on 2026-08-29; if 2026 answers nothing, this needs its own constant pinned to a year
    that does, the way `IndicatorRangeStart` is.
 
-Also check the `set`/`null` lines on `[Cot.GetReportAsync]`. `NG` is deliberately **not** one of the 14
-contracts with a populated `Other` block, so the 36 `…Other` properties are expected to record `null` there.
-That is correct and is why `CotTests` asserts the block against a ZC fixture instead.
+Also check the `set`/`null` lines on `[Cot.GetReportAsync]`. All 128 record `set`, including the 36 `…Other`
+properties — and that is right even though `NG` is deliberately **not** one of the 14 contracts with a
+populated `Other` block. **`set` means the property bound a value, and zero is a value.** FMP sends
+`"openInterestOther": 0` rather than omitting the field, so an `int?` binds `0`, which is not null. Recording
+`null` here would mean the field had gone *missing*, which would be a real finding.
+
+This is why `CotTests` asserts the `Other` block against a **ZC** fixture instead: the live baseline cannot
+tell "present and zero" from "present and meaningful", so proving the block carries real data is a job for a
+fixture, not for the sweep.
 
 - [ ] **Step 5: Update the README prose**
 
