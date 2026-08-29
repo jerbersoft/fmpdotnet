@@ -111,6 +111,8 @@ namespace FmpDotNet.Serialization;
 // net-worth records (NetWorthRange, NetWorthDebtDetails) are reached through SenateNetWorthLine and need no
 // entry of their own.
 [JsonSerializable(typeof(List<CongressionalTrade>))]
+[JsonSerializable(typeof(List<CongressMemberPosition>))]
+[JsonSerializable(typeof(List<CongressMemberProfile>))]
 // Not a list — the only object-shaped response in this slice. See FinancialReport.
 [JsonSerializable(typeof(FinancialReport))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and

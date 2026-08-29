@@ -84,4 +84,64 @@ public class CongressTests
         Assert.Equal("GS", rows[0].Symbol);
         Assert.Equal("Corporate Bond", rows[0].AssetType);
     }
+
+    [Fact]
+    public void A_captured_position_binds_all_eight_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-positions.json"),
+            FmpJsonContext.Default.ListCongressMemberPosition)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("Z000018", rows[0].SenateId);
+        Assert.Equal(118, rows[0].CongressNumber);
+        Assert.Equal(new LocalDate(2023, 1, 2), rows[0].StartDate);
+        Assert.Equal(new LocalDate(2025, 1, 2), rows[0].EndDate);
+        Assert.Equal("Republican", rows[0].Party);
+        Assert.Equal("Representative", rows[0].Position);
+        Assert.Equal("MT", rows[0].State);
+        Assert.Equal(2m, rows[0].YearsInTerm);
+    }
+
+    [Fact]
+    public void A_fractional_years_in_term_binds_and_does_not_cost_the_rows_around_it()
+    {
+        // THE trap of this record. Measured 2026-08-29, `yearsInTerm` is a bare integer on 266 of 300 rows
+        // and carries a decimal point on 34 — so a smaller sample sees only integers and types it `int`.
+        // Under `int?` row 1 does not merely bind wrong: it aborts the whole array and takes rows 0 and 2
+        // with it, which is why they are here.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-positions.json"),
+            FmpJsonContext.Default.ListCongressMemberPosition)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(2m, rows[0].YearsInTerm);
+        Assert.Equal(0.7m, rows[1].YearsInTerm);
+        Assert.Equal(0.7m, rows[2].YearsInTerm);
+        Assert.Null(rows[1].EndDate);
+    }
+
+    [Fact]
+    public void A_captured_profile_binds_all_ten_of_its_fields_including_a_fractional_tenure()
+    {
+        // `yearsActive` is the same trap from the other side: 493 of 500 rows carry a decimal point, so here
+        // the integral value is the rare one. Both are asserted.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-profile.json"),
+            FmpJsonContext.Default.ListCongressMemberProfile)!;
+
+        Assert.Equal(2, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("L000397", rows[0].SenateId);
+        Assert.Equal("Zoe", rows[0].FirstName);
+        Assert.Equal("Lofgren", rows[0].LastName);
+        Assert.Equal(new LocalDate(1947, 12, 20), rows[0].BirthDate);
+        Assert.Equal("Democrat", rows[0].LatestParty);
+        Assert.Equal("CA", rows[0].LatestState);
+        Assert.Equal("Representative", rows[0].LatestPosition);
+        Assert.True(rows[0].Active);
+        Assert.Equal(31.7m, rows[0].YearsActive);
+        Assert.Equal(8m, rows[1].YearsActive);
+    }
 }
