@@ -82,6 +82,19 @@ So the three lists are fixed at **50 rows**, span every exchange at once, and ca
 extended. That is the opposite of the eight sector/industry paths, which are single-exchange by default and
 must be widened one exchange at a time.
 
+### Each movers list's own ordering, and how the three lists overlap
+
+Measured 2026-08-29: each of the three movers lists returned exactly **50 rows**. `biggest-gainers` is sorted
+**strictly descending** by `changesPercentage`, from `129.5271` down to `9.85667`. `biggest-losers` is sorted
+**most-negative-first** — `-74.76349` down to `-16.6362` — which is the *opposite* direction from
+`biggest-gainers`: ascending numerically rather than descending. Each list is "biggest first" by magnitude, not
+by signed value, and the two sort directions do not generalise from one list to the other.
+
+Symbol overlap across the three lists: `biggest-losers` shared **no symbol** with `biggest-gainers`, and
+exactly **one** symbol, `BTAI`, with `most-actives`. `biggest-gainers` shared **8** symbols with
+`most-actives`: `AEMD, CHAI, CYAB, DUO, FNGR, NCPL, SOXS, XTNT`. So the near-disjointness is a property of the
+losers list specifically, not of the movers lists in general.
+
 ## The historical default window is February 2024
 
 **This is the sharpest trap in the group.** With `sector` or `industry` supplied and `from`/`to` omitted, all

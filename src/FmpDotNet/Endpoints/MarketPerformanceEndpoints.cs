@@ -30,8 +30,8 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// and never names it. <see cref="QuoteEndpoints.GetQuoteAsync"/> is where a caller learns which
     /// one.</para></summary>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>Fifty rows, in FMP's own order, which is by descending percentage change. Never
-    /// <see langword="null"/>.</returns>
+    /// <returns>Fifty rows, in FMP's own order. Measured 2026-08-29, that order is strictly descending by
+    /// percentage change. Never <see langword="null"/>.</returns>
     /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
@@ -44,8 +44,10 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <c>stable/biggest-losers</c>.
     ///
     /// <para>Fifty rows, every exchange, no parameters accepted — see
-    /// <see cref="GetBiggestGainersAsync"/>, where the measurement is recorded. Measured 2026-08-29 this list
-    /// shared <b>no</b> symbol with the gainers and one with the most-actives.</para></summary>
+    /// <see cref="GetBiggestGainersAsync"/>, where the measurement is recorded. Measured 2026-08-29, this list
+    /// is ordered <b>most-negative-first</b> — the opposite direction from <see cref="GetBiggestGainersAsync"/>,
+    /// which descends — and shared <b>no</b> symbol with the gainers and exactly one, <c>BTAI</c>, with the
+    /// most-actives.</para></summary>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Fifty rows, in FMP's own order. Never <see langword="null"/>.</returns>
     /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
