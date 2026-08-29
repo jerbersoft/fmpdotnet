@@ -54,15 +54,15 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
             if (string.Equals(name, "date", StringComparison.OrdinalIgnoreCase))
                 timestamp = Timestamps.Read(ref reader, typeof(LocalDateTime?), options);
             else if (string.Equals(name, "open", StringComparison.OrdinalIgnoreCase))
-                open = ReadDecimal(ref reader, options);
+                open = ReadDecimal(ref reader, options, name);
             else if (string.Equals(name, "high", StringComparison.OrdinalIgnoreCase))
-                high = ReadDecimal(ref reader, options);
+                high = ReadDecimal(ref reader, options, name);
             else if (string.Equals(name, "low", StringComparison.OrdinalIgnoreCase))
-                low = ReadDecimal(ref reader, options);
+                low = ReadDecimal(ref reader, options, name);
             else if (string.Equals(name, "close", StringComparison.OrdinalIgnoreCase))
-                close = ReadDecimal(ref reader, options);
+                close = ReadDecimal(ref reader, options, name);
             else if (string.Equals(name, "volume", StringComparison.OrdinalIgnoreCase))
-                volume = ReadDecimal(ref reader, options);
+                volume = ReadDecimal(ref reader, options, name);
             else
             {
                 if (!TechnicalIndicatorExtensions.TryFromJsonField(name, out var found))
@@ -73,7 +73,7 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
                         $"A technical-indicator row carried two indicator columns: "
                         + $"'{indicator.Value.ToJsonField()}' and '{name}'.");
                 indicator = found;
-                value = ReadDecimal(ref reader, options);
+                value = ReadDecimal(ref reader, options, name);
             }
         }
 
@@ -109,7 +109,7 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
         writer.WriteEndObject();
     }
 
-    private static decimal? ReadDecimal(ref Utf8JsonReader reader, JsonSerializerOptions options)
+    private static decimal? ReadDecimal(ref Utf8JsonReader reader, JsonSerializerOptions options, string name)
     {
         if (reader.TokenType == JsonTokenType.Null) return null;
 
@@ -121,7 +121,20 @@ public sealed class TechnicalIndicatorBarJsonConverter : JsonConverter<Technical
         // unlike every other model.
         if (reader.TokenType == JsonTokenType.String
             && options.NumberHandling.HasFlag(JsonNumberHandling.AllowReadingFromString))
-            return decimal.Parse(reader.GetString()!, CultureInfo.InvariantCulture);
+        {
+            // TryParse rather than Parse: System.Text.Json wraps the InvalidOperationException that
+            // reader.GetDecimal() throws on a non-numeric token as JsonException, but it does not do that for
+            // exceptions this converter's own code throws. A malformed or out-of-range quoted string must
+            // still surface as JsonException rather than a raw FormatException or OverflowException escaping
+            // uncaught — see FmpTransport.GetListAsync's documented contract, and this SDK's
+            // TolerantDecimalJsonConverter and EpochJson.Read (NodaConverters.cs), which use TryParse for the
+            // same reason. The value itself is left out of the message: it is arbitrary response content, and
+            // naming the field is enough to find it.
+            if (!decimal.TryParse(
+                    reader.GetString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+                throw new JsonException($"'{name}' carried a quoted value that is not a number.");
+            return parsed;
+        }
 
         return reader.GetDecimal();
     }

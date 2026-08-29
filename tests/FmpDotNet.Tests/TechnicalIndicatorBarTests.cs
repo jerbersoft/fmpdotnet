@@ -168,6 +168,36 @@ public class TechnicalIndicatorBarTests
     }
 
     [Fact]
+    public void A_malformed_quoted_number_still_raises_JsonException()
+    {
+        // Guards a regression a bare decimal.Parse would reintroduce: reader.GetDecimal() on a non-numeric
+        // token throws InvalidOperationException, which System.Text.Json's ReadCore wraps as JsonException —
+        // but System.Text.Json does not do that for exceptions this converter's own code throws. A quoted
+        // value that is not a number must still surface as JsonException, per FmpTransport.GetListAsync's
+        // documented contract, rather than a raw FormatException escaping uncaught.
+        const string body = """
+            [{"date": "2026-08-28 00:00:00", "open": "abc", "high": 2, "low": 1, "close": 2, "volume": 3,
+              "sma": 1.5}]
+            """;
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize(body, FmpJsonContext.Default.ListTechnicalIndicatorBar));
+    }
+
+    [Fact]
+    public void A_quoted_number_that_overflows_decimal_still_raises_JsonException()
+    {
+        // Same concern as above, for the other way a quoted value can fail to parse: decimal tops out near
+        // 7.9x10^28, and a quoted value past that must still raise JsonException rather than a raw
+        // OverflowException escaping uncaught.
+        const string body = """
+            [{"date": "2026-08-28 00:00:00", "open": 1, "high": 2, "low": 1, "close": 2,
+              "volume": "99999999999999999999999999999999999999", "sma": 1.5}]
+            """;
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize(body, FmpJsonContext.Default.ListTechnicalIndicatorBar));
+    }
+
+    [Fact]
     public void Write_round_trips_through_Read()
     {
         // TechnicalIndicatorBar.Write has no coverage anywhere else in this file. Deserialise a fixture,
