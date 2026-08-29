@@ -119,9 +119,17 @@ appeared across 9,855 rows and 39,523 field slots. The doc comments must say tha
 ### Why `decimal` and not `double`
 
 The metrics arrive as unrounded float64 expansions, not as the two- and four-decimal figures the price
-endpoints return. The longest fractional part measured was **22 digits** — `-0.0000026524148173594842`, 17
-significant. `decimal` holds that; `double` does not round-trip it. A unit test pins this, and it is the test
-that fails first if anyone retypes these properties.
+endpoints return. The longest plain fractional part measured was **22 digits** —
+`-0.0000026524148173594842`, 17 significant. A unit test pins the exact literal, and it is the test that fails
+first if anyone retypes these properties: it stops compiling if the property becomes `double`.
+
+**Ten values arrive in scientific notation, and the SDK still needs no converter.** Every value whose absolute
+magnitude is below `1e-6` is written in exponent form — `5.735079118365113e-7` and nine others, all in the
+4,025-row deep-history capture. Verified on .NET 10 with the source generator and this SDK's own
+`[JsonSourceGenerationOptions]`: `System.Text.Json` binds exponent form to `decimal?` unaided, and
+`-2.6524148173594842e-06` and `-0.0000026524148173594842` deserialise to equal values. This was verified
+rather than assumed, because the whole no-converter decision rests on it. A fixture carries one of the ten so
+the next person to touch the numeric typing cannot break it silently.
 
 ### `ChangePercentage` is the third spelling of one concept
 
@@ -309,6 +317,7 @@ the fifth by accident:
 |---|---|
 | `pe: 0` binds to `0m` | that zero is not silently turned into null |
 | the 22-digit value round-trips | that the metrics are `decimal` and not `double` |
+| an exponent-form value (`5.735079118365113e-7`) binds | that the deep-history serialisation still needs no converter |
 | `changesPercentage` reaches `ChangePercentage` | the third-spelling attribute |
 | all 11 `Sector` members map; `(Sector)999` throws | the enum's contract |
 | the ragged 11-row fixture returns 11 rows with mixed dates | the documented snapshot behaviour |

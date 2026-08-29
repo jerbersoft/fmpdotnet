@@ -220,9 +220,40 @@ zero-earnings-multiple industry — and it is doing so in-band, where a caller c
 measurement.
 
 `averageChange` ranged `−74.8932` to `+73.6983` across 9,016 values. Both metrics arrive as **unrounded
-float64 expansions**, not as the two- and four-decimal figures the price endpoints return: the longest
-fractional part measured was **22 digits** (`-0.0000026524148173594842`, 17 significant). `decimal` holds
-these; `double` does not round-trip them.
+float64 expansions**, not as the two- and four-decimal figures the price endpoints return: the longest plain
+fractional part measured was **22 digits** (`-0.0000026524148173594842`, 17 significant), and the greatest
+number of significant digits on any value was 17.
+
+### Ten values arrive in scientific notation
+
+Found while preparing fixtures, and not in the first pass over this corpus. **Ten values are written in
+exponent form** rather than as plain decimals — every one of them in the 4,025-row deep-history capture
+(`sector=Technology&from=2000-01-01&to=2016-01-01`):
+
+| date | wire form |
+|---|---|
+| 2005-09-02 | `5.735079118365113e-7` |
+| 2005-08-19 | `2.501738239332157e-7` |
+| 2005-07-20 | `-5.321997112956712e-7` |
+| 2005-06-06 | `-7.14739747686903e-7` |
+| 2005-06-02 | `-3.082984342411342e-7` |
+| 2005-01-19 | `-4.1106220347016403e-7` |
+| 2004-09-28 | `3.406022919364493e-7` |
+| 2004-09-17 | `-5.002072944342045e-7` |
+| 2004-09-13 | `-4.967505081155261e-7` |
+| 2003-07-25 | `4.774871561710473e-7` |
+
+**The threshold is exact and it is 1e-6.** Those ten are precisely the ten rows in the whole corpus whose
+absolute value is below `1e-6`, and every value at or above it — including the 22-digit
+`-0.0000026524148173594842`, which is `-2.65e-06` — is written out in full. So the switch is FMP's serialiser
+choosing the shorter of the two forms, not a different code path for a different kind of number.
+
+This matters because it would only ever appear in a deep-history request, which is exactly the request a
+fixture is least likely to be cut from. **Verified 2026-08-29 on .NET 10** with the source generator, the same
+`[JsonSourceGenerationOptions]` this SDK uses: `System.Text.Json` binds exponent form to `decimal?` without a
+custom converter, and `-2.6524148173594842e-06` and `-0.0000026524148173594842` deserialise to values that
+compare **equal**. No transport or converter work is needed — but a fixture should carry one of these so the
+next person to touch the numeric typing cannot break it silently.
 
 ## Coverage extents
 
