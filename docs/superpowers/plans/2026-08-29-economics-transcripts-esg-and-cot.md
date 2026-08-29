@@ -43,8 +43,11 @@ none. `CotReport` is 128 properties, the widest record in the SDK against `Finan
   **Task 4 Step 6b**; one in Task 5, promoted in **Task 5 Step 6b**; and three in Task 6, promoted in
   **Task 7 Step 4**.
 - **CS1591 is not suppressed project-wide.** `CotReport` gets a file-scoped `#pragma warning disable CS1591`,
-  becoming the **eighth** exemption. `src/FmpDotNet/FmpDotNet.csproj` currently says the seven fundamentals
-  models "are the only exemptions" — that sentence is load-bearing and is updated in the same task.
+  becoming the **eighth** exemption. `src/FmpDotNet/FmpDotNet.csproj:19` currently says "Each of the seven
+  models now carries a file-scoped `#pragma warning disable CS1591` instead" — that sentence is load-bearing
+  and Task 6 Step 7 updates it. Quote it from the file rather than from here: `:14`'s "all in the seven
+  period-shaped fundamentals models from #4" is a historical statement about #21's 262 warnings and stays as
+  it is.
 - **No reflection in `src/`.** `IsAotCompatible` is declared; `IL2026` and `IL3050` are build errors.
 - **NodaTime only in public signatures** — no `DateTime`, `DateOnly`, `DateTimeOffset`, `TimeSpan`.
 - **`[JsonPropertyName]` carries FMP's spelling exactly; the C# property carries correct English.** 27 of
