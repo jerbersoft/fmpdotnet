@@ -174,6 +174,64 @@ internal static class LiveApi
     /// one, so this also exercises that normalisation.</para></summary>
     public const string Cik = "320193";
 
+    /// <summary>An institutional <b>filer's</b> Central Index Key, for the four <c>cik</c>-keyed 13F probes —
+    /// Berkshire Hathaway, <c>0001067983</c>.
+    ///
+    /// <para><b>Distinct from <see cref="Cik"/>, and the distinction is the whole point.</b> That is Apple's
+    /// CIK — an <i>issuer</i>. The 13F paths want the CIK of an institution that <i>files</i>. Measured
+    /// 2026-08-28, Apple's <c>320193</c> answers <b>zero rows</b> on all four of
+    /// <c>institutional-ownership/dates</c>, <c>/extract</c>, <c>/holder-industry-breakdown</c> and
+    /// <c>/holder-performance-summary</c>, each with HTTP 200 rather than an error — so the sweep would have
+    /// recorded <c>rows 0</c> as the baseline for four endpoints and matched it every week thereafter. The same
+    /// silent green <see cref="Exchange"/>, <see cref="Cik"/> and <see cref="AcquirerNameQuery"/> were named
+    /// for.</para>
+    ///
+    /// <para>Berkshire's <c>0001067983</c> answers 53, 41, 33 and 53 rows against those four, paired with
+    /// <see cref="SettledYear"/> and <see cref="SettledQuarter"/>. Given padded, because that is the form FMP
+    /// returns and the endpoint accepts either.</para></summary>
+    public const string FilerCik = "0001067983";
+
+    /// <summary>An insider's Central Index Key, for <c>insider-trading/search</c>'s <c>reportingCik</c> —
+    /// <c>1780525</c>, Apple's SVP and General Counsel.
+    ///
+    /// <para><b>Chosen to agree with <see cref="Symbol"/>, <see cref="Cik"/> and
+    /// <see cref="InsiderTransactionCode"/>.</b> <c>Probe</c> supplies every parameter including the optional
+    /// ones, and the four discriminators intersect — so one value that contradicts the others empties the
+    /// result. Measured 2026-08-28, the four together answer 3 rows with all sixteen fields populated.</para>
+    ///
+    /// <para><b>Without this case the parameter falls through to <see cref="Symbol"/></b>, and
+    /// <c>reportingCik=AAPL</c> answers <c>[]</c> with HTTP 200 — the silent green this suite exists to
+    /// catch.</para>
+    ///
+    /// <para>Given unpadded deliberately, for the reason on <see cref="Cik"/>: both forms work, measured
+    /// 2026-08-28 with byte-identical responses, so this also exercises the normalisation.</para></summary>
+    public const string InsiderReportingCik = "1780525";
+
+    /// <summary>The SEC transaction code the insider search is probed with — <c>"S-Sale"</c>.
+    ///
+    /// <para>Named for the reason on <see cref="Exchange"/>: unrecognised, <c>transactionType</c> would become
+    /// <c>"AAPL"</c>, and measured 2026-08-28 that alone empties the response even when the other three
+    /// discriminators are right.</para>
+    ///
+    /// <para><c>"S-Sale"</c> rather than any of the other seventeen because it is one
+    /// <see cref="InsiderReportingCik"/> actually filed against <see cref="Symbol"/> — the four have to
+    /// intersect. A code from <c>insider-trading-transaction-type</c>, so the sweep asks with a value that
+    /// endpoint vouches for.</para></summary>
+    public const string InsiderTransactionCode = "S-Sale";
+
+    /// <summary>The name <c>insider-trading/reporting-name</c> is probed with — <c>"Apple"</c>.
+    ///
+    /// <para><b>It works, and it works by accident.</b> That endpoint matches a prefix of a surname-first
+    /// person's name, so <c>"Apple"</c> hits <c>"Apple Allan Victor"</c>, <c>"Applebach Richard Jr"</c> and
+    /// <c>"Applebaum Michelle Galanter"</c> — 20 rows measured 2026-08-28. It has nothing to do with the
+    /// company, and a reader who assumes otherwise will assume the endpoint searches issuers.</para>
+    ///
+    /// <para><b>Its own constant rather than an alias of <see cref="AcquirerNameQuery"/>, for the reason
+    /// <see cref="CompanyNameQuery"/> gives:</b> two endpoints spelling the same word must not share one
+    /// constant, because a future change to one would silently move the other. Three constants now hold
+    /// <c>"Apple"</c> for three different endpoints, and that repetition is the point.</para></summary>
+    public const string InsiderNameQuery = "Apple";
+
     /// <summary>Apple's CUSIP, for the <c>search-cusip</c> probe. Named for the reason on <see cref="Cik"/>.</summary>
     public const string Cusip = "037833100";
 

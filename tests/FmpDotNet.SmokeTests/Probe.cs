@@ -306,8 +306,32 @@ internal static class Probe
         if (type == typeof(string))
             return parameter.Name switch
             {
-                "exchange" => LiveApi.Exchange,
+                // `cik` means two different things depending on who is asking, and both are well-formed. The
+                // 13F paths want an institutional FILER's CIK; everything else wants an issuer's. Measured
+                // 2026-08-28, Apple's issuer CIK answers zero rows on all four cik-keyed 13F paths with HTTP
+                // 200 — so without this arm the sweep records `rows 0` for four endpoints and agrees with
+                // itself forever. Dispatched on the declaring type, the same way `from` separates the calendar
+                // and economics windows below.
+                "cik" when parameter.Member.DeclaringType == typeof(Endpoints.InstitutionalOwnershipEndpoints)
+                    => LiveApi.FilerCik,
                 "cik" => LiveApi.Cik,
+
+                // insider-trading/search takes four optional discriminators and Probe supplies ALL of them —
+                // nothing here inspects IsOptional. They intersect, so one wrong value empties the result, and
+                // all three of these would otherwise fall through to the AAPL default below. The four values
+                // are chosen to agree: an Apple officer, Apple's issuer CIK, and a code that officer filed.
+                "reportingCik" => LiveApi.InsiderReportingCik,
+                // The issuer's CIK, which is exactly what LiveApi.Cik is — but named, because a reader
+                // otherwise cannot tell this case from the filer case above.
+                "companyCik" => LiveApi.Cik,
+                "transactionType" => LiveApi.InsiderTransactionCode,
+
+                // insider-trading/reporting-name matches a person's name, not a company's. Its own constant
+                // rather than AcquirerNameQuery's, so a change to the M&A probe cannot silently move this one.
+                "name" when parameter.Member.DeclaringType == typeof(Endpoints.InsiderTradesEndpoints)
+                    => LiveApi.InsiderNameQuery,
+
+                "exchange" => LiveApi.Exchange,
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,

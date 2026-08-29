@@ -7,17 +7,18 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All nine checks below are pure
+/// still ask it something worth answering.) All ten checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining six pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining seven pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
 /// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
 /// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
-/// calendars need a narrow one, and a single day where five calendars need a week — so a probe that runs
+/// calendars need a narrow one, a single day where five calendars need a week, and an issuer's CIK where four
+/// 13F paths need an institutional filer's — so a probe that runs
 /// without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
@@ -213,5 +214,32 @@ public class SweepCoverageTests
 
         Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(earnings));
         Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(economic));
+    }
+
+    [Fact]
+    public void The_sweep_asks_the_thirteen_f_paths_for_a_filer_cik_rather_than_an_issuer_cik()
+    {
+        // The synthesiser produces a well-formed CIK for every one of these, so the generic argument check
+        // above passes either way — this is the check that the CIK means the right thing. Measured 2026-08-28,
+        // Apple's issuer CIK (LiveApi.Cik) answers ZERO rows on all four of these paths with HTTP 200, so the
+        // sweep would record `rows 0` as their baseline and match it every week after. Berkshire's filer CIK
+        // answers 53, 41, 33 and 53.
+        // Probe.EndpointMethods rather than raw BindingFlags, so this walks exactly the methods the sweep
+        // walks — and so the file needs no `using System.Reflection`.
+        var filerKeyed = Probe.EndpointMethods(typeof(Endpoints.InstitutionalOwnershipEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .Where(p => p.Name == "cik")
+            .ToList();
+
+        // Four of them, and if that number changes this test should be revisited rather than adjusted.
+        Assert.Equal(4, filerKeyed.Count);
+        Assert.All(filerKeyed, p => Assert.Equal(LiveApi.FilerCik, Probe.Argument(p)));
+        Assert.NotEqual(LiveApi.Cik, LiveApi.FilerCik);
+
+        // And the issuer meaning survives elsewhere: SecFilings still gets an issuer's CIK.
+        var issuerKeyed = Probe.EndpointMethods(typeof(Endpoints.SecFilingsEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .First(p => p.Name == "cik");
+        Assert.Equal(LiveApi.Cik, Probe.Argument(issuerKeyed));
     }
 }
