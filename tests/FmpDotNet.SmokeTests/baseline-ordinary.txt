@@ -1306,6 +1306,89 @@ set TotalInvestedChange
 set TotalPuts
 set TotalPutsChange
 
+[MarketPerformance.GetBiggestGainersAsync]
+outcome rows
+set Change
+set ChangePercentage
+set Exchange
+set Name
+set Price
+set Symbol
+
+[MarketPerformance.GetBiggestLosersAsync]
+outcome rows
+set Change
+set ChangePercentage
+set Exchange
+set Name
+set Price
+set Symbol
+
+[MarketPerformance.GetHistoricalIndustryPeAsync]
+outcome rows
+set Date
+set Exchange
+set Industry
+set Pe
+
+[MarketPerformance.GetHistoricalIndustryPerformanceAsync]
+outcome rows
+set AverageChange
+set Date
+set Exchange
+set Industry
+
+[MarketPerformance.GetHistoricalSectorPeAsync]
+outcome rows
+set Date
+set Exchange
+set Pe
+set Sector
+
+[MarketPerformance.GetHistoricalSectorPerformanceAsync]
+outcome rows
+set AverageChange
+set Date
+set Exchange
+set Sector
+
+[MarketPerformance.GetIndustryPeSnapshotAsync]
+outcome rows
+set Date
+set Exchange
+set Industry
+set Pe
+
+[MarketPerformance.GetIndustryPerformanceSnapshotAsync]
+outcome rows
+set AverageChange
+set Date
+set Exchange
+set Industry
+
+[MarketPerformance.GetMostActivesAsync]
+outcome rows
+set Change
+set ChangePercentage
+set Exchange
+set Name
+set Price
+set Symbol
+
+[MarketPerformance.GetSectorPeSnapshotAsync]
+outcome rows
+set Date
+set Exchange
+set Pe
+set Sector
+
+[MarketPerformance.GetSectorPerformanceSnapshotAsync]
+outcome rows
+set AverageChange
+set Date
+set Exchange
+set Sector
+
 [Quote.GetAftermarketQuoteAsync]
 outcome rows
 set AskPrice

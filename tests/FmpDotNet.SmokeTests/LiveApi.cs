@@ -234,6 +234,20 @@ internal static class LiveApi
     /// baseline-recording guard exists to prevent — arriving through the argument synthesiser instead.</para></summary>
     public const string Exchange = "NASDAQ";
 
+    /// <summary>The industry the Market Performance industry paths are probed with.
+    ///
+    /// <para><b>Named for the reason <see cref="Exchange"/> is.</b> <c>Probe.Argument</c> maps any unrecognised
+    /// string to <see cref="Symbol"/>, and <c>industry=AAPL</c> answers an empty array with HTTP 200 — so
+    /// without this constant four endpoints would record <c>outcome empty</c> as their healthy baseline and
+    /// agree with themselves forever.</para>
+    ///
+    /// <para><b>And it has to be an industry FMP actually carries.</b> Measured 2026-08-29,
+    /// <c>stable/available-industries</c> lists 159 names and only 139 appear in any snapshot on either NASDAQ
+    /// or NYSE; <c>Banks</c>, <c>Asset Management</c> and eighteen others answer <c>[]</c> everywhere. Picking
+    /// a documented-but-empty name would reproduce exactly the silent green this constant exists to prevent.
+    /// <c>Steel</c> was measured to return rows on both the snapshot and the historical paths.</para></summary>
+    public const string Industry = "Steel";
+
     /// <summary>Apple's SEC Central Index Key, for the <c>search-cik</c> probe.
     ///
     /// <para><b>Named rather than falling out of the default string case, for the reason recorded on

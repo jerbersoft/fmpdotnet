@@ -353,6 +353,7 @@ internal static class Probe
                 "senateId" => LiveApi.SenateId,
 
                 "exchange" => LiveApi.Exchange,
+                "industry" => LiveApi.Industry,
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,
@@ -390,6 +391,12 @@ internal static class Probe
         // 1min reaches back 2 days), so a ninety-day sweep range would sit entirely outside them for the
         // shorter bars and record `outcome empty` as this endpoint's healthy baseline.
         if (type == typeof(TechnicalIndicatorTimeframe)) return TechnicalIndicatorTimeframe.OneDay;
+
+        // Technology and not an arbitrary member: every sector was measured present on every snapshot taken
+        // 2026-08-29, so any would answer, but the design's measurement tables are keyed to Technology and a
+        // sweep diff should be readable against them. There is no generic enum fallback in this method — a new
+        // enum parameter with no arm here reaches `throw Unknown(parameter)`, which is the intended behaviour.
+        if (type == typeof(Sector)) return Sector.Technology;
 
         // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
