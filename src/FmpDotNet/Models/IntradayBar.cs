@@ -46,7 +46,15 @@ public sealed record IntradayBar
     /// business and must go through tzdb, never arithmetic on an offset.</para>
     ///
     /// <para>Nullable so that one malformed stamp costs one field rather than the whole response. No null was
-    /// observed in any capture.</para></summary>
+    /// observed in any capture.</para>
+    ///
+    /// <para><b>This is a deliberate divergence from <see cref="TechnicalIndicatorBar.Timestamp"/></b>, which
+    /// is a <see cref="LocalDateTime"/>? asserting no zone rather than an <see cref="Instant"/> read as
+    /// Eastern. That type also serves <see cref="TechnicalIndicatorTimeframe.OneDay"/>, where the time half is
+    /// midnight padding rather than a real bar time — binding it through this Eastern converter would assert a
+    /// daily bar opened at midnight in New York, which measured 2026-08-29 is false. One property honestly
+    /// serving all seven of that type's timeframes has to decline to name a zone; this property, serving only
+    /// the six intraday sizes that all carry a real bar time, does not have that problem.</para></summary>
     [JsonPropertyName("date")]
     [JsonConverter(typeof(NullableEasternInstantJsonConverter))]
     public Instant? Timestamp { get; init; }

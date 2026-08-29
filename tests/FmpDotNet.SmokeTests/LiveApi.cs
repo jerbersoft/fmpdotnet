@@ -408,7 +408,7 @@ internal static class LiveApi
     /// has none, so the two agree here.</para></summary>
     public const string SicCode = "3571";
 
-    /// <summary>The period used for the technical-indicator sweep. Ten because that is the period every
-    /// measurement on 2026-08-29 used, so a baseline diff can be read against the design's tables.</summary>
+    /// <summary>The period used for the technical-indicator sweep. Ten because that is the period the
+    /// design's measurement tables are keyed to, so a baseline diff can be read against them.</summary>
     public const int IndicatorPeriodLength = 10;
 }
