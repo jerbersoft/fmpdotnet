@@ -450,5 +450,8 @@ public class EconomicsEndpointsTests
         Assert.Equal("/stable/market-risk-premium", handler.Requests[0].AbsolutePath);
         Assert.Equal("", handler.Requests[0].Query.Replace("?apikey=k", ""));
         Assert.Equal("/stable/treasury-rates", treasuryHandler.Requests[0].AbsolutePath);
+        // Asserted on both, not just the first: `treasury-rates` takes an optional range, so this is also the
+        // guard that a null `from`/`to` stays off the wire rather than going out empty.
+        Assert.Equal("", treasuryHandler.Requests[0].Query.Replace("?apikey=k", ""));
     }
 }
