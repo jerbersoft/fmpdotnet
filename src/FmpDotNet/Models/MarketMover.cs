@@ -15,8 +15,8 @@ namespace FmpDotNet.Models;
 /// <c>timestamp 1787947201</c> — <c>2026-08-28 20:00:01Z</c>, Friday's close. So the lists are the last
 /// completed session, and <see cref="Quote"/> is where a caller learns which one that was.</para>
 ///
-/// <para><b><c>most-actives</c> carries no volume</b>, measured the same day — the quantity that defines the
-/// ranking is not in the response. <see cref="Quote.Volume"/> has it.</para></summary>
+/// <para><b><c>most-actives</c> carries no volume</b>, measured the same day. <see cref="Quote.Volume"/> has
+/// it, per symbol.</para></summary>
 public sealed record MarketMover
 {
     /// <summary>The ticker. Nullable because the deserialiser cannot promise a key is present, not because any
