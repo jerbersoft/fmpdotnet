@@ -65,8 +65,10 @@ Each of these has a reason, and the reason is not taste:
 * **NodaTime only** in public signatures — no `DateTime`, `DateOnly`, `DateTimeOffset` or `TimeSpan`.
 * **Nullable models, nothing `required`.** A `required` property turns a rename into an exception that costs the
   caller the whole response.
-* **`decimal` over `long`/`int`** for anything numeric off the wire, unless you have measured that it cannot be
-  fractional.
+* **`decimal` over `long`/`int`** for anything numeric off the wire, unless the quantity is whole by its own
+  nature — a count, a year, a quarter. Measuring that no fractional *value* has appeared is not the same test:
+  `int` also rejects `20.0`, `"20.0"` and `1e2`, so FMP can break the binding by printing a number differently
+  without changing the number. Like `required`, one rejected value costs the caller the whole response.
 * **An enum wherever FMP takes a fixed vocabulary**, so a typo is a compile error rather than an HTTP 200 with no
   rows.
 * **No reflection.** The library declares `IsAotCompatible`; `IL2026` and `IL3050` are build errors.
