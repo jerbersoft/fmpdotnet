@@ -10,8 +10,8 @@ public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     SearchEndpoints search, SecFilingsEndpoints secFilings,
-    InstitutionalOwnershipEndpoints institutionalOwnership, QuoteEndpoints quote, ChartEndpoints chart,
-    BulkEndpoints bulk)
+    InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
+    QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -59,6 +59,14 @@ public sealed class FmpClient(
     /// <c>InsiderTrades</c>, because an SC 13D/G is an institutional stake filing and not a Form 4
     /// transaction. See <see cref="InstitutionalOwnershipEndpoints"/>.</para></summary>
     public InstitutionalOwnershipEndpoints InstitutionalOwnership { get; } = institutionalOwnership;
+
+    /// <summary>What company insiders file on Forms 3, 4 and 5 — the whole-market feed, a four-way search,
+    /// per-symbol statistics, and the two reference lists behind them.
+    ///
+    /// <para>SC 13D/G beneficial-ownership disclosures are <b>not</b> here: FMP documents them under this
+    /// heading, but they are institutional stake filings rather than insider transactions and live on
+    /// <see cref="InstitutionalOwnership"/>.</para></summary>
+    public InsiderTradesEndpoints InsiderTrades { get; } = insiderTrades;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.
