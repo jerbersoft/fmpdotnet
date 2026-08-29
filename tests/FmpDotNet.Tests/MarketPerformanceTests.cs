@@ -30,8 +30,9 @@ public class MarketPerformanceTests
     public void The_movers_third_spelling_of_change_percentage_binds_to_the_house_name()
     {
         // FMP spells this fact three ways: `changePercentage` on quote, `changePercent` on end-of-day, and
-        // `changesPercentage` — with the S — here. EndOfDayBar already documents its divergence and normalises
-        // the C# name; this follows the same rule. Do NOT "fix" the attribute: the property would then bind
+        // `changesPercentage` — with the S — here. EndOfDayBar keeps its own wire spelling; here the wire's
+        // spelling would read as a typo in C#, so the property takes Quote's spelling instead, under the same
+        // rule that binds `senateID` to `SenateId`. Do NOT "fix" the attribute: the property would then bind
         // nothing, silently, and Binding.Unbound above is the only other thing that would notice.
         var row = JsonSerializer.Deserialize(
             """[{"changesPercentage":129.5271}]""", FmpJsonContext.Default.ListMarketMover)![0];
@@ -102,8 +103,8 @@ public class MarketPerformanceTests
     [Fact]
     public void A_pe_of_zero_stays_zero_and_is_not_turned_into_null()
     {
-        // Measured 2026-08-29: 12 of 254 industry-PE rows read exactly 0, emitted as JSON `0` rather than
-        // `0.0` — eight on NASDAQ and four on NYSE. Across 359 measured values `pe` was never negative and
+        // Measured 2026-08-29: 12 of 254 industry-PE snapshot rows read exactly 0, emitted as JSON `0` rather
+        // than `0.0` — eight on NASDAQ and four on NYSE. Across 359 measured values `pe` was never negative and
         // never null, so zero is carrying "no meaningful aggregate PE" in band. Biotechnology on the NYSE is
         // not a zero-multiple industry. The SDK does not have the evidence to say which zeros are real, so it
         // reports what FMP sent; translating them would invent information.
@@ -111,13 +112,14 @@ public class MarketPerformanceTests
             Binding.Fixture("market-performance-industry-pe-snapshot.head.json"),
             FmpJsonContext.Default.ListIndustryPe)!;
 
+        Assert.Empty(Binding.Unbound(rows[0]));
         Assert.Equal("Agricultural Inputs", rows[2].Industry);
         Assert.Equal(0m, rows[2].Pe);
         Assert.NotNull(rows[2].Pe);
     }
 
     [Fact]
-    public void The_deep_history_number_formats_both_bind_to_the_same_decimal()
+    public void The_deep_history_number_formats_bind_without_a_custom_converter()
     {
         // Two things at once, and both are load-bearing for the decision to ship no custom converter here.
         //
@@ -133,6 +135,18 @@ public class MarketPerformanceTests
         Assert.Equal(0.0000005735079118365113m, rows[0].AverageChange);
         Assert.Equal(-0.0000026524148173594842m, rows[1].AverageChange);
         Assert.Equal(-1.171486877582397m, rows[2].AverageChange);
+
+        // The bet the no-converter decision actually rests on: FMP's exponent form and its plain-decimal form
+        // are two different renderings of the same number, and System.Text.Json must bind both to an identical
+        // `decimal?` unaided. Pinned directly here rather than inferred from the fixture above, whose two rows
+        // are different numbers and never exercise this on their own.
+        var exponentForm = JsonSerializer.Deserialize(
+            """[{"averageChange":-2.6524148173594842e-06}]""", FmpJsonContext.Default.ListSectorPerformance)![0];
+        var plainForm = JsonSerializer.Deserialize(
+            """[{"averageChange":-0.0000026524148173594842}]""",
+            FmpJsonContext.Default.ListSectorPerformance)![0];
+
+        Assert.Equal(plainForm.AverageChange, exponentForm.AverageChange);
     }
 
     [Fact]
@@ -195,14 +209,14 @@ public class MarketPerformanceTests
         // to the bare request. The three lists are fixed at 50 rows and span every exchange at once. Offering
         // any of those parameters would let a caller believe a filter happened, so the methods take only a
         // cancellation token — and this test fails if one is ever added.
+        //
+        // Asserted against the whole query string, not just the three measured-ignored parameters, so a future
+        // parameter this method starts sending is caught too, not only `limit`, `exchange` and `page`.
         var (endpoints, handler) = Build();
 
         await endpoints.GetBiggestGainersAsync();
 
-        var query = handler.Requests[0].Query;
-        Assert.DoesNotContain("limit=", query);
-        Assert.DoesNotContain("exchange=", query);
-        Assert.DoesNotContain("page=", query);
+        Assert.Equal("?apikey=k", handler.Requests[0].Query);
     }
 
     [Fact]

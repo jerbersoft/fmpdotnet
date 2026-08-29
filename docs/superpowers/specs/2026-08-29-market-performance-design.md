@@ -139,12 +139,13 @@ them:
 | endpoint group | wire key | C# property |
 |---|---|---|
 | `quote` | `changePercentage` | `Quote.ChangePercentage` |
-| end-of-day | `changePercent` | `EndOfDayBar.ChangePercentage` |
+| end-of-day | `changePercent` | `EndOfDayBar.ChangePercent` |
 | **movers** | **`changesPercentage`** | **`MarketMover.ChangePercentage`** |
 
-`EndOfDayBar` already documents its divergence and normalises the C# name; this follows the same rule, under
-which `senateID` binds to `SenateId`. The attribute carries the wire verbatim. **Do not "fix" the attribute** —
-the property would bind nothing, silently.
+`EndOfDayBar` already documents its divergence and keeps its own wire spelling. Here the wire's spelling would
+read as a typo in C#, so the property takes `Quote`'s spelling instead, under the same rule that binds
+`senateID` to `SenateId`. The attribute carries the wire verbatim. **Do not "fix" the attribute** — the property
+would bind nothing, silently.
 
 The divergence was found by cross-check, not by reading: `biggest-gainers` row `FNGR` read `price 0.398,
 change 0.2246, changesPercentage 129.5271`, and `stable/quote?symbol=FNGR` returned those three values
@@ -265,7 +266,7 @@ rather than an omission — a future change to filter or clamp has to break it d
 
 ## Two more measured behaviours the docs must carry
 
-**`pe: 0` is returned as `0`, never translated to null.** Twelve of 254 industry-PE rows read exactly `0`,
+**`pe: 0` is returned as `0`, never translated to null.** Twelve of 254 industry-PE snapshot rows read exactly `0`,
 emitted as JSON `0` rather than `0.0` — eight on NASDAQ (`Agricultural Inputs`, `Business Equipment &
 Supplies`, `Financial - Mortgages`, `Industrial Materials`, `Manufacturing - Textiles`, `Medical - Equipment &
 Services`, `Oil & Gas Integrated`, `REIT - Industrial`) and four on NYSE (`Biotechnology`, `Construction`,

@@ -232,6 +232,12 @@ is therefore carrying the meaning "no meaningful aggregate PE" — Biotechnology
 zero-earnings-multiple industry — and it is doing so in-band, where a caller cannot distinguish it from a
 measurement.
 
+**The 359 measured `pe` values split by path and shape, dated 2026-08-29.** 295 came from the industry-PE
+paths (254 snapshot + 41 historical) and 64 from the sector-PE paths (23 snapshot + 41 historical) —
+295 + 64 = 359. All twelve zeros are among the 254 industry-PE **snapshot** rows: none appeared on any
+historical row of either shape, and none on any sector row. So the twelve are twelve of the 254, which is why
+the snapshot qualifier matters whenever the twelve are cited.
+
 `averageChange` ranged `−74.8932` to `+73.6983` across 9,016 values. Both metrics arrive as **unrounded
 float64 expansions**, not as the two- and four-decimal figures the price endpoints return: the longest plain
 fractional part measured was **22 digits** (`-0.0000026524148173594842`, 17 significant), and the greatest

@@ -34,12 +34,13 @@ public sealed record MarketMover
 
     /// <summary>The percentage change over the session.
     ///
-    /// <para><b>The wire spells this <c>changesPercentage</c> — with an S — which is a third spelling of one
-    /// concept in this API.</b> <see cref="Quote.ChangePercentage"/> binds <c>changePercentage</c> and
-    /// <see cref="EndOfDayBar.ChangePercent"/> binds <c>changePercent</c>. The property carries the house
-    /// name so the three read alike in C#; the attribute carries the wire verbatim, under the same rule that
-    /// binds <c>senateID</c> to <c>SenateId</c>. <b>Do not "fix" the attribute</b> — the property would then
-    /// bind nothing, silently.</para></summary>
+    /// <para><b>The wire spells this concept three ways.</b> <c>changePercentage</c> on quote
+    /// (<see cref="Quote.ChangePercentage"/>), <c>changePercent</c> on end-of-day
+    /// (<see cref="EndOfDayBar.ChangePercent"/>), and here, <c>changesPercentage</c> — with an S.
+    /// <see cref="EndOfDayBar"/> keeps its own wire spelling; here the wire's <c>changesPercentage</c> would
+    /// read as a typo in C#, so the property instead takes <see cref="Quote"/>'s spelling while the attribute
+    /// carries the wire verbatim, under the same rule that binds <c>senateID</c> to <c>SenateId</c>. <b>Do not
+    /// "fix" the attribute</b> — the property would then bind nothing, silently.</para></summary>
     [JsonPropertyName("changesPercentage")] public decimal? ChangePercentage { get; init; }
 
     /// <summary>The exchange the symbol trades on. Present on every measured row; the movers lists span all

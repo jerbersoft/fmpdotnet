@@ -60,8 +60,8 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <summary>The fifty most active symbols of the last completed session, from
     /// <c>stable/most-actives</c>.
     ///
-    /// <para><b>The response carries no volume</b>, measured 2026-08-29 — the quantity that defines the ranking
-    /// is not in the body. <see cref="Models.Quote.Volume"/> has it, per symbol.</para>
+    /// <para><b>The response carries no volume</b>, measured 2026-08-29. <see cref="Models.Quote.Volume"/> has
+    /// it, per symbol.</para>
     ///
     /// <para>Fifty rows, every exchange, no parameters accepted — see
     /// <see cref="GetBiggestGainersAsync"/>.</para></summary>
@@ -162,7 +162,8 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// typo.</para>
     ///
     /// <para><b>The out-of-range date behaviour documented on
-    /// <see cref="GetSectorPerformanceSnapshotAsync"/> applies here.</b></para></summary>
+    /// <see cref="GetSectorPerformanceSnapshotAsync"/> was measured on the two sector snapshot paths.</b> This
+    /// path shares their shape but was not itself tested for it.</para></summary>
     /// <param name="date">The trading day to ask about.</param>
     /// <param name="exchange">The exchange to answer for. Required — see
     /// <see cref="GetSectorPerformanceSnapshotAsync"/>.</param>
@@ -195,9 +196,10 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// aggregate" rather than a ratio of zero — see <see cref="Models.IndustryPe.Pe"/>. Every one of the
     /// twelve was an industry row; no sector row carried a zero.</para>
     ///
-    /// <para>The vocabulary gap documented on <see cref="GetIndustryPerformanceSnapshotAsync"/> and the
-    /// out-of-range date behaviour documented on <see cref="GetSectorPerformanceSnapshotAsync"/> both apply
-    /// here.</para></summary>
+    /// <para>The vocabulary gap documented on <see cref="GetIndustryPerformanceSnapshotAsync"/> applies here
+    /// too. The out-of-range date behaviour documented on <see cref="GetSectorPerformanceSnapshotAsync"/> was
+    /// measured on the two sector snapshot paths; this path shares their shape but was not itself tested for
+    /// it.</para></summary>
     /// <param name="date">The trading day to ask about.</param>
     /// <param name="exchange">The exchange to answer for. Required — see
     /// <see cref="GetSectorPerformanceSnapshotAsync"/>.</param>

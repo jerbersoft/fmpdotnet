@@ -270,15 +270,16 @@ internal static class Probe
     /// <para><b>The one blind spot, counted rather than assumed.</b> A non-nullable value-typed property reads as
     /// populated whatever arrives, because its default is a legal value — so a field behind one could stop coming
     /// and this would not see it. Every public property across the models was re-classified on 2026-08-29 to find
-    /// out how much of the surface that is: 1615 are nullable, 23 are <c>string</c> defaulting to <c>""</c> and 2
-    /// are collection-typed defaulting to empty, all of which this reads correctly. Exactly <b>seven</b> are
+    /// out how much of the surface that is: 1637 are nullable, 23 are <c>string</c> defaulting to <c>""</c> and 4
+    /// are collection-typed defaulting to empty, all of which this reads correctly. Exactly <b>eight</b> are
     /// non-nullable value types. Three are on <see cref="Models.CalendarResult{T}"/> — <c>RowsReturned</c>,
     /// <c>RequestedFrom</c>, <c>RequestedTo</c> — and the same three names again on
     /// <see cref="Models.EarningsCalendarResult"/>; both are list wrappers rather than a row and neither is ever
-    /// inspected here. The seventh is <see cref="Models.AnalystEstimate.Period"/>, which carries
-    /// <c>[JsonIgnore]</c> — the SDK sets it from the request, so it is not a field FMP sends and there is
-    /// nothing for FMP to stop sending. The check therefore has no blind spot on any wire field the SDK
-    /// models.</para></summary>
+    /// inspected here. <see cref="Models.AnalystEstimate.Period"/> carries <c>[JsonIgnore]</c> — the SDK sets it
+    /// from the request, so it is not a field FMP sends and there is nothing for FMP to stop sending. The eighth
+    /// is <see cref="Models.TechnicalIndicatorBar.Indicator"/>: its column-resolving converter guarantees the
+    /// column is present, since an absent one fails to parse the row rather than leaving this at a default. The
+    /// check therefore has no blind spot on any wire field the SDK models.</para></summary>
     private static bool Populated(object? value) => value switch
     {
         null => false,
