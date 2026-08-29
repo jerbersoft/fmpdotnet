@@ -242,4 +242,68 @@ public class SweepCoverageTests
             .First(p => p.Name == "cik");
         Assert.Equal(LiveApi.Cik, Probe.Argument(issuerKeyed));
     }
+
+    [Fact]
+    public void The_sweep_asks_the_indicator_path_for_a_window_the_data_actually_covers()
+    {
+        // Probe.Argument dispatched `from` on the DECLARING TYPE, so every EconomicsEndpoints method got
+        // LiveApi.SettledWeekday — a one-day window that is right for the economic calendar and useless for
+        // the two paths #40 added beside it. Worse than useless on this one: measured 2026-08-29, every
+        // economic-indicators series stops between 2025-10-01 and 2025-11-26, so
+        // name=GDP&from=2026-05-23&to=2026-08-21 — the window RangeStart and SettledWeekday produce — answers
+        // a well-formed EMPTY ARRAY at HTTP 200. The probe would record `outcome empty` on the day it was
+        // written and match that baseline green for ever.
+        //
+        // This is the only FIXED date range in the sweep, and the inversion is the point: everywhere else a
+        // hard-coded date is a suite with an expiry, and here the DATA is what is frozen.
+        var indicator = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetIndicatorAsync))!;
+
+        Assert.Equal(LiveApi.IndicatorRangeStart, Probe.Argument(indicator.GetParameters()[1]));
+        Assert.Equal(LiveApi.IndicatorRangeEnd, Probe.Argument(indicator.GetParameters()[2]));
+        Assert.NotEqual(LiveApi.SettledWeekday, Probe.Argument(indicator.GetParameters()[1]));
+
+        // And the indicator itself must be one that carries rows. EconomicIndicator.Inflation and
+        // ThreeMonthCertificateOfDepositRate are valid names that answer an empty array, measured 2026-08-29.
+        Assert.Equal(EconomicIndicator.Gdp, Probe.Argument(indicator.GetParameters()[0]));
+    }
+
+    [Fact]
+    public void The_sweep_still_asks_the_economic_calendar_for_a_single_day()
+    {
+        // The narrowing in #40 must not have cost the calendar its own window. Its doc records a 6-month
+        // range returning FEWER rows than the 3-month range inside it, and "the widest range verified intact
+        // here is one week" — so a day, with no margin spent.
+        //
+        // GetTreasuryRatesAsync deliberately does NOT keep the day: it falls through to RangeStart, and 90
+        // days answered 62 complete rows on 2026-08-29 where one day answers one.
+        var calendar = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync))!;
+        var treasury = typeof(Endpoints.EconomicsEndpoints)
+            .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetTreasuryRatesAsync))!;
+
+        Assert.Equal(LiveApi.SettledWeekday, Probe.Argument(calendar.GetParameters()[0]));
+        Assert.Equal(LiveApi.RangeStart, Probe.Argument(treasury.GetParameters()[0]));
+    }
+
+    [Fact]
+    public void The_sweep_asks_the_COT_paths_for_a_contract_code_and_a_range_the_data_covers()
+    {
+        // Two silent-green traps on one facade. The string arm of Probe.Argument ends in `_ => AAPL`, and the
+        // COT paths take a futures contract code — measured 2026-08-29, symbol=AAPL answers `[]` at HTTP 200.
+        // And the COT data stops at 2024-02-27, so any relative range answers `[]` too.
+        //
+        // One quarter and not more: 13 rows is commitment-of-traders-analysis's hard cap, and a wider window
+        // records two sibling probes disagreeing for a reason that is not drift.
+        var report = typeof(Endpoints.CotEndpoints)
+            .GetMethod(nameof(Endpoints.CotEndpoints.GetReportAsync))!;
+
+        Assert.Equal(LiveApi.CotContract, Probe.Argument(report.GetParameters()[0]));
+        Assert.NotEqual(LiveApi.Symbol, Probe.Argument(report.GetParameters()[0]));
+        Assert.Equal(LiveApi.CotRangeStart, Probe.Argument(report.GetParameters()[1]));
+        Assert.Equal(LiveApi.CotRangeEnd, Probe.Argument(report.GetParameters()[2]));
+        Assert.True(NodaTime.Period.DaysBetween(LiveApi.CotRangeStart, LiveApi.CotRangeEnd) <= 92,
+            "A COT window wider than a quarter makes `analysis` and `report` disagree at `analysis`'s 13-row "
+            + "cap, which reads as drift and is not.");
+    }
 }

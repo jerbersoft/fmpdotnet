@@ -700,6 +700,161 @@ set Symbol
 set TransactionDate
 set Type
 
+[Cot.GetAnalysisAsync]
+outcome rows
+set ChangeInNetPosition
+set CurrentLongMarketSituation
+set CurrentShortMarketSituation
+set Date
+set Exchange
+set MarketSentiment
+set MarketSituation
+set Name
+set NetPosition
+set PreviousLongMarketSituation
+set PreviousMarketSituation
+set PreviousNetPosition
+set PreviousShortMarketSituation
+set ReversalTrend
+set Sector
+set Symbol
+
+[Cot.GetReportAsync]
+outcome rows
+set CftcCommodityCode
+set CftcContractMarketCode
+set CftcMarketCode
+set CftcRegionCode
+set ChangeInCommLongAll
+set ChangeInCommShortAll
+set ChangeInNoncommLongAll
+set ChangeInNoncommShortAll
+set ChangeInNoncommSpreadAll
+set ChangeInNonreptLongAll
+set ChangeInNonreptShortAll
+set ChangeInOpenInterestAll
+set ChangeInTotReptLongAll
+set ChangeInTotReptShortAll
+set CommPositionsLongAll
+set CommPositionsLongOld
+set CommPositionsLongOther
+set CommPositionsShortAll
+set CommPositionsShortOld
+set CommPositionsShortOther
+set ConcGrossLe4TdrLongAll
+set ConcGrossLe4TdrLongOld
+set ConcGrossLe4TdrLongOther
+set ConcGrossLe4TdrShortAll
+set ConcGrossLe4TdrShortOld
+set ConcGrossLe4TdrShortOther
+set ConcGrossLe8TdrLongAll
+set ConcGrossLe8TdrLongOld
+set ConcGrossLe8TdrLongOther
+set ConcGrossLe8TdrShortAll
+set ConcGrossLe8TdrShortOld
+set ConcGrossLe8TdrShortOther
+set ConcNetLe4TdrLongAll
+set ConcNetLe4TdrLongOld
+set ConcNetLe4TdrLongOther
+set ConcNetLe4TdrShortAll
+set ConcNetLe4TdrShortOld
+set ConcNetLe4TdrShortOther
+set ConcNetLe8TdrLongAll
+set ConcNetLe8TdrLongOld
+set ConcNetLe8TdrLongOther
+set ConcNetLe8TdrShortAll
+set ConcNetLe8TdrShortOld
+set ConcNetLe8TdrShortOther
+set ContractUnits
+set Date
+set MarketAndExchangeNames
+set Name
+set NoncommPositionsLongAll
+set NoncommPositionsLongOld
+set NoncommPositionsLongOther
+set NoncommPositionsShortAll
+set NoncommPositionsShortOld
+set NoncommPositionsShortOther
+set NoncommPositionsSpreadAll
+set NoncommPositionsSpreadOld
+set NoncommPositionsSpreadOther
+set NonreptPositionsLongAll
+set NonreptPositionsLongOld
+set NonreptPositionsLongOther
+set NonreptPositionsShortAll
+set NonreptPositionsShortOld
+set NonreptPositionsShortOther
+set OpenInterestAll
+set OpenInterestOld
+set OpenInterestOther
+set PctOfOiCommLongAll
+set PctOfOiCommLongOld
+set PctOfOiCommLongOther
+set PctOfOiCommShortAll
+set PctOfOiCommShortOld
+set PctOfOiCommShortOther
+set PctOfOiNoncommLongAll
+set PctOfOiNoncommLongOld
+set PctOfOiNoncommLongOther
+set PctOfOiNoncommShortAll
+set PctOfOiNoncommShortOld
+set PctOfOiNoncommShortOther
+set PctOfOiNoncommSpreadAll
+set PctOfOiNoncommSpreadOld
+set PctOfOiNoncommSpreadOther
+set PctOfOiNonreptLongAll
+set PctOfOiNonreptLongOld
+set PctOfOiNonreptLongOther
+set PctOfOiNonreptShortAll
+set PctOfOiNonreptShortOld
+set PctOfOiNonreptShortOther
+set PctOfOiTotReptLongAll
+set PctOfOiTotReptLongOld
+set PctOfOiTotReptLongOther
+set PctOfOiTotReptShortAll
+set PctOfOiTotReptShortOld
+set PctOfOiTotReptShortOther
+set PctOfOpenInterestAll
+set PctOfOpenInterestOld
+set PctOfOpenInterestOther
+set Sector
+set Symbol
+set TotReptPositionsLongAll
+set TotReptPositionsLongOld
+set TotReptPositionsLongOther
+set TotReptPositionsShortAll
+set TotReptPositionsShortOld
+set TotReptPositionsShortOther
+set TradersCommLongAll
+set TradersCommLongOld
+set TradersCommLongOther
+set TradersCommShortAll
+set TradersCommShortOld
+set TradersCommShortOther
+set TradersNoncommLongAll
+set TradersNoncommLongOld
+set TradersNoncommLongOther
+set TradersNoncommShortAll
+set TradersNoncommShortOld
+set TradersNoncommShortOther
+set TradersNoncommSpreadAll
+set TradersNoncommSpreadOld
+set TradersNoncommSpreadOther
+set TradersTotAll
+set TradersTotOld
+set TradersTotOther
+set TradersTotReptLongAll
+set TradersTotReptLongOld
+set TradersTotReptLongOther
+set TradersTotReptShortAll
+set TradersTotReptShortOld
+set TradersTotReptShortOther
+
+[Cot.GetSymbolsAsync]
+outcome rows
+set Name
+set Symbol
+
 [Directory.GetActivelyTradingAsync]
 outcome rows
 set Name
@@ -834,6 +989,69 @@ set Impact
 set Previous
 set Timestamp
 set Unit
+
+[Economics.GetIndicatorAsync]
+outcome rows
+set Date
+set Name
+set Value
+
+[Economics.GetMarketRiskPremiumsAsync]
+outcome rows
+set Continent
+set Country
+set CountryRiskPremium
+set TotalEquityRiskPremium
+
+[Economics.GetTreasuryRatesAsync]
+outcome rows
+set Date
+set Month1
+set Month2
+set Month3
+set Month6
+set Year1
+set Year10
+set Year2
+set Year20
+set Year3
+set Year30
+set Year5
+set Year7
+
+[Esg.GetBenchmarkAsync]
+outcome rows
+set EnvironmentalScore
+set EsgScore
+set FiscalYear
+set GovernanceScore
+set Period
+set Sector
+set SocialScore
+
+[Esg.GetDisclosuresAsync]
+outcome rows
+set AcceptedDate
+set Cik
+set CompanyName
+set Date
+set EnvironmentalScore
+set EsgScore
+set FormType
+set GovernanceScore
+set SocialScore
+set Symbol
+set Url
+
+[Esg.GetRatingsAsync]
+outcome rows
+set Cik
+set CompanyName
+set EsgRiskRating
+set FiscalYear
+set Industry
+set IndustryRank
+set Symbol
 
 [InsiderTrades.GetLatestAsync]
 outcome rows
@@ -2502,4 +2720,25 @@ set Date
 set DateAdded
 set Period
 set Symbol
+
+[Transcripts.GetDatesAsync]
+outcome rows
+set Date
+set FiscalYear
+set Quarter
+
+[Transcripts.GetLatestAsync]
+outcome rows
+set Date
+set FiscalYear
+set Period
+set Symbol
+
+[Transcripts.GetTranscriptAsync]
+outcome rows
+set Content
+set Date
+set Period
+set Symbol
+set Year
 

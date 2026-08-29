@@ -381,12 +381,11 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **77 paths
-remain**, of which **70 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **65 paths
+remain**, of which **58 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest group is Economics/Transcripts/ESG/COT (12), then
-Market Performance (11), News (10) and Fundraisers & DCF (10); ETF & Mutual Funds, Technical Indicators and
-Indexes & Market Hours carry 9 apiece.
+spread the way FMP's own section headings suggest: the largest group is Market Performance (11), then News (10)
+and Fundraisers & DCF (10); ETF & Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9 apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -394,9 +393,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as eight issues under the epic, seven of them actionable, each 9 to 12 paths and each
+That remainder is tracked as seven issues under the epic, six of them actionable, each 9 to 12 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 166 modelled plus 77 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 178 modelled plus 65 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
