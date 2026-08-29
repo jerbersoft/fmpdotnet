@@ -16,10 +16,10 @@
       type-level note recording what the endpoint actually does.
 
       The cost of the project-wide suppression was that a NEW undocumented public member, anywhere in the SDK,
-      compiled silently. Each of the seven models now carries a file-scoped `#pragma warning disable CS1591`
-      instead, with the count and the reasoning at the top of the file. The exemption is visible where it applies
-      and the zero-warning bar holds everywhere else — so an undocumented endpoint, option or converter added
-      later fails the build.
+      compiled silently. Each of those seven models now carries a file-scoped `#pragma warning disable CS1591`
+      instead, with the count and the reasoning at the top of the file, and #40 added an eighth — CotReport, 128
+      properties of CFTC column names. The exemption is visible where it applies and the zero-warning bar holds
+      everywhere else — so an undocumented endpoint, option or converter added later fails the build.
 
       Turning this on for the first time also caught a real defect it is worth recording: KeyMetrics carried
       `R&D` unescaped in a doc comment, which is malformed XML (CS1570). That one is fixed, not deferred.

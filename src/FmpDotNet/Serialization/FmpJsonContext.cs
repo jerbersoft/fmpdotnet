@@ -118,6 +118,9 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<EsgDisclosure>))]
 [JsonSerializable(typeof(List<EsgRating>))]
 [JsonSerializable(typeof(List<EsgBenchmark>))]
+[JsonSerializable(typeof(List<CotReport>))]
+[JsonSerializable(typeof(List<CotAnalysis>))]
+[JsonSerializable(typeof(List<CotSymbol>))]
 // Congressional disclosures (#31). Eight of the twelve paths answer CongressionalTrade; the two nested
 // net-worth records (NetWorthRange, NetWorthDebtDetails) are reached through SenateNetWorthLine and need no
 // entry of their own.

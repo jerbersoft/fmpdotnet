@@ -1,0 +1,38 @@
+[
+  {
+    "symbol": "NG",
+    "date": "2024-02-27 00:00:00",
+    "name": "Natural Gas (NG)",
+    "sector": "ENERGIES",
+    "exchange": "NAT GAS NYME - NEW YORK MERCANTILE EXCHANGE",
+    "currentLongMarketSituation": 41.09,
+    "currentShortMarketSituation": 58.91,
+    "marketSituation": "Bearish",
+    "previousLongMarketSituation": 41.12,
+    "previousShortMarketSituation": 58.88,
+    "previousMarketSituation": "Bearish",
+    "netPostion": -141553,
+    "previousNetPosition": -153872,
+    "changeInNetPosition": 8.01,
+    "marketSentiment": "Increasing Bullish",
+    "reversalTrend": true
+  },
+  {
+    "symbol": "NG",
+    "date": "2024-02-20 00:00:00",
+    "name": "Natural Gas (NG)",
+    "sector": "ENERGIES",
+    "exchange": "NAT GAS NYME - NEW YORK MERCANTILE EXCHANGE",
+    "currentLongMarketSituation": 41.12,
+    "currentShortMarketSituation": 58.88,
+    "marketSituation": "Bearish",
+    "previousLongMarketSituation": 41.52,
+    "previousShortMarketSituation": 58.48,
+    "previousMarketSituation": "Bearish",
+    "netPostion": -153872,
+    "previousNetPosition": -136557,
+    "changeInNetPosition": -12.68,
+    "marketSentiment": " Increasing Bearish",
+    "reversalTrend": false
+  }
+]
