@@ -256,8 +256,9 @@ public class SweepCoverageTests
         // a well-formed EMPTY ARRAY at HTTP 200. The probe would record `outcome empty` on the day it was
         // written and match that baseline green for ever.
         //
-        // This is the only FIXED date range in the sweep, and the inversion is the point: everywhere else a
-        // hard-coded date is a suite with an expiry, and here the DATA is what is frozen.
+        // This is one of two FIXED date ranges in the sweep — the other is the COT probes' (see
+        // LiveApi.CotRangeStart) — and the inversion is the point of both: everywhere else a hard-coded date
+        // is a suite with an expiry, and here the DATA is what is frozen.
         var indicator = typeof(Endpoints.EconomicsEndpoints)
             .GetMethod(nameof(Endpoints.EconomicsEndpoints.GetIndicatorAsync))!;
 

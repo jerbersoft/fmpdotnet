@@ -19,7 +19,7 @@ namespace FmpDotNet;
 /// <see cref="IAsyncEnumerable{T}"/>, which is the only shape that keeps the working set flat.</description></item>
 /// </list>
 ///
-/// <para>Exposed publicly on purpose: the SDK types a fraction of FMP's 263 documented endpoints, and a caller who
+/// <para>Exposed publicly on purpose: the SDK types a fraction of FMP's 243 documented endpoints, and a caller who
 /// needs one that is not yet modelled should have a supported way to reach it rather than a reason to build a
 /// second HttpClient without the throttle.</para></summary>
 public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
@@ -27,8 +27,9 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     private readonly FmpOptions _options = options.Value;
 
     /// <summary>GETs a JSON array and deserialises it through a source-generated
-    /// <see cref="JsonTypeInfo{T}"/>. An empty or null body yields an empty list, never null, so callers do not
-    /// branch on "no rows" twice.
+    /// <see cref="JsonTypeInfo{T}"/>. A JSON <c>null</c> body yields an empty list, never null, so callers do not
+    /// branch on "no rows" twice. A zero-length body is not this case — see the <c>FmpApiException</c> entry
+    /// below.
     ///
     /// <para><b>Every failure is an exception, and null is never one of them.</b> There is no Try-prefixed twin:
     /// C# forbids <c>out</c> parameters on async methods (CS1988), so the BCL's <c>bool TryX(out T)</c> shape

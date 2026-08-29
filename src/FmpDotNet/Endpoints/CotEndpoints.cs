@@ -53,8 +53,8 @@ public sealed class CotEndpoints(FmpTransport transport)
 
     /// <summary>FMP's reading of the weekly report — <c>stable/commitment-of-traders-analysis</c>.
     ///
-    /// <para><b>This path truncates to 13 rows and its sibling does not.</b> Measured 2026-08-29, same
-    /// symbol, same range, issued together:</para>
+    /// <para><b>Asked for one contract over a range, this path truncates to 13 rows and its sibling does
+    /// not.</b> Measured 2026-08-29, same symbol, same range, issued together:</para>
     /// <list type="table">
     ///   <listheader><term>range (<c>symbol=NG</c>)</term><description>analysis / report</description></listheader>
     ///   <item><term>2024-01-01 … 2024-03-31</term><description>13 rows / 13 rows — identical</description></item>
@@ -63,10 +63,14 @@ public sealed class CotEndpoints(FmpTransport transport)
     ///   <item><term>2023-01-01 … 2024-12-31</term><description><b>13</b> rows, 2024-10-08 onward /
     ///     105 rows, 2023-01-03 onward</description></item>
     /// </list>
-    /// <para>Thirteen is a hard cap, the newest rows survive, and the status is 200 with a well-formed array
-    /// every time. A caller who asks both for two years of history and joins them on date gets thirteen rows
-    /// and no indication that the other 92 were dropped on one side. <b>Ask for a quarter at a time</b>, or
-    /// read <see cref="CotReport"/> and derive what you need.</para>
+    /// <para>Thirteen is the cap measured on a contract-and-range query — <c>symbol=NG</c> plus a bounded
+    /// <paramref name="from"/>/<paramref name="to"/>, as in the table above. The newest rows survive, and the
+    /// status is 200 with a well-formed array every time. A caller who asks both for two years of history and
+    /// joins them on date gets thirteen rows and no indication that the other 92 were dropped on one side.
+    /// <b>Ask for a quarter at a time</b>, or read <see cref="CotReport"/> and derive what you need. Omitting
+    /// <paramref name="symbol"/> is a different query, not a narrower one of the same kind — measured
+    /// 2026-08-29, a bare call answered <b>545 rows</b>, the same figure as <see cref="GetReportAsync"/>'s
+    /// bare call, and the thirteen-row cap does not apply to it.</para>
     ///
     /// <para>No row-count guard is added, for the reason
     /// <see cref="EconomicsEndpoints.GetEconomicCalendarAsync"/> sets out: a threshold that caught this would
@@ -81,7 +85,9 @@ public sealed class CotEndpoints(FmpTransport transport)
     /// <param name="to">Last report date in the range, inclusive. Must not be earlier than
     /// <paramref name="from"/>.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>At most 13 rows per request, newest first. Never <see langword="null"/>.</returns>
+    /// <returns>At most 13 rows, newest first, for a request naming <paramref name="symbol"/> with a bounded
+    /// range; 545 rows for the bare call, matching <see cref="GetReportAsync"/>. Never
+    /// <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
     /// <paramref name="from"/>.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>

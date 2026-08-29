@@ -278,6 +278,27 @@ public class FmpTransportTests
     }
 
     [Fact]
+    public async Task A_zero_length_two_hundred_body_also_raises_FmpApiException_not_an_empty_list()
+    {
+        // The other body the guard above must catch, and the reason GetListAsync's own doc comment no longer
+        // says "an empty or null body yields an empty list": only a literal JSON `null` does that. A
+        // zero-length body has no first meaningful byte at all — FirstMeaningfulByte returns 0, which is
+        // neither '{' nor '[' — so DeserializeAsync is tried, throws
+        // `JsonException: The input does not contain any JSON tokens…`, and the filter above (first != '[')
+        // lets that through to the same FmpApiException as "Invalid name" rather than an empty list. Verified
+        // against the built assembly.
+        var (transport, _) = Build(StubHandler.Json(""));
+
+        var thrown = await Assert.ThrowsAsync<FmpApiException>(
+            () => transport.GetListAsync(
+                new FmpRequest("stable/economic-indicators").With("name", "gdp"),
+                FmpJsonContext.Default.ListEconomicRelease));
+
+        Assert.Contains("not JSON", thrown.ErrorMessage);
+        Assert.Contains("stable/economic-indicators", thrown.Message);
+    }
+
+    [Fact]
     public async Task A_well_formed_array_with_a_field_of_the_wrong_type_still_raises_JsonException()
     {
         // The other side of the guard above, and the reason it carries a filter. This body IS JSON — it just

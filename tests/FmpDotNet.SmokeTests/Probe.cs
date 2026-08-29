@@ -401,9 +401,10 @@ internal static class Probe
         if (type == typeof(LocalDate))
             return parameter.Name switch
             {
-                // The indicator series are frozen in late 2025, so this is the one range in the sweep that is
-                // FIXED rather than relative — see LiveApi.IndicatorRangeStart. The relative window every
-                // other date-ranged probe uses answers an empty array here.
+                // The indicator series are frozen in late 2025, so this is one of two ranges in the sweep
+                // that are FIXED rather than relative — see LiveApi.IndicatorRangeStart, and LiveApi.CotRangeStart
+                // below for the other. The relative window every other date-ranged probe uses answers an empty
+                // array here.
                 "from" when parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
                     && parameter.Member.Name == nameof(Endpoints.EconomicsEndpoints.GetIndicatorAsync)
                     => LiveApi.IndicatorRangeStart,

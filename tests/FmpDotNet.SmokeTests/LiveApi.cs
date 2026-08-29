@@ -119,7 +119,8 @@ internal static class LiveApi
     public static LocalDate CalendarWeekStart => SettledWeekday.PlusDays(-6);
 
     /// <summary>The window <c>GetIndicatorAsync</c> is probed over — <b>fixed dates, deliberately</b>, and
-    /// the only fixed date range in this file.
+    /// one of two fixed date ranges in this file. See <see cref="CotRangeStart"/> for the other — frozen for
+    /// a different upstream reason, and at a different date.
     ///
     /// <para>Every other range here is relative, because <see cref="SettledWeekday"/> records that "a
     /// hard-coded date is a smoke suite with an expiry". <b>On this endpoint the reasoning inverts: the data

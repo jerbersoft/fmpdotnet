@@ -6,9 +6,8 @@ namespace FmpDotNet.Models;
 
 /// <summary>One observation of one macroeconomic series. From <c>stable/economic-indicators</c>.
 ///
-/// <para>The narrowest record in the SDK, and deliberately so: the endpoint answers a name, a date and a
-/// number, and nothing about which series a row belongs to is carried anywhere except
-/// <see cref="Name"/>.</para>
+/// <para>Deliberately narrow: the endpoint answers a name, a date and a number, and nothing about which
+/// series a row belongs to is carried anywhere except <see cref="Name"/>.</para>
 ///
 /// <para><see cref="Name"/> is the wire spelling of the
 /// <see cref="EconomicIndicator"/> that was asked for — <c>federalFunds</c>, <c>CPI</c>,
