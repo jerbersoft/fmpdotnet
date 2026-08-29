@@ -278,4 +278,28 @@ public class CotTests
         Assert.Equal("to", thrown.ParamName);
         Assert.Empty(handler.Requests);
     }
+
+    [Fact]
+    public async Task An_empty_answer_is_an_empty_list_rather_than_null_on_all_three_methods()
+    {
+        // Pins the "never null" half of each method's doc comment: GetReportAsync's "Never null; an empty
+        // list usually means the range is outside the data rather than that the contract has no filings",
+        // GetAnalysisAsync's "At most 13 rows per request, newest first. Never null", and GetSymbolsAsync's
+        // "Every contract code and name. Never null". A separate Build() per call, since each stub handler
+        // answers one request only.
+        var (report, _) = Build();
+        var (analysis, _) = Build();
+        var (symbols, _) = Build();
+
+        var reportRows = await report.GetReportAsync();
+        var analysisRows = await analysis.GetAnalysisAsync();
+        var symbolRows = await symbols.GetSymbolsAsync();
+
+        Assert.NotNull(reportRows);
+        Assert.Empty(reportRows);
+        Assert.NotNull(analysisRows);
+        Assert.Empty(analysisRows);
+        Assert.NotNull(symbolRows);
+        Assert.Empty(symbolRows);
+    }
 }
