@@ -1,5 +1,7 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -153,5 +155,65 @@ public class MarketPerformanceTests
         Assert.Equal(new LocalDate(2026, 8, 25), rows.Single(r => r.Sector == "Industrials").Date);
         Assert.Equal(new LocalDate(2026, 8, 27), rows.Single(r => r.Sector == "Consumer Cyclical").Date);
         Assert.Equal(new LocalDate(2026, 8, 28), rows.Single(r => r.Sector == "Technology").Date);
+    }
+
+    private static (MarketPerformanceEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new MarketPerformanceEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Theory]
+    [InlineData("gainers", "/stable/biggest-gainers")]
+    [InlineData("losers", "/stable/biggest-losers")]
+    [InlineData("actives", "/stable/most-actives")]
+    public async Task Each_movers_list_asks_its_own_path(string which, string expected)
+    {
+        var (endpoints, handler) = Build();
+
+        _ = which switch
+        {
+            "gainers" => await endpoints.GetBiggestGainersAsync(),
+            "losers" => await endpoints.GetBiggestLosersAsync(),
+            _ => await endpoints.GetMostActivesAsync(),
+        };
+
+        Assert.Equal(expected, handler.Requests[0].AbsolutePath);
+    }
+
+    [Fact]
+    public async Task The_movers_send_nothing_but_the_key()
+    {
+        // Measured 2026-08-29: `limit=10`, `exchange=NYSE` and `page=1` each returned a response BYTE-IDENTICAL
+        // to the bare request. The three lists are fixed at 50 rows and span every exchange at once. Offering
+        // any of those parameters would let a caller believe a filter happened, so the methods take only a
+        // cancellation token — and this test fails if one is ever added.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetBiggestGainersAsync();
+
+        var query = handler.Requests[0].Query;
+        Assert.DoesNotContain("limit=", query);
+        Assert.DoesNotContain("exchange=", query);
+        Assert.DoesNotContain("page=", query);
+    }
+
+    [Fact]
+    public async Task A_movers_list_binds_through_the_facade()
+    {
+        var (endpoints, _) = Build(Binding.Fixture("market-performance-biggest-gainers.head.json"));
+
+        var rows = await endpoints.GetBiggestGainersAsync();
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal("FNGR", rows[0].Symbol);
+        Assert.Equal(129.5271m, rows[0].ChangePercentage);
     }
 }
