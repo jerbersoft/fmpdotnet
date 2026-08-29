@@ -31,7 +31,7 @@ public sealed record CongressionalTrade
     ///
     /// <para><b>Named <c>senateID</c> on the wire even for Representatives</b>, which is FMP's naming rather
     /// than a fault in the capture. This is the value
-    /// <c>GetHouseTradesByMemberAsync</c> filters on.</para>
+    /// <see cref="Endpoints.CongressEndpoints.GetHouseTradesByMemberAsync"/> filters on.</para>
     ///
     /// <para>The only field on this record measured to arrive as JSON <see langword="null"/> — 2 of 100 House
     /// rows on 2026-08-29.</para></summary>
@@ -51,7 +51,7 @@ public sealed record CongressionalTrade
     [JsonPropertyName("firstName")] public string? FirstName { get; init; }
 
     /// <summary>The member's surname. This is what
-    /// <c>GetHouseTradesByNameAsync</c> matches on.</summary>
+    /// <see cref="Endpoints.CongressEndpoints.GetHouseTradesByNameAsync"/> matches on.</summary>
     [JsonPropertyName("lastName")] public string? LastName { get; init; }
 
     /// <summary>The member's full name as the disclosure spells it.</summary>

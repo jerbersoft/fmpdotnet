@@ -1,6 +1,8 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -9,6 +11,20 @@ namespace FmpDotNet.Tests;
 /// taken live 2026-08-29.</summary>
 public class CongressTests
 {
+    private static (CongressEndpoints Endpoints, StubHandler Handler) Build(
+        params HttpResponseMessage[] responses)
+    {
+        var handler = new StubHandler(responses);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new CongressEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
     [Fact]
     public void A_captured_house_trade_binds_all_sixteen_of_its_fields()
     {
@@ -315,5 +331,78 @@ public class CongressTests
         Assert.Equal(825001m, rows[0].OtherAssets);
         Assert.Equal(0m, rows[0].PensionAndRetirementAssets);
         Assert.Equal(0m, rows[0].Trusts);
+    }
+
+    // ---- the request surface -----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task By_member_sends_senateID_and_never_id()
+    {
+        // THE trap of this slice's request surface. Measured 2026-08-29, `stable/house-trades-by-id` is named
+        // for a parameter it does not accept: `?id=M001217` came back BYTE-IDENTICAL to the bare call — 100
+        // rows spanning 21 different members, HTTP 200, no error. The wire parameter is `senateID`.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetHouseTradesByMemberAsync("M001217");
+
+        var query = handler.Requests[0].Query;
+        Assert.Contains("senateID=M001217", query);
+        Assert.DoesNotContain("id=M001217", query.Replace("senateID=M001217", ""));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task By_member_refuses_a_missing_id_before_it_reaches_the_wire(string? senateId)
+    {
+        // The endpoint ANSWERS without the parameter, with someone else's data. That is exactly why the SDK
+        // must not pass a blank through: FMP's willingness to reply is the hazard.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(
+            () => endpoints.GetSenateTradesByMemberAsync(senateId!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_latest_feeds_refuse_a_limit_above_the_measured_cap()
+    {
+        // Measured 2026-08-29: limit=1000 and limit=5000 each answered exactly 250 with HTTP 200 and nothing
+        // in the body saying the request was trimmed. A caller who asks for 1000 and pages by 1000 reads a
+        // quarter of the feed and is never told.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHouseLatestAsync(limit: CongressEndpoints.MaxCongressionalTradePageSize + 1));
+
+        Assert.Equal("limit", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task Each_path_is_requested_at_the_url_it_lives_at()
+    {
+        var (endpoints, handler) = Build(
+            StubHandler.Json("[]"), StubHandler.Json("[]"), StubHandler.Json("[]"),
+            StubHandler.Json("[]"), StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.GetHouseLatestAsync();
+        await endpoints.GetSenateLatestAsync();
+        await endpoints.GetHouseTradesAsync("AAPL");
+        await endpoints.GetHouseTradesByNameAsync("Pelosi");
+        await endpoints.GetPositionsAsync();
+        await endpoints.GetNetWorthSummaryAsync("H000601");
+
+        Assert.Equal("/stable/house-latest", handler.Requests[0].AbsolutePath);
+        Assert.Equal("/stable/senate-latest", handler.Requests[1].AbsolutePath);
+        Assert.Equal("/stable/house-trades", handler.Requests[2].AbsolutePath);
+        Assert.Equal("/stable/house-trades-by-name", handler.Requests[3].AbsolutePath);
+        Assert.Equal("/stable/senate-positions", handler.Requests[4].AbsolutePath);
+        Assert.Equal("/stable/senate-net-worth-aggregated", handler.Requests[5].AbsolutePath);
+        Assert.Contains("symbol=AAPL", handler.Requests[2].Query);
+        Assert.Contains("name=Pelosi", handler.Requests[3].Query);
+        Assert.Contains("senateID=H000601", handler.Requests[5].Query);
     }
 }
