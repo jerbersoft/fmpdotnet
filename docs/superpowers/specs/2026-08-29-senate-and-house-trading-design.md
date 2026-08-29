@@ -88,7 +88,7 @@ Twelve paths, **five records** plus two nested ones. Eight paths share `Congress
 | `CongressMemberProfile` | `senate-profile` | 10 |
 | `SenateNetWorthLine` | `senate-net-worth` | 17 |
 | `SenateNetWorthSummary` | `senate-net-worth-aggregated` | 16 |
-| `NetWorthValueRange` | nested in `SenateNetWorthLine` | 2 |
+| `NetWorthRange` | nested in `SenateNetWorthLine` twice — `valueRange` and `incomeRange` | 2 |
 | `NetWorthDebtDetails` | nested in `SenateNetWorthLine` | 4 |
 
 ### One trade record for eight paths, including the one that is a field short
@@ -156,6 +156,10 @@ Both properties document the measured forms so a caller can parse deliberately. 
 slice where the SDK hands back a string it could have parsed, and the reason is that FMP has overloaded the
 field rather than that the SDK is being lazy.
 
+`debtDetails` is also a **union of two disjoint shapes** — 87 rows carry `dateIncurred`/`points`/`rate` and 13
+carry `source` alone, never all four together. One record with four nullable properties covers both, since an
+absent key binds null, so the union costs nothing beyond the doc comment that records it.
+
 ### `capitalGainsOver200USD` is `string?`, not `bool?`
 
 It arrives as the JSON **string** `"False"`. Two measurements decide this:
@@ -177,6 +181,25 @@ to model and none is invented.
 `senate-net-worth` shows FMP's own answer to the same problem, and the SDK passes it through rather than
 recomputing it: `valueRange` is `{min, max}` and `value` is their midpoint — verified on **214 of 214 rows
 where both are present, failing on none**. That is where the `.5` endings across this group come from.
+
+**The sibling pair does not follow that rule, and the symmetry is a trap.** Over the 136 rows where
+`incomeRange` is an object and `income` is present, the midpoint holds on 35 and **fails on 101**. Neither
+figure is recomputed by the SDK; both are passed through, and the XML doc on `Income` says plainly that it is
+not derivable from `IncomeRange`.
+
+### `incomeRange` needs the slice's one converter
+
+`incomeRange` arrives as an object on 136 of 250 rows, as JSON `null` on 100, and **as the empty string `""`
+on 14**. `valueRange` never does — 214 present, all objects.
+
+Measured 2026-08-29, a nested record type binds the object and binds `null`, and **throws on `""`**;
+`System.Text.Json` will not read a string into an object. The throw takes the whole array with it — a
+three-row array where only the middle row sends `""` recovered 0 of 3 — so on this one member those 14 rows
+cost all 250.
+
+`IncomeRange` therefore carries `NetWorthRangeJsonConverter`, whose entire job is to read `""` as `null` and
+delegate everything else. It is applied to `IncomeRange` only. `ValueRange` is left plain, because applying a
+converter there would assert a wire form that was never measured.
 
 ### Empty strings are preserved, not normalised to null
 
@@ -208,8 +231,13 @@ caller reads is the name on the wire.
 Five records plus two nested ones are added to `FmpJsonContext` as `[JsonSerializable(typeof(List<X>))]`.
 The two nested records need entries of their own; missing one fails at runtime, not at compile time.
 
-No new converter. `NullableLocalDateJsonConverter` covers every date, and the three multi-typed fields
-(`rate`, `points`, `capitalGainsOver200USD`) are `string?` precisely so that no converter is needed.
+**One new converter**, `NetWorthRangeJsonConverter`, applied to `SenateNetWorthLine.IncomeRange` alone. It
+reads the empty string as `null` and delegates every other form. Without it, 14 of 250 measured rows cost the
+caller the whole response — see above.
+
+Nothing else needs one. `NullableLocalDateJsonConverter` covers every date, and the three multi-typed scalar
+fields (`rate`, `points`, `capitalGainsOver200USD`) are `string?` precisely so that no converter is needed for
+them.
 
 ## Testing
 
@@ -234,6 +262,11 @@ Each fails if the trap is reintroduced:
 6. **`debtDetails.rate` binds `"N/A%  (10 years)"` and `2.75` on adjacent rows.**
 7. **`value` equals the midpoint of `valueRange`** on the captured fixture.
 8. **`dateIncurred` binds `"2003"`** — guards against a later change to `LocalDate?`.
+9. **`incomeRange` binds when it is `""`.** A fixture row sending the empty string, with object-valued rows
+   either side, so removing the converter fails rather than passing on the majority. This is the slice's
+   highest-value test.
+10. **`debtDetails` binds in both of its shapes** — a `source`-only row and a `rate`-bearing row in the same
+    fixture.
 
 ### Live guard
 

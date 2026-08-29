@@ -138,7 +138,13 @@ seventh. Every money field on this record is `decimal?`.
 
 ## `debtDetails` carries three JSON types on one field
 
-`senate-net-worth.debtDetails` is a nested object, null on 150 of 250 rows, with four keys:
+`senate-net-worth.debtDetails` is a nested object, null on 150 of 250 rows. **It is a union of two disjoint
+shapes, never one object with four keys:**
+
+| key set | rows |
+|---|---|
+| `dateIncurred`, `points`, `rate` | 87 |
+| `source` alone | 13 |
 
 | key | JSON types observed |
 |---|---|
@@ -146,6 +152,10 @@ seventh. Every money field on this record is `decimal?`.
 | `source` | `string` |
 | `points` | `int`, `string` |
 | `rate` | `float`, `int`, `string` |
+
+One record with four nullable properties covers both shapes — an absent key simply binds null — so the union
+costs nothing to model. It is recorded because a reader who saw only the type table would expect all four
+together and never see it.
 
 The string values of `rate` are **not placeholders** — they carry a term as well as a rate, and there are only
 two of them across 64 rows:
@@ -273,3 +283,41 @@ The field arrives as the JSON string `"False"`. Measured 2026-08-29 against this
 written to handle it would be guessing at the one value it exists for.
 
 `senate-profile.active` is a genuine JSON `true` and is unaffected.
+
+## `incomeRange` arrives as an object **or** as the empty string
+
+This is the sharpest trap in the slice, and it is a hard binding failure rather than a subtlety.
+
+| form | rows of 250 |
+|---|---|
+| `{"min": …, "max": …}` | 136 |
+| `""` — the empty string | **14** |
+| JSON `null` | 100 |
+
+`valueRange` does **not** share it: 214 present, every one an object, never a string.
+
+Measured 2026-08-29 against a nested record type under this library's own `FmpJsonContext` options:
+
+| target | `{"min":2501,"max":5000}` | `null` | `""` |
+|---|---|---|---|
+| a nested `record` | binds | binds null | **throws** |
+
+`System.Text.Json` cannot bind a string to an object, and the throw is not confined to its row — a three-row
+array where only the middle row sends `""` recovered **0 of 3**. On this member that is 14 rows costing all
+250. Modelling `incomeRange` as a plain nested record is therefore not an option; it needs a converter that
+reads `""` as null.
+
+On all 14 string rows, `income` is null and `incomeType` is `""`.
+
+## `income` is **not** the midpoint of `incomeRange`
+
+`value` is the midpoint of `valueRange` on 214 of 214 rows. The sibling pair does not follow the rule: over the
+136 rows where `incomeRange` is an object and `income` is present, the midpoint holds on **35 and fails on
+101**. The first mismatch is `{"min": 0, "max": 201}` against an `income` of `0`.
+
+The symmetry is a trap for a reader who checks one pair and assumes the other. Both are passed through as FMP
+sends them; neither is recomputed.
+
+`min` and `max` are integral on every row measured — 428 numbers under `valueRange`, 272 under `incomeRange`,
+zero written with a decimal point. They are money and take `decimal?` regardless, on the rule that six rows of
+integers say nothing about the seventh.
