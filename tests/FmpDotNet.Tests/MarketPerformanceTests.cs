@@ -216,4 +216,107 @@ public class MarketPerformanceTests
         Assert.Equal("FNGR", rows[0].Symbol);
         Assert.Equal(129.5271m, rows[0].ChangePercentage);
     }
+
+    [Fact]
+    public async Task The_sector_performance_snapshot_sends_the_date_the_exchange_and_nothing_else()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetSectorPerformanceSnapshotAsync(new LocalDate(2026, 8, 28), "NASDAQ");
+
+        Assert.Equal("/stable/sector-performance-snapshot", handler.Requests[0].AbsolutePath);
+        var query = handler.Requests[0].Query;
+        Assert.Contains("date=2026-08-28", query);
+        Assert.Contains("exchange=NASDAQ", query);
+        // The optional filter is omitted entirely when null rather than sent empty — an empty `sector=`
+        // is not a request that was ever measured.
+        Assert.DoesNotContain("sector=", query);
+    }
+
+    [Fact]
+    public async Task The_sector_filter_goes_out_as_FMPs_own_label()
+    {
+        // Measured 2026-08-29, `date=2026-08-28&sector=Technology` returned exactly one row — real server-side
+        // filtering, which is why it is offered. The enum member is FinancialServices; the wire wants
+        // "Financial Services", with the space.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetSectorPerformanceSnapshotAsync(
+            new LocalDate(2026, 8, 28), "NASDAQ", Sector.FinancialServices);
+
+        Assert.Contains("sector=Financial%20Services", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task The_industry_filter_url_encodes_an_ampersand()
+    {
+        // Measured 2026-08-29: `industry=Aerospace & Defense` returns rows when encoded. An unencoded
+        // ampersand would split the query string and silently drop everything after it, including the key.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndustryPerformanceSnapshotAsync(
+            new LocalDate(2026, 8, 28), "NASDAQ", "Aerospace & Defense");
+
+        Assert.Contains("industry=Aerospace%20%26%20Defense", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData("sector-pe", "/stable/sector-pe-snapshot")]
+    [InlineData("industry-performance", "/stable/industry-performance-snapshot")]
+    [InlineData("industry-pe", "/stable/industry-pe-snapshot")]
+    public async Task Each_remaining_snapshot_asks_its_own_path(string which, string expected)
+    {
+        var (endpoints, handler) = Build();
+        var date = new LocalDate(2026, 8, 28);
+
+        switch (which)
+        {
+            case "sector-pe": await endpoints.GetSectorPeSnapshotAsync(date, "NASDAQ"); break;
+            case "industry-performance":
+                await endpoints.GetIndustryPerformanceSnapshotAsync(date, "NASDAQ"); break;
+            default: await endpoints.GetIndustryPeSnapshotAsync(date, "NASDAQ"); break;
+        }
+
+        Assert.Equal(expected, handler.Requests[0].AbsolutePath);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task A_blank_exchange_is_rejected_before_the_request_goes_out(string exchange)
+    {
+        // A blank exchange reaches FMP as an OMITTED one, which silently selects NASDAQ alone. Rejecting here
+        // is the only place the two can be told apart.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => endpoints.GetSectorPerformanceSnapshotAsync(new LocalDate(2026, 8, 28), exchange));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_supplied_but_blank_industry_filter_is_rejected()
+    {
+        // Omitting `industry` is valid and means "every industry". Supplying "   " is a mistake, and unguarded
+        // it would reach FMP meaning exactly the same thing — the caller would believe a filter happened.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => endpoints.GetIndustryPerformanceSnapshotAsync(new LocalDate(2026, 8, 28), "NASDAQ", "   "));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_snapshot_returns_the_ragged_rows_through_the_facade_unmodified()
+    {
+        // The end-to-end half of the trap test in Task 3: the facade must not filter, clamp or reorder.
+        var (endpoints, _) = Build(Binding.Fixture("market-performance-sector-performance-ragged.json"));
+
+        var rows = await endpoints.GetSectorPerformanceSnapshotAsync(new LocalDate(2026, 9, 1), "NASDAQ");
+
+        Assert.Equal(11, rows.Count);
+        Assert.Equal(3, rows.Select(r => r.Date).Distinct().Count());
+    }
 }
