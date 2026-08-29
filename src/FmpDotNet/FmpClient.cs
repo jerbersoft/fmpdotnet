@@ -11,6 +11,7 @@ public sealed class FmpClient(
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     SearchEndpoints search, SecFilingsEndpoints secFilings,
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
+    CongressEndpoints congress,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -67,6 +68,14 @@ public sealed class FmpClient(
     /// heading, but they are institutional stake filings rather than insider transactions and live on
     /// <see cref="InstitutionalOwnership"/>.</para></summary>
     public InsiderTradesEndpoints InsiderTrades { get; } = insiderTrades;
+
+    /// <summary>Congressional disclosure — what members of Congress traded, who they are, and what Senators
+    /// are worth.
+    ///
+    /// <para>Twelve paths over five row shapes, eight of them answering the same trade row. Sits beside
+    /// <see cref="InsiderTrades"/> because both are people-disclose-their-trades feeds, and shares nothing
+    /// with it on the wire.</para></summary>
+    public CongressEndpoints Congress { get; } = congress;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.

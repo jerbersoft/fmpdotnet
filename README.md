@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**154 of FMP's 243 endpoint paths are modelled.**
+**166 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -200,6 +200,23 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/shares-float` | `GetSharesFloatAsync` |
 | `stable/shares-float-all` | `GetAllSharesFloatAsync` |
 | `stable/stock-peers` | `GetPeersAsync` |
+
+`fmp.Congress`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/house-latest` | `GetHouseLatestAsync` |
+| `stable/house-trades` | `GetHouseTradesAsync` |
+| `stable/house-trades-by-id` | `GetHouseTradesByMemberAsync` |
+| `stable/house-trades-by-name` | `GetHouseTradesByNameAsync` |
+| `stable/senate-latest` | `GetSenateLatestAsync` |
+| `stable/senate-net-worth` | `GetNetWorthAsync` |
+| `stable/senate-net-worth-aggregated` | `GetNetWorthSummaryAsync` |
+| `stable/senate-positions` | `GetPositionsAsync` |
+| `stable/senate-profile` | `GetProfilesAsync` |
+| `stable/senate-trades` | `GetSenateTradesAsync` |
+| `stable/senate-trades-by-id` | `GetSenateTradesByMemberAsync` |
+| `stable/senate-trades-by-name` | `GetSenateTradesByNameAsync` |
 
 `fmp.Directory`
 
@@ -337,12 +354,12 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **89 paths
-remain**, of which **82 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **77 paths
+remain**, of which **70 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest groups are Senate & House (12) and
-Economics/Transcripts/ESG/COT (12), then Market Performance (11), News (10) and Fundraisers & DCF (10); ETF &
-Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9 apiece.
+spread the way FMP's own section headings suggest: the largest group is Economics/Transcripts/ESG/COT (12), then
+Market Performance (11), News (10) and Fundraisers & DCF (10); ETF & Mutual Funds, Technical Indicators and
+Indexes & Market Hours carry 9 apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -350,9 +367,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as nine issues under the epic, eight of them actionable, each 9 to 12 paths and each
+That remainder is tracked as eight issues under the epic, seven of them actionable, each 9 to 12 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 154 modelled plus 89 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 166 modelled plus 77 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
