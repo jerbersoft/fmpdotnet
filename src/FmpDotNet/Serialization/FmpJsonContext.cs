@@ -132,6 +132,8 @@ namespace FmpDotNet.Serialization;
 // The bare type, not a list: NetWorthRangeJsonConverter deserialises through
 // FmpJsonContext.Default.NetWorthRange, which only exists if it is registered on its own.
 [JsonSerializable(typeof(NetWorthRange))]
+// Technical indicators (#35). One record for all nine indicator paths — see TechnicalIndicatorBar.
+[JsonSerializable(typeof(List<TechnicalIndicatorBar>))]
 // Not a list — the only object-shaped response in this slice. See FinancialReport.
 [JsonSerializable(typeof(FinancialReport))]
 // Not an endpoint response. `price-target-summary-bulk` carries a JSON array inside one of its CSV fields, and
