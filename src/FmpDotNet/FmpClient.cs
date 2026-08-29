@@ -12,7 +12,8 @@ public sealed class FmpClient(
     SearchEndpoints search, SecFilingsEndpoints secFilings,
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
-    QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
+    QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
+    TechnicalIndicatorsEndpoints technicalIndicators)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -120,4 +121,12 @@ public sealed class FmpClient(
     /// <summary>Whole-universe CSV downloads. Streamed, and throttled separately — see
     /// <see cref="BulkEndpoints"/>.</summary>
     public BulkEndpoints Bulk { get; } = bulk;
+
+    /// <summary>Nine technical indicators over one price series —
+    /// <see cref="TechnicalIndicatorsEndpoints"/>.
+    ///
+    /// <para>One method reaches all nine paths. Read
+    /// <see cref="TechnicalIndicatorsEndpoints.GetAsync"/> before trusting a value computed over a narrow
+    /// range: four of the nine change with the window, and one of them by more than 200%.</para></summary>
+    public TechnicalIndicatorsEndpoints TechnicalIndicators { get; } = technicalIndicators;
 }
