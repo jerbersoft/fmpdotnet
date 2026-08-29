@@ -125,8 +125,10 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <see cref="GetSectorPerformanceSnapshotAsync"/> was measured on this path too</b>, producing the same
     /// three-date split sector for sector. Read that method's summary; it applies here unchanged.</para>
     ///
-    /// <para><b>A <c>pe</c> of exactly <c>0</c> means "no meaningful aggregate", not a ratio of zero</b> — see
-    /// <see cref="Models.SectorPe.Pe"/>.</para></summary>
+    /// <para><b>None of the 64 measured sector-PE values read <c>0</c></b> (measured 2026-08-29). Where
+    /// FMP does emit it, a <c>pe</c> of exactly <c>0</c> is an in-band sentinel meaning "no meaningful
+    /// aggregate" rather than a ratio of zero — see <see cref="Models.IndustryPe.Pe"/>, the shape it was
+    /// actually observed on.</para></summary>
     /// <param name="date">The trading day to ask about.</param>
     /// <param name="exchange">The exchange to answer for. Required — see
     /// <see cref="GetSectorPerformanceSnapshotAsync"/>.</param>
@@ -190,7 +192,7 @@ public sealed class MarketPerformanceEndpoints(FmpTransport transport)
     /// <c>stable/industry-pe-snapshot</c>.
     ///
     /// <para><b>Twelve of 254 measured rows read <c>pe: 0</c></b>, which means "no meaningful aggregate" rather
-    /// than a ratio of zero — see <see cref="Models.SectorPe.Pe"/>. Every one of the twelve was an industry
+    /// than a ratio of zero — see <see cref="Models.IndustryPe.Pe"/>. Every one of the twelve was an industry
     /// row; no sector row carried a zero.</para>
     ///
     /// <para>The vocabulary gap documented on <see cref="GetIndustryPerformanceSnapshotAsync"/> and the

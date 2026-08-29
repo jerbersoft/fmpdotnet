@@ -248,6 +248,22 @@ public class MarketPerformanceTests
     }
 
     [Fact]
+    public async Task The_industry_performance_snapshot_sends_the_date_the_exchange_and_nothing_else()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndustryPerformanceSnapshotAsync(new LocalDate(2026, 8, 28), "NASDAQ");
+
+        Assert.Equal("/stable/industry-performance-snapshot", handler.Requests[0].AbsolutePath);
+        var query = handler.Requests[0].Query;
+        Assert.Contains("date=2026-08-28", query);
+        Assert.Contains("exchange=NASDAQ", query);
+        // The optional filter is omitted entirely when null rather than sent empty — an empty `industry=`
+        // is not a request that was ever measured.
+        Assert.DoesNotContain("industry=", query);
+    }
+
+    [Fact]
     public async Task The_industry_filter_url_encodes_an_ampersand()
     {
         // Measured 2026-08-29: `industry=Aerospace & Defense` returns rows when encoded. An unencoded
