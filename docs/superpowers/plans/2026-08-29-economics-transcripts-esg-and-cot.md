@@ -50,9 +50,15 @@ none. `CotReport` is 128 properties, the widest record in the SDK against `Finan
   it is.
 - **No reflection in `src/`.** `IsAotCompatible` is declared; `IL2026` and `IL3050` are build errors.
 - **NodaTime only in public signatures** — no `DateTime`, `DateOnly`, `DateTimeOffset`, `TimeSpan`.
-- **`[JsonPropertyName]` carries FMP's spelling exactly; the C# property carries correct English.** 27 of
-  `CotReport`'s 128 properties diverge under this rule and every one of them carries a `// sic` comment. The
-  attribute string is never "fixed".
+- **`[JsonPropertyName]` carries FMP's spelling exactly; the C# property carries correct English.** The
+  attribute string is never "fixed". 27 of `CotReport`'s 128 properties diverge under this rule, in two kinds
+  that are marked differently and deliberately so — **counted from the code block, not from this sentence**:
+  - **26** are the suffix `Ol` where the block is `Old`. They are a family, documented once in the type
+    summary; twenty-six identical `// sic` comments would bury the two below.
+  - **2** are the misspelling `Spead` for `Spread`, and those carry `// sic` at their declaration.
+  - `tradersNoncommSpeadOl` is in both counts, which is why 26 and 2 total 27 rather than 28.
+  `CotAnalysis` carries a third misspelling, `netPostion` → `NetPosition`, also marked `// sic`. It is on a
+  different record and is not among `CotReport`'s 27.
 - **Every numeric measured `float` on any row is `decimal?`.** `int?` only where the field counts discrete
   things — open interest, positions, traders, years, quarters.
 - **Empty strings are preserved, never normalised to null.**
@@ -3245,11 +3251,15 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b>Twenty-seven property names deliberately differ from their <c>[JsonPropertyName]</c>, because
 /// FMP's spelling is wrong.</b> The attribute carries the wire verbatim and the property carries correct
-/// English — the same rule under which <c>senateID</c> binds to <c>SenateId</c>. Three are misspellings
-/// (<c>changeInNoncommSpeadAll</c> and <c>tradersNoncommSpeadOl</c> here,
-/// <c>netPostion</c> on <see cref="CotAnalysis"/>) and 26 are the suffix <c>Ol</c> where the positions block
-/// spells it <c>Old</c>. Every one carries a comment at its declaration. Do not "fix" an attribute: the
-/// property would then bind nothing, silently.</para>
+/// English — the same rule under which <c>senateID</c> binds to <c>SenateId</c>. They come in two kinds.
+/// <b>Twenty-six</b> are the suffix <c>Ol</c> where the block it belongs to is <c>Old</c>; they are a family
+/// rather than accidents, and this paragraph is their comment — repeating it twenty-six times at the
+/// declarations would bury the two that are not. <b>Two</b> are the misspelling <c>Spead</c> for
+/// <c>Spread</c>, and those carry <c>// sic</c> where they are declared.
+/// <c>tradersNoncommSpeadOl</c> is in both counts at once, which is why 26 and 2 total 27 rather than 28.
+/// (<c>netPostion</c> on <see cref="CotAnalysis"/> is a third misspelling, on a different record, and is not
+/// in this record's twenty-seven.) Do not "fix" an attribute: the property would then bind nothing,
+/// silently.</para>
 ///
 /// <para><b>The <c>Other</c> block is 36 of the 128 and is not dead weight.</b> Measured 2026-08-29, 118 of
 /// 545 rows carry a non-zero value in at least one <c>Other</c> field, across 14 distinct symbols — the
