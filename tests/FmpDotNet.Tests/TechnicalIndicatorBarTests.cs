@@ -120,8 +120,8 @@ public class TechnicalIndicatorBarTests
     [Fact]
     public void A_row_with_two_indicator_columns_is_rejected()
     {
-        // Never observed in 88 captures. If FMP ever answers two, the row is not what this record models and
-        // guessing which column the caller meant would be worse than failing.
+        // Never observed in 88 captures, measured 2026-08-29. If FMP ever answers two, the row is not
+        // what this record models and guessing which column the caller meant would be worse than failing.
         const string body = """
             [{"date": "2026-08-28 00:00:00", "open": 1, "high": 2, "low": 1, "close": 2, "volume": 3,
               "sma": 1.5, "rsi": 60.0}]

@@ -12,12 +12,12 @@ namespace FmpDotNet.Models;
 /// holds that column in <see cref="Value"/> and names it in <see cref="Indicator"/>, so one type serves all
 /// nine rather than nine types duplicating the price block.</para>
 ///
-/// <para>Rows arrive <b>newest first</b> — strictly descending, no duplicate dates across 1254 daily rows —
-/// and the SDK does not re-sort them.</para>
+/// <para>Rows arrive <b>newest first</b> — strictly descending, no duplicate dates across 1254 daily rows,
+/// measured 2026-08-29 — and the SDK does not re-sort them.</para>
 ///
-/// <para><b>The row does not carry its symbol.</b> No response includes one. A caller fanning out across
-/// symbols and concatenating the results cannot tell them apart afterwards, and this SDK does not stamp a
-/// field FMP did not send.</para></summary>
+/// <para><b>The row does not carry its symbol.</b> No response includes one, measured 2026-08-29. A caller
+/// fanning out across symbols and concatenating the results cannot tell them apart afterwards, and this SDK
+/// does not stamp a field FMP did not send.</para></summary>
 [JsonConverter(typeof(TechnicalIndicatorBarJsonConverter))]
 public sealed record TechnicalIndicatorBar
 {
