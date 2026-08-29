@@ -151,9 +151,10 @@ public sealed record SymbolPositions
     /// <summary>The same, one quarter earlier.</summary>
     [JsonPropertyName("lastPutCallRatio")] public decimal? LastPutCallRatio { get; init; }
 
-    /// <summary>The change in the ratio. <b>Expressed as a percentage change, not in ratio points</b> —
-    /// <c>3.0605</c> on the captured row against a ratio that moved from <c>0.8082</c> to <c>0.8388</c>, a
-    /// difference of <c>0.0306</c>. The two other <c>*Change</c> conventions in this record are plain
-    /// differences; this one is not, and subtracting the two ratios will not reproduce it.</summary>
+    /// <summary>The change in the ratio, though the mechanism is not confirmed. <c>3.0605</c> on the captured
+    /// row against a ratio that moved from <c>0.8082</c> to <c>0.8388</c>: the plain difference scaled by 100 is
+    /// <c>3.06</c>, consistent with the captured value to the precision of those two four-decimal inputs. FMP
+    /// does not publish the derivation and this was not confirmed beyond the one row — do not assume it follows
+    /// whatever convention this record's other <c>*Change</c> fields use.</summary>
     [JsonPropertyName("putCallRatioChange")] public decimal? PutCallRatioChange { get; init; }
 }

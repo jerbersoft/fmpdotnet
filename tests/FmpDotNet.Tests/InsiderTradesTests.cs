@@ -173,6 +173,22 @@ public class InsiderTradesTests
         Assert.Equal(1000, InsiderTradesEndpoints.MaxInsiderTradePageSize);
     }
 
+    [Theory]
+    [InlineData(-1, 100)]
+    [InlineData(0, 0)]
+    [InlineData(0, -5)]
+    public async Task A_negative_page_or_a_non_positive_limit_is_refused_on_both_insider_paths(int page, int limit)
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetLatestAsync(page: page, limit: limit));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.SearchAsync(symbol: "AAPL", page: page, limit: limit));
+
+        Assert.Empty(handler.Requests);
+    }
+
     // ---- insider-trading/search --------------------------------------------------------------------------------
 
     [Fact]
@@ -196,8 +212,8 @@ public class InsiderTradesTests
     public async Task A_search_with_no_criteria_is_a_valid_call()
     {
         // Deliberate. With nothing supplied the endpoint degenerates to the same feed GetLatestAsync answers,
-        // which is a legitimate thing to ask for and not a caller error. FmpRequest drops null and blank
-        // values, so nothing reaches FMP but page and limit.
+        // which is a legitimate thing to ask for and not a caller error. FmpRequest.With drops the null values
+        // passed here, so nothing reaches FMP but page and limit.
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
 
         await endpoints.SearchAsync();
@@ -215,8 +231,10 @@ public class InsiderTradesTests
     public async Task A_blank_discriminator_is_treated_as_absent_rather_than_refused()
     {
         // The four are optional, so blank means "not filtering on this" rather than "the caller made a
-        // mistake". FmpRequest drops it either way; this pins that the method does not throw on it, which
-        // would make `SearchAsync(symbol: userInput)` unusable against an empty form field.
+        // mistake". FmpRequest.With does not drop a whitespace-only string on its own — it checks
+        // IsNullOrEmpty, not IsNullOrWhiteSpace — so it is SearchAsync's private NullIfBlank helper that turns
+        // "   " into null before it ever reaches FmpRequest; this pins that the method does not throw on it,
+        // which would make `SearchAsync(symbol: userInput)` unusable against an empty form field.
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
 
         await endpoints.SearchAsync(symbol: "AAPL", transactionType: "   ");

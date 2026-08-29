@@ -73,8 +73,8 @@ public sealed class InsiderTradesEndpoints(FmpTransport transport)
     ///
     /// <para><b>With nothing supplied this answers the same feed as <see cref="GetLatestAsync"/>.</b> That is a
     /// valid call rather than a caller error, and a blank discriminator is treated the same way as an absent
-    /// one: <c>FmpRequest.With(string, string?)</c> drops only <see langword="null"/> and <c>""</c>, not a
-    /// whitespace-only string, so this method blanks each of the four itself before handing them to it — a
+    /// one: <see cref="FmpRequest.With(string, string?)"/> drops only <see langword="null"/> and <c>""</c>, not
+    /// a whitespace-only string, so this method blanks each of the four itself before handing them to it — a
     /// caller passing an untouched form field must not send a literal space to FMP as a filter.</para></summary>
     /// <param name="symbol">The issuer's ticker. Optional.</param>
     /// <param name="reportingCik">The <b>insider's</b> Central Index Key, padded or unpadded — both work.
@@ -117,9 +117,11 @@ public sealed class InsiderTradesEndpoints(FmpTransport transport)
     /// FMP echoes back as a non-match.</para></summary>
     private static string? NullIfBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
-    /// <summary>The paging guard the two feeds share. Extracted at two call sites for the reason
-    /// <see cref="SecFilingsEndpoints"/> records: the three-line body is the thing that must not drift between
-    /// them.</summary>
+    /// <summary>The paging guard the two feeds share. This facade extracts it at its two call sites where
+    /// <see cref="SecFilingsEndpoints"/> inlines the identical three lines at each of its three instead —
+    /// the right call here because <see cref="GetLatestAsync"/> and <see cref="SearchAsync"/> need the same
+    /// guard set, so the three-line body is the thing that must not drift between them. <see cref="DateRange"/>
+    /// lays out the same drift concern for a different guard.</summary>
     private static void ThrowIfPagingOutOfRange(int page, int limit)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(page);

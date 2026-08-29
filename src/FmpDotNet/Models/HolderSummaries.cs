@@ -73,10 +73,11 @@ public sealed record HolderIndustryBreakdown
 /// <para><b>The series is self-consistent across rows:</b> each row's <see cref="LastPerformance"/> equals the
 /// next row's <see cref="Performance"/>, verified on the captured pair.</para>
 ///
-/// <para><b>Six fields here are genuine counts and are <see cref="int"/>:</b>
-/// <see cref="PortfolioSize"/>, <see cref="SecuritiesAdded"/>, <see cref="SecuritiesRemoved"/> and the three
-/// average holding periods, which count securities and quarters. Everything else is money or a percentage and
-/// is <see cref="decimal"/> — see <see cref="HolderAnalytics"/> for why.</para></summary>
+/// <para><b>Three fields here are genuine counts and are <see cref="int"/>:</b>
+/// <see cref="PortfolioSize"/>, <see cref="SecuritiesAdded"/> and <see cref="SecuritiesRemoved"/>. The three
+/// average holding periods are means rather than counts but are <see cref="int"/> as well — see
+/// <see cref="AverageHoldingPeriod"/> for the measurement behind that. Everything else is money or a percentage
+/// and is <see cref="decimal"/> — see <see cref="HolderAnalytics"/> for why.</para></summary>
 public sealed record HolderPerformance
 {
     /// <summary>The quarter end this row reports.</summary>
@@ -103,8 +104,8 @@ public sealed record HolderPerformance
     [JsonPropertyName("marketValue")] public decimal? MarketValue { get; init; }
 
     /// <summary>The same, one quarter earlier. <b>Spelled <c>previousMarketValue</c> on the wire</b>, not
-    /// <c>lastMarketValue</c> — the only place in this group where FMP uses "previous" rather than "last", and
-    /// the attribute is load-bearing because of it.</summary>
+    /// <c>lastMarketValue</c> — the only place in this group where FMP uses "previous" rather than
+    /// "last".</summary>
     [JsonPropertyName("previousMarketValue")] public decimal? PreviousMarketValue { get; init; }
 
     /// <summary>The dollar change in portfolio value.</summary>
@@ -114,14 +115,21 @@ public sealed record HolderPerformance
     [JsonPropertyName("changeInMarketValuePercentage")]
     public decimal? ChangeInMarketValuePercentage { get; init; }
 
-    /// <summary>The mean number of quarters the filer has held its positions. A count of quarters, hence
-    /// <see cref="int"/>.</summary>
+    /// <summary>The mean number of quarters the filer has held its positions.
+    ///
+    /// <para><b>A mean, not a count — <see cref="int"/> anyway.</b> Measured 2026-08-29 across 391 rows from
+    /// five large filers (Berkshire Hathaway 53, BlackRock 71, Vanguard 104, State Street 53, FMR/Fidelity 110):
+    /// across this field and its two siblings below, 0 of 1,173 values were fractional. FMP rounds them. These
+    /// three are the only means on this record's <see cref="int"/> list, so if FMP ever stops rounding one, that
+    /// single value costs the caller the whole response.</para></summary>
     [JsonPropertyName("averageHoldingPeriod")] public int? AverageHoldingPeriod { get; init; }
 
-    /// <summary>The same, over the ten largest positions.</summary>
+    /// <summary>The same, over the ten largest positions. See <see cref="AverageHoldingPeriod"/> for the
+    /// measurement behind the <see cref="int"/> typing.</summary>
     [JsonPropertyName("averageHoldingPeriodTop10")] public int? AverageHoldingPeriodTop10 { get; init; }
 
-    /// <summary>The same, over the twenty largest.</summary>
+    /// <summary>The same, over the twenty largest. See <see cref="AverageHoldingPeriod"/> for the measurement
+    /// behind the <see cref="int"/> typing.</summary>
     [JsonPropertyName("averageHoldingPeriodTop20")] public int? AverageHoldingPeriodTop20 { get; init; }
 
     /// <summary>Portfolio turnover for the quarter, as a fraction.</summary>
