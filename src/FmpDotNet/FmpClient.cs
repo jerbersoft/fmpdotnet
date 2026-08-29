@@ -11,7 +11,7 @@ public sealed class FmpClient(
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,
     SearchEndpoints search, SecFilingsEndpoints secFilings,
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
-    CongressEndpoints congress,
+    CongressEndpoints congress, TranscriptsEndpoints transcripts,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk)
 {
     /// <summary>Company profiles and identifiers.</summary>
@@ -76,6 +76,15 @@ public sealed class FmpClient(
     /// <see cref="InsiderTrades"/> because both are people-disclose-their-trades feeds, and shares nothing
     /// with it on the wire.</para></summary>
     public CongressEndpoints Congress { get; } = congress;
+
+    /// <summary>Earnings call transcripts — one call in full, a symbol's index of calls, and the
+    /// whole-market feed of what was just published.
+    ///
+    /// <para>Sits beside <see cref="Calendar"/> rather than on it because a transcript is the record of a
+    /// call rather than a scheduled event, and because the three paths take a symbol-and-period key that
+    /// nothing on <see cref="Calendar"/> takes. Which symbols have transcripts at all is on
+    /// <see cref="Directory"/>. See <see cref="TranscriptsEndpoints"/>.</para></summary>
+    public TranscriptsEndpoints Transcripts { get; } = transcripts;
 
     /// <summary>What something is trading at now — current prices, extended-hours prices, and trailing price
     /// changes.

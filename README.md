@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**169 of FMP's 243 endpoint paths are modelled.**
+**172 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -352,6 +352,14 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/ratios-ttm` | `GetRatiosTtmAsync` |
 | `stable/revenue-geographic-segmentation` | `GetRevenueByGeographyAsync` |
 | `stable/revenue-product-segmentation` | `GetRevenueByProductAsync` |
+
+`fmp.Transcripts`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/earning-call-transcript` | `GetTranscriptAsync` |
+| `stable/earning-call-transcript-dates` | `GetDatesAsync` |
+| `stable/earning-call-transcript-latest` | `GetLatestAsync` |
 
 <!-- END GENERATED: endpoint coverage -->
 

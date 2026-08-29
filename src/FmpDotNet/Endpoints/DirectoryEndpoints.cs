@@ -290,8 +290,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// 2026-08-27.
     ///
     /// <para>A directory rather than content: it says which symbols have transcripts and how many, not what any
-    /// of them says. <b>The transcripts themselves are not modelled</b> — three further paths in issue #25's long
-    /// tail.</para>
+    /// of them says.</para>
+    ///
+    /// <para>The transcripts themselves are on <see cref="TranscriptsEndpoints"/>: this answers which symbols
+    /// have any, <see cref="TranscriptsEndpoints.GetDatesAsync"/> answers which quarters one symbol has, and
+    /// <see cref="TranscriptsEndpoints.GetTranscriptAsync"/> answers a call in full.</para>
     ///
     /// <para>The count arrives as a quoted string on every row; see
     /// <see cref="TranscriptSymbol.TranscriptCount"/>. Ignores <c>limit</c>.</para></summary>

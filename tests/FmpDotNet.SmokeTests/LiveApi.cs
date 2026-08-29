@@ -145,7 +145,8 @@ internal static class LiveApi
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 
-    /// <summary>The fiscal quarter the five 13F probes ask for, paired with <see cref="SettledYear"/>.
+    /// <summary>The fiscal quarter the five 13F probes and the transcript probe ask for, paired with
+    /// <see cref="SettledYear"/>.
     ///
     /// <para><b>Q3 and not Q4, and the reason is the filing deadline rather than the data.</b> A 13F is due 45
     /// days after the quarter ends, so <see cref="SettledYear"/>'s Q4 is not filed until mid-February of the
@@ -158,7 +159,14 @@ internal static class LiveApi
     /// <c>holder-industry-breakdown</c> 33, <c>extract-analytics/holder</c> 5 (the probe's <c>limit</c>),
     /// <c>symbol-positions-summary</c> 1 and <c>industry-summary</c> 394. The same five with
     /// <c>quarter=4</c> answered 42, 34, 5, 1 and 394 — Q4 is equally good in August and unsafe in
-    /// January.</para></summary>
+    /// January.</para>
+    ///
+    /// <para><b>It suits the transcript probe for an unrelated reason, and that is worth stating rather than
+    /// relying on.</b> <c>GetTranscriptAsync</c> takes a year and a quarter, and measured 2026-08-29,
+    /// <c>symbol=AAPL&amp;year=2025&amp;quarter=3</c> answered one row carrying a 46,487-character
+    /// transcript. Q3 of <see cref="SettledYear"/> is held eight to ten months before this probe can run, so
+    /// it is settled on every day of the year the way a 13F quarter is — but a symbol with no call that
+    /// quarter would answer an empty array, so the pairing depends on AAPL as much as on the quarter.</para></summary>
     public const int SettledQuarter = 3;
 
     /// <summary>The symbol every per-symbol probe uses. One symbol, not a list: the suite is asserting that the
