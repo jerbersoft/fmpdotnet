@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**187 of FMP's 243 endpoint paths are modelled.**
+**198 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -289,6 +289,22 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/institutional-ownership/latest` | `GetLatestFilingsAsync` |
 | `stable/institutional-ownership/symbol-positions-summary` | `GetSymbolPositionsAsync` |
 
+`fmp.MarketPerformance`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/biggest-gainers` | `GetBiggestGainersAsync` |
+| `stable/biggest-losers` | `GetBiggestLosersAsync` |
+| `stable/historical-industry-pe` | `GetHistoricalIndustryPeAsync` |
+| `stable/historical-industry-performance` | `GetHistoricalIndustryPerformanceAsync` |
+| `stable/historical-sector-pe` | `GetHistoricalSectorPeAsync` |
+| `stable/historical-sector-performance` | `GetHistoricalSectorPerformanceAsync` |
+| `stable/industry-pe-snapshot` | `GetIndustryPeSnapshotAsync` |
+| `stable/industry-performance-snapshot` | `GetIndustryPerformanceSnapshotAsync` |
+| `stable/most-actives` | `GetMostActivesAsync` |
+| `stable/sector-pe-snapshot` | `GetSectorPeSnapshotAsync` |
+| `stable/sector-performance-snapshot` | `GetSectorPerformanceSnapshotAsync` |
+
 `fmp.Quote`
 
 | FMP endpoint | Method |
@@ -395,11 +411,11 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **56 paths
-remain**, of which **49 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **45 paths
+remain**, of which **38 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest group is Market Performance (11), then News (10)
-and Fundraisers & DCF (10); ETF & Mutual Funds and Indexes & Market Hours carry 9 apiece.
+spread the way FMP's own section headings suggest: the largest groups are News (10) and Fundraisers & DCF (10);
+ETF & Mutual Funds and Indexes & Market Hours carry 9 apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -407,9 +423,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as six issues under the epic, five of them actionable, each 9 to 12 paths and each
+That remainder is tracked as five issues under the epic, four of them actionable, each 7 to 10 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 187 modelled plus 56 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 198 modelled plus 45 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
@@ -757,13 +773,13 @@ set NetIncome
 
 `set NetIncome` becoming `null NetIncome` is the alarm.
 
-Measured 2026-08-27: **49 ordinary endpoints, 702 properties recorded as populated**, and exactly three recorded
-empty — `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no EDGAR
-filing URL, plus `MarketCap` on the commodity and forex quote batches, where a market capitalisation is not a
-meaningful thing to ask for. There is no blind spot on any wire field the SDK models: of the models' public properties 752 are
-nullable, 20 are strings defaulting to `""` and one is a collection defaulting to empty, all of which read
-correctly, and the only four non-nullable value types are three on a list wrapper that is never inspected plus
-one `[JsonIgnore]` property the SDK sets from the request rather than from the response.
+Measured 2026-08-29: **178 ordinary endpoints, 2,269 properties recorded as populated**, and 21 recorded
+empty — among them `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no
+EDGAR filing URL, plus `MarketCap` on the commodity and forex quote batches, where a market capitalisation is not a
+meaningful thing to ask for. There is no blind spot on any wire field the SDK models — measured 2026-08-27: of the
+models' public properties 752 are nullable, 20 are strings defaulting to `""` and one is a collection defaulting to
+empty, all of which read correctly, and the only four non-nullable value types are three on a list wrapper that is
+never inspected plus one `[JsonIgnore]` property the SDK sets from the request rather than from the response.
 
 Two assertions run against each record, with deliberately different meanings. One fails when something the record
 showed arriving has stopped — that is a defect in shipped code, and it is the one worth waking up for. The other
