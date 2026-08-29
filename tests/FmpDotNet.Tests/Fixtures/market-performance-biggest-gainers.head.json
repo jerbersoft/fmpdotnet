@@ -1,0 +1,26 @@
+[
+  {
+    "symbol": "FNGR",
+    "price": 0.398,
+    "name": "FingerMotion, Inc.",
+    "change": 0.2246,
+    "changesPercentage": 129.5271,
+    "exchange": "NASDAQ"
+  },
+  {
+    "symbol": "CHAI",
+    "price": 0.4,
+    "name": "Core AI Holdings Inc",
+    "change": 0.1454,
+    "changesPercentage": 57.10919,
+    "exchange": "NASDAQ"
+  },
+  {
+    "symbol": "WCT",
+    "price": 1.09,
+    "name": "Wellchange Holdings Company Limited",
+    "change": 0.341,
+    "changesPercentage": 45.52737,
+    "exchange": "NASDAQ"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "date": "2026-08-28",
+    "industry": "Advertising Agencies",
+    "exchange": "NASDAQ",
+    "pe": 19.993844800802336
+  },
+  {
+    "date": "2026-08-28",
+    "industry": "Aerospace & Defense",
+    "exchange": "NASDAQ",
+    "pe": 11.458311799603079
+  },
+  {
+    "date": "2026-08-28",
+    "industry": "Agricultural Inputs",
+    "exchange": "NASDAQ",
+    "pe": 0
+  }
+]

@@ -1,0 +1,13 @@
+[
+  { "date": "2026-08-28", "sector": "Basic Materials", "exchange": "NASDAQ", "averageChange": 0.17296837188471859 },
+  { "date": "2026-08-28", "sector": "Communication Services", "exchange": "NASDAQ", "averageChange": 1.453460578158583 },
+  { "date": "2026-08-27", "sector": "Consumer Cyclical", "exchange": "NASDAQ", "averageChange": -0.09404972724083027 },
+  { "date": "2026-08-28", "sector": "Consumer Defensive", "exchange": "NASDAQ", "averageChange": 0.42516588987551174 },
+  { "date": "2026-08-28", "sector": "Energy", "exchange": "NASDAQ", "averageChange": -1.4123286236367827 },
+  { "date": "2026-08-28", "sector": "Financial Services", "exchange": "NASDAQ", "averageChange": 0.009992534471425785 },
+  { "date": "2026-08-28", "sector": "Healthcare", "exchange": "NASDAQ", "averageChange": -1.304865799217958 },
+  { "date": "2026-08-25", "sector": "Industrials", "exchange": "NASDAQ", "averageChange": -0.18558688760651476 },
+  { "date": "2026-08-25", "sector": "Real Estate", "exchange": "NASDAQ", "averageChange": 1.6557323270546709 },
+  { "date": "2026-08-28", "sector": "Technology", "exchange": "NASDAQ", "averageChange": -0.6192144246915721 },
+  { "date": "2026-08-28", "sector": "Utilities", "exchange": "NASDAQ", "averageChange": -1.6348147744152053 }
+]

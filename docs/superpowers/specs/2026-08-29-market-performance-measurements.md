@@ -82,6 +82,19 @@ So the three lists are fixed at **50 rows**, span every exchange at once, and ca
 extended. That is the opposite of the eight sector/industry paths, which are single-exchange by default and
 must be widened one exchange at a time.
 
+### Each movers list's own ordering, and how the three lists overlap
+
+Measured 2026-08-29: each of the three movers lists returned exactly **50 rows**. `biggest-gainers` is sorted
+**strictly descending** by `changesPercentage`, from `129.5271` down to `9.85667`. `biggest-losers` is sorted
+**most-negative-first** — `-74.76349` down to `-16.6362` — which is the *opposite* direction from
+`biggest-gainers`: ascending numerically rather than descending. Each list is "biggest first" by magnitude, not
+by signed value, and the two sort directions do not generalise from one list to the other.
+
+Symbol overlap across the three lists: `biggest-losers` shared **no symbol** with `biggest-gainers`, and
+exactly **one** symbol, `BTAI`, with `most-actives`. `biggest-gainers` shared **8** symbols with
+`most-actives`: `AEMD, CHAI, CYAB, DUO, FNGR, NCPL, SOXS, XTNT`. So the near-disjointness is a property of the
+losers list specifically, not of the movers lists in general.
+
 ## The historical default window is February 2024
 
 **This is the sharpest trap in the group.** With `sector` or `industry` supplied and `from`/`to` omitted, all
@@ -218,6 +231,12 @@ rather than `0.0`:
 is therefore carrying the meaning "no meaningful aggregate PE" — Biotechnology on the NYSE is not a
 zero-earnings-multiple industry — and it is doing so in-band, where a caller cannot distinguish it from a
 measurement.
+
+**The 359 measured `pe` values split by path and shape, dated 2026-08-29.** 295 came from the industry-PE
+paths (254 snapshot + 41 historical) and 64 from the sector-PE paths (23 snapshot + 41 historical) —
+295 + 64 = 359. All twelve zeros are among the 254 industry-PE **snapshot** rows: none appeared on any
+historical row of either shape, and none on any sector row. So the twelve are twelve of the 254, which is why
+the snapshot qualifier matters whenever the twelve are cited.
 
 `averageChange` ranged `−74.8932` to `+73.6983` across 9,016 values. Both metrics arrive as **unrounded
 float64 expansions**, not as the two- and four-decimal figures the price endpoints return: the longest plain

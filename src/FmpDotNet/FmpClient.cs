@@ -13,7 +13,7 @@ public sealed class FmpClient(
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
-    TechnicalIndicatorsEndpoints technicalIndicators)
+    TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -129,4 +129,11 @@ public sealed class FmpClient(
     /// <see cref="TechnicalIndicatorsEndpoints.GetAsync"/> before trusting a value computed over a narrow
     /// range: four of the nine change with the window, and one of them by more than 200%.</para></summary>
     public TechnicalIndicatorsEndpoints TechnicalIndicators { get; } = technicalIndicators;
+
+    /// <summary>How the market moved — the gainers, losers and most-actives lists, and sector and industry
+    /// performance and valuation, by day or over a range.
+    ///
+    /// <para>Every sector and industry method answers for <b>one exchange</b> and requires it. See
+    /// <see cref="MarketPerformanceEndpoints"/>.</para></summary>
+    public MarketPerformanceEndpoints MarketPerformance { get; } = marketPerformance;
 }

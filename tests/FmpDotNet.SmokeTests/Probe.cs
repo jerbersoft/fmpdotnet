@@ -270,15 +270,16 @@ internal static class Probe
     /// <para><b>The one blind spot, counted rather than assumed.</b> A non-nullable value-typed property reads as
     /// populated whatever arrives, because its default is a legal value — so a field behind one could stop coming
     /// and this would not see it. Every public property across the models was re-classified on 2026-08-29 to find
-    /// out how much of the surface that is: 1615 are nullable, 23 are <c>string</c> defaulting to <c>""</c> and 2
-    /// are collection-typed defaulting to empty, all of which this reads correctly. Exactly <b>seven</b> are
+    /// out how much of the surface that is: 1637 are nullable, 23 are <c>string</c> defaulting to <c>""</c> and 4
+    /// are collection-typed defaulting to empty, all of which this reads correctly. Exactly <b>eight</b> are
     /// non-nullable value types. Three are on <see cref="Models.CalendarResult{T}"/> — <c>RowsReturned</c>,
     /// <c>RequestedFrom</c>, <c>RequestedTo</c> — and the same three names again on
     /// <see cref="Models.EarningsCalendarResult"/>; both are list wrappers rather than a row and neither is ever
-    /// inspected here. The seventh is <see cref="Models.AnalystEstimate.Period"/>, which carries
-    /// <c>[JsonIgnore]</c> — the SDK sets it from the request, so it is not a field FMP sends and there is
-    /// nothing for FMP to stop sending. The check therefore has no blind spot on any wire field the SDK
-    /// models.</para></summary>
+    /// inspected here. <see cref="Models.AnalystEstimate.Period"/> carries <c>[JsonIgnore]</c> — the SDK sets it
+    /// from the request, so it is not a field FMP sends and there is nothing for FMP to stop sending. The eighth
+    /// is <see cref="Models.TechnicalIndicatorBar.Indicator"/>: its column-resolving converter guarantees the
+    /// column is present, since an absent one fails to parse the row rather than leaving this at a default. The
+    /// check therefore has no blind spot on any wire field the SDK models.</para></summary>
     private static bool Populated(object? value) => value switch
     {
         null => false,
@@ -353,6 +354,7 @@ internal static class Probe
                 "senateId" => LiveApi.SenateId,
 
                 "exchange" => LiveApi.Exchange,
+                "industry" => LiveApi.Industry,
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,
@@ -390,6 +392,12 @@ internal static class Probe
         // 1min reaches back 2 days), so a ninety-day sweep range would sit entirely outside them for the
         // shorter bars and record `outcome empty` as this endpoint's healthy baseline.
         if (type == typeof(TechnicalIndicatorTimeframe)) return TechnicalIndicatorTimeframe.OneDay;
+
+        // Technology and not an arbitrary member: every sector was measured present on every snapshot taken
+        // 2026-08-29, so any would answer, but the design's measurement tables are keyed to Technology and a
+        // sweep diff should be readable against them. There is no generic enum fallback in this method — a new
+        // enum parameter with no arm here reaches `throw Unknown(parameter)`, which is the intended behaviour.
+        if (type == typeof(Sector)) return Sector.Technology;
 
         // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
