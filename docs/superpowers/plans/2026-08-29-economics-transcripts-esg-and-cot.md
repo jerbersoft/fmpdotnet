@@ -1311,7 +1311,10 @@ Expected: the whole suite green, and `git diff README.md` showing exactly three 
 - [ ] **Step 16: Commit**
 
 ```bash
+# EconomicIndicators.cs is here because Step 12 promoted TreasuryRate's cref in it, several steps after
+# Step 8 committed the file. A promotion step always dirties a file an earlier commit already took.
 git add src/FmpDotNet/Endpoints/EconomicsEndpoints.cs src/FmpDotNet/EconomicIndicator.cs \
+        src/FmpDotNet/Models/EconomicIndicators.cs \
         tests/FmpDotNet.Tests/EconomicsEndpointsTests.cs \
         tests/FmpDotNet.SmokeTests/LiveApi.cs tests/FmpDotNet.SmokeTests/Probe.cs README.md
 git commit -m "feat: add the three remaining Economics paths to fmp.Economics (#40)"
