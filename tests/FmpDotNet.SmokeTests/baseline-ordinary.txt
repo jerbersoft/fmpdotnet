@@ -2721,6 +2721,17 @@ set DateAdded
 set Period
 set Symbol
 
+[TechnicalIndicators.GetAsync]
+outcome rows
+set Close
+set High
+set Indicator
+set Low
+set Open
+set Timestamp
+set Value
+set Volume
+
 [Transcripts.GetDatesAsync]
 outcome rows
 set Date

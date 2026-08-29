@@ -407,4 +407,8 @@ internal static class LiveApi
     /// <c>standard-industrial-classification-list</c> strips the leading zero on codes below 1000 and this one
     /// has none, so the two agree here.</para></summary>
     public const string SicCode = "3571";
+
+    /// <summary>The period used for the technical-indicator sweep. Ten because that is the period every
+    /// measurement on 2026-08-29 used, so a baseline diff can be read against the design's tables.</summary>
+    public const int IndicatorPeriodLength = 10;
 }
