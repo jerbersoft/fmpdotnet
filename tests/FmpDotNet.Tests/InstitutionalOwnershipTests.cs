@@ -452,12 +452,39 @@ public class InstitutionalOwnershipTests
         Assert.Equal(29, rows[0].PortfolioSize);
         Assert.Equal(1, rows[0].SecuritiesAdded);
         Assert.Equal(1, rows[0].SecuritiesRemoved);
-        Assert.Equal(20, rows[0].AverageHoldingPeriod);
-        Assert.Equal(29, rows[0].AverageHoldingPeriodTop10);
-        Assert.Equal(25, rows[0].AverageHoldingPeriodTop20);
+        Assert.Equal(20m, rows[0].AverageHoldingPeriod);
+        Assert.Equal(29m, rows[0].AverageHoldingPeriodTop10);
+        Assert.Equal(25m, rows[0].AverageHoldingPeriodTop20);
         Assert.Equal(299253556246m, rows[0].MarketValue);
         Assert.Equal(288653953205m, rows[0].PerformanceSinceInception);
         Assert.Equal(-151.8108m, rows[0].PerformanceSinceInceptionRelativeToSP500Percentage);
+    }
+
+    [Fact]
+    public void An_average_holding_period_printed_with_a_decimal_point_still_binds()
+    {
+        // Not a measured wire form — all 1,173 values across five filers arrived as bare integers on
+        // 2026-08-29. This pins the type choice rather than the data. The three averages are means, and `int?`
+        // rejects `20.0` exactly as hard as `20.5`; the context's AllowReadingFromString rescues quoted
+        // *integers* only. So FMP would not have to change these numbers to break the binding, only print them
+        // differently — a serializer setting on their side. Rows A and C are here because the throw was never
+        // confined to the offending row: under `int?` a single bad value aborts the whole array and takes every
+        // row that parsed with it.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"investorName":"A","averageHoldingPeriod":20},
+             {"investorName":"B","averageHoldingPeriod":20.0,"averageHoldingPeriodTop10":20.5,
+              "averageHoldingPeriodTop20":"25.0"},
+             {"investorName":"C","averageHoldingPeriod":25}]
+            """,
+            FmpJsonContext.Default.ListHolderPerformance)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(20m, rows[0].AverageHoldingPeriod);
+        Assert.Equal(20m, rows[1].AverageHoldingPeriod);
+        Assert.Equal(20.5m, rows[1].AverageHoldingPeriodTop10);
+        Assert.Equal(25m, rows[1].AverageHoldingPeriodTop20);
+        Assert.Equal(25m, rows[2].AverageHoldingPeriod);
     }
 
     [Fact]
