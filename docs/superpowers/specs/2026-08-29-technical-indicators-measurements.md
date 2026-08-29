@@ -1,8 +1,10 @@
 # Technical Indicators — measurements
 
 Every fact the design will rest on, with the date it was measured. Measured against the live API on
-**2026-08-29** across **71 captured responses**, 60 of which carried rows: **46,132 rows and 322,924 field
-slots** in total. All ordinary JSON endpoints; no `*-bulk` path was touched.
+**2026-08-29** across **99 captured responses**, 88 of which carried rows: **55,231 rows and 386,617 field
+slots** in total. The last 28 were taken during the design phase to close a gap this file had left — the
+convergence sweep below originally covered `adx` at one period only, which was not enough to support the
+warm-up guidance the design needed. All ordinary JSON endpoints; no `*-bulk` path was touched.
 
 Issue [#35](https://github.com/jerbersoft/fmpdotnet/issues/35) lists nine paths and asks one question up
 front — *do they share one shape parameterised by indicator?* **They do**, and the answer is the first section
@@ -33,7 +35,7 @@ are the same price series with one column swapped.
 
 ## One shape, nine columns
 
-Across all 60 non-empty responses there are **exactly nine distinct key tuples**, and they differ in one
+Across all 88 non-empty responses there are **exactly nine distinct key tuples**, and they differ in one
 element:
 
 ```
@@ -227,6 +229,28 @@ range rather than from a buffer of prior data.
 `ema`, `dema` and `tema` are the insidious cases: wrong by a tenth of a percent, which is small enough to look
 right and large enough to be wrong. `adx` is the loud one, and loud is safer.
 
+### Worst row, not just the newest
+
+The table above compares the newest row. Across all ten rows of that window, against the same dates in the
+1254-row series:
+
+| indicator | worst row | mean |
+|---|---|---|
+| `sma` | 0.0000% | 0.0000% |
+| `wma` | 0.0000% | 0.0000% |
+| `williams` | 0.0000% | 0.0000% |
+| `standardDeviation` | 0.0000% | 0.0000% |
+| `rsi` | **0.0000%** | 0.0000% |
+| `ema` | 0.1616% | 0.0766% |
+| `tema` | 0.1540% | 0.1405% |
+| `dema` | 0.4021% | 0.2302% |
+| `adx` | **276.9981%** | 152.4274% |
+
+`rsi` is the row that matters here. It is a recursive indicator by construction — Wilder smoothing — and it
+came back **exact to every digit on every row**. Whatever history FMP buffers before the requested range is
+sufficient for `rsi` and for the four finite-window functions, and insufficient for the other four. **The
+useful classification is measured, not theoretical.**
+
 ### How much history `adx` needs
 
 `periodLength=10`, `to=2026-08-28`, comparing the newest row against the 1254-row series:
@@ -243,13 +267,47 @@ right and large enough to be wrong. `adx` is the loud one, and loud is safer.
 Convergence to the full-series value needs roughly **270 bars — about 27× `periodLength`**. Five significant
 figures arrive at about 145 bars (~15×).
 
+### The other four, and a second period
+
+The same sweep for every drifting indicator, `to=2026-08-28`, newest row, `periodLength=10`:
+
+| rows in range | `adx` | `ema` | `dema` | `tema` | `rsi` |
+|---|---|---|---|---|---|
+| 10 | 264.377% | 0.026% | 0.106% | 0.119% | 0.000% |
+| 42 | 10.876% | 0.000% | 0.001% | 0.002% | 0.000% |
+| 83 | 0.139% | 0.000% | 0.000% | 0.000% | 0.000% |
+| 145 | 0.001% | 0.000% | 0.000% | 0.000% | 0.000% |
+| 271 | 0.000% | 0.000% | 0.000% | 0.000% | 0.000% |
+
+**`adx` is the outlier by three orders of magnitude.** `ema`, `dema` and `tema` are within 0.12% at the
+narrowest window tested and negligible by 42 bars.
+
+Repeating the `adx` sweep at **`periodLength=20`**, so the threshold is not extrapolated from a single period:
+
+| rows in range | error |
+|---|---|
+| 83 | 35.6145% |
+| 145 | 3.3040% |
+| 271 | 0.0030% |
+| 521 | **exact** |
+| 773 | exact |
+
+Reaching the full-series value took **271 bars at `periodLength=10` and 521 at `periodLength=20`** — about
+**26–27× the period in both cases**. Two periods agreeing on the multiple is the basis for treating it as a
+ratio rather than a constant.
+
+`ema`, `dema` and `tema` were checked at `periodLength=20` as well, over a 42-row window: newest-row error
+0.0046%, 0.0296% and 0.0659%; oldest-row error 0.2967%, 0.7582% and 0.1574%. Small at both periods, and
+largest at the oldest row — the opposite of `adx`, whose 10-row window was worse at the newest row (264%)
+than at the oldest (27%).
+
 The practical guidance this yields: **ask for far more history than you intend to use, and discard the oldest
 part client-side.** That is the opposite of what a caller naturally does, and neither FMP's documentation nor
 its responses hint at it.
 
 ## Types
 
-**Zero nulls.** Across 46,132 rows and 322,924 field slots, not one field was null — including the oldest rows
+**Zero nulls.** Across 55,231 rows and 386,617 field slots, not one field was null — including the oldest rows
 of every series, where a windowed indicator arguably cannot be defined. FMP returns a value there rather than
 `null`.
 
@@ -257,7 +315,7 @@ That says nothing about whether the SDK should type the properties as nullable. 
 field is nullable unless absence is impossible, and 71 responses on one symbol family cannot prove that. **All
 properties nullable**, as everywhere else in this SDK.
 
-`volume` across the whole corpus: **45,887 integral, 245 fractional**. The fractional ones are not confined to
+`volume` across the whole corpus: **54,986 integral, 245 fractional**. The fractional ones are not confined to
 intraday:
 
 | timeframe | fractional volumes |
