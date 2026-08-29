@@ -331,6 +331,12 @@ public partial class EndpointCoverageTests
                 // 1 to 4, because the endpoints validate it. The `_ => 0` default below would be rejected
                 // before a request went out, and the method would silently vanish from the coverage table.
                 "quarter" => 3,
+                // 10, because TechnicalIndicatorsEndpoints.GetAsync validates it, matching the period the
+                // design's measurement tables are keyed to (and LiveApi.IndicatorPeriodLength on the smoke
+                // side), so a coverage diff can be read against them. The `_ => 0` default below would be
+                // rejected by the facade's own guard and the method would silently vanish from the coverage
+                // table — the same reason the `quarter` arm above exists.
+                "periodLength" => 10,
                 _ => 0, // page, part
             };
         }

@@ -381,6 +381,16 @@ internal static class Probe
         // empty` as this endpoint's healthy baseline.
         if (type == typeof(EconomicIndicator)) return EconomicIndicator.Gdp;
 
+        // Sma rather than Adx: the sweep records shape, and Adx over the sweep's ninety-day window is one of
+        // the values this SDK documents as wrong (measured 2026-08-29, 264% out at ten bars). Recording a
+        // known-bad number as a healthy baseline would teach the wrong thing to every future diff.
+        if (type == typeof(TechnicalIndicator)) return TechnicalIndicator.Sma;
+
+        // OneDay rather than an intraday member: the intraday windows are days wide (measured 2026-08-29,
+        // 1min reaches back 2 days), so a ninety-day sweep range would sit entirely outside them for the
+        // shorter bars and record `outcome empty` as this endpoint's healthy baseline.
+        if (type == typeof(TechnicalIndicatorTimeframe)) return TechnicalIndicatorTimeframe.OneDay;
+
         // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
         // sparse. See LiveApi.RangeStart for the measurement that forced this.
@@ -479,6 +489,10 @@ internal static class Probe
                 "page" => 0,
                 "part" => 0,
                 "quarter" => LiveApi.SettledQuarter,
+                // Name-only dispatch, like the other arms above. Safe while
+                // TechnicalIndicatorsEndpoints.GetAsync is the only facade method declaring periodLength; a second
+                // one should narrow on declaring type, the way the from/to arms earlier in this file do.
+                "periodLength" => LiveApi.IndicatorPeriodLength,
                 _ => throw Unknown(parameter),
             };
 

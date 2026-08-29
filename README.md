@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**178 of FMP's 243 endpoint paths are modelled.**
+**187 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -369,6 +369,20 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/revenue-geographic-segmentation` | `GetRevenueByGeographyAsync` |
 | `stable/revenue-product-segmentation` | `GetRevenueByProductAsync` |
 
+`fmp.TechnicalIndicators`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/technical-indicators/adx` | `GetAsync` |
+| `stable/technical-indicators/dema` | `GetAsync` |
+| `stable/technical-indicators/ema` | `GetAsync` |
+| `stable/technical-indicators/rsi` | `GetAsync` |
+| `stable/technical-indicators/sma` | `GetAsync` |
+| `stable/technical-indicators/standarddeviation` | `GetAsync` |
+| `stable/technical-indicators/tema` | `GetAsync` |
+| `stable/technical-indicators/williams` | `GetAsync` |
+| `stable/technical-indicators/wma` | `GetAsync` |
+
 `fmp.Transcripts`
 
 | FMP endpoint | Method |
@@ -381,11 +395,11 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **65 paths
-remain**, of which **58 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **56 paths
+remain**, of which **49 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
 spread the way FMP's own section headings suggest: the largest group is Market Performance (11), then News (10)
-and Fundraisers & DCF (10); ETF & Mutual Funds, Technical Indicators and Indexes & Market Hours carry 9 apiece.
+and Fundraisers & DCF (10); ETF & Mutual Funds and Indexes & Market Hours carry 9 apiece.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -393,9 +407,9 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as seven issues under the epic, six of them actionable, each 9 to 12 paths and each
+That remainder is tracked as six issues under the epic, five of them actionable, each 9 to 12 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 178 modelled plus 65 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 187 modelled plus 56 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
 `fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is

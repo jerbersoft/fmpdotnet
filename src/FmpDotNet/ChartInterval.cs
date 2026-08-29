@@ -17,7 +17,13 @@ namespace FmpDotNet;
 /// <see cref="FifteenMinutes"/> reached back about 45 days while <see cref="ThirtyMinutes"/> reached back about
 /// 30. No explanation is offered here because none was established — inventing one would be worse than recording
 /// the oddity. It does mean a caller who needs six weeks of history should reach for 15-minute bars rather than
-/// assuming the coarser interval keeps more.</para></summary>
+/// assuming the coarser interval keeps more.</para>
+///
+/// <para><b>Not to be merged with <see cref="TechnicalIndicatorTimeframe"/>.</b> That enum carries a seventh
+/// member, <see cref="TechnicalIndicatorTimeframe.OneDay"/>, which is valid on the technical-indicator paths
+/// and answers HTTP 404 with the body <c>[]</c> here — measured 2026-08-27. The two also fail differently:
+/// this one is a path segment, so a wrong value is a 404, while that one is a query value, so a wrong value
+/// is HTTP 400 carrying <c>Invalid timeframe provided.</c></para></summary>
 public enum ChartInterval
 {
     /// <summary>One-minute bars, from <c>stable/historical-chart/1min</c>. Measured 2026-08-27: about
