@@ -26,7 +26,7 @@ public sealed record HolderIndustryBreakdown
     [JsonPropertyName("investorName")] public string? InvestorName { get; init; }
 
     /// <summary>The SIC industry label — <c>"ELECTRONIC COMPUTERS"</c>. The same vocabulary
-    /// <see cref="HolderAnalytics.IndustryTitle"/> and <c>IndustryOwnershipSummary.IndustryTitle</c>
+    /// <see cref="HolderAnalytics.IndustryTitle"/> and <see cref="IndustryOwnershipSummary.IndustryTitle"/>
     /// use.</summary>
     [JsonPropertyName("industryTitle")] public string? IndustryTitle { get; init; }
 

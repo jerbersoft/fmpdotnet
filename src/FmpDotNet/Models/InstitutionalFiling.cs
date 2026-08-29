@@ -93,7 +93,7 @@ public sealed record InstitutionalFiling
 
     /// <summary>The 13F form type — <c>"13F-HR"</c>, <c>"13F-HR/A"</c>, <c>"13F-NT"</c>, <c>"13F-NT/A"</c>.
     ///
-    /// <para><b>Not the same vocabulary as <c>InsiderTrade.FormType</c></b>, which carries <c>"3"</c>,
+    /// <para><b>Not the same vocabulary as <see cref="InsiderTrade.FormType"/></b>, which carries <c>"3"</c>,
     /// <c>"4"</c> and <c>"4/A"</c>. Two field names spelled alike over two disjoint sets of values, which is
     /// why the two records are not unified: doing so would model a coincidence.</para>
     ///

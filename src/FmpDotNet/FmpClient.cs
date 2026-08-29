@@ -56,7 +56,7 @@ public sealed class FmpClient(
     /// performance and industry breakdowns, plus SC 13D/G beneficial-ownership disclosures.
     ///
     /// <para>The 5% stake disclosures FMP files under Insider Trades are here rather than on
-    /// <c>InsiderTrades</c>, because an SC 13D/G is an institutional stake filing and not a Form 4
+    /// <see cref="InsiderTrades"/>, because an SC 13D/G is an institutional stake filing and not a Form 4
     /// transaction. See <see cref="InstitutionalOwnershipEndpoints"/>.</para></summary>
     public InstitutionalOwnershipEndpoints InstitutionalOwnership { get; } = institutionalOwnership;
 

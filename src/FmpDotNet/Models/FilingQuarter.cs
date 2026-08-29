@@ -17,7 +17,7 @@ namespace FmpDotNet.Models;
 public sealed record FilingQuarter
 {
     /// <summary>The quarter end the filing covers — <c>2026-06-30</c>, not the date it was filed. Bare ISO on
-    /// this path; see <c>InstitutionalFiling.FilingDate</c> for the one path in this group that spells
+    /// this path; see <see cref="InstitutionalFiling.FilingDate"/> for the one path in this group that spells
     /// dates differently.</summary>
     [JsonPropertyName("date")]
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]

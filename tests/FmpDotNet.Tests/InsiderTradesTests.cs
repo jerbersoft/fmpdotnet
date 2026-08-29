@@ -268,4 +268,210 @@ public class InsiderTradesTests
         Assert.Empty(Binding.Unbound(latest[0]));
         Assert.Empty(Binding.Unbound(search[0]));
     }
+
+    // ---- insider-trading/statistics -----------------------------------------------------------------------------
+
+    [Fact]
+    public void The_statistics_ratios_and_averages_are_usually_fractional()
+    {
+        // The third place in this slice where a long? would throw, and the only one where fractional is the
+        // normal case rather than the exception. Measured 2026-08-28 over AAPL's 94 quarters:
+        // acquiredDisposedRatio fractional on 87, averageDisposed on 85, averageAcquired on 76. The totals and
+        // the transaction counts were fractional on 0 — which is why those stay int?.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-statistics.AAPL.json"),
+            FmpJsonContext.Default.ListInsiderTradeStatistics)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.Equal(0.175m, rows[1].AcquiredDisposedRatio);
+        Assert.Equal(43314.1429m, rows[1].AverageAcquired);
+        Assert.Equal(23184.5m, rows[1].AverageDisposed);
+        Assert.Equal(1.5m, rows[2].AcquiredDisposedRatio);
+        Assert.Equal(5113.0667m, rows[2].AverageAcquired);
+    }
+
+    [Fact]
+    public void A_quarter_with_no_acquisitions_reports_zeroes_rather_than_nulls()
+    {
+        // Row 1 is 2026 Q3: no acquisitions, three disposals. Every acquired figure is 0 and the ratio is 0 —
+        // all of them FMP's answers, not absences. Binding.Unbound counts zero as populated for this reason,
+        // so the whole-record check still holds.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-statistics.AAPL.json"),
+            FmpJsonContext.Default.ListInsiderTradeStatistics)!;
+
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal(0, rows[0].AcquiredTransactions);
+        Assert.Equal(3, rows[0].DisposedTransactions);
+        Assert.Equal(0m, rows[0].TotalAcquired);
+        Assert.Equal(4317m, rows[0].TotalDisposed);
+        Assert.Equal(0m, rows[0].AcquiredDisposedRatio);
+        Assert.Equal(2026, rows[0].Year);
+        Assert.Equal(3, rows[0].Quarter);
+    }
+
+    [Fact]
+    public void Total_sales_counts_filings_and_total_disposed_counts_shares()
+    {
+        // Two fields whose names read alike and whose units are not. On 2026 Q2: totalSales is 14 and
+        // totalDisposed is 927,380. One counts transactions, the other counts shares — which is why the first
+        // is int? and the second decimal?, and why the doc comments say which is which.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-statistics.AAPL.json"),
+            FmpJsonContext.Default.ListInsiderTradeStatistics)!;
+
+        Assert.Equal(14, rows[1].TotalSales);
+        Assert.Equal(927380m, rows[1].TotalDisposed);
+        Assert.Equal(40, rows[1].DisposedTransactions);
+    }
+
+    [Fact]
+    public async Task The_statistics_call_sends_only_the_symbol()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetStatisticsAsync("AAPL");
+
+        Assert.Equal("/stable/insider-trading/statistics", handler.Requests[0].AbsolutePath);
+        Assert.Contains("symbol=AAPL", handler.Requests[0].Query);
+        Assert.DoesNotContain("limit=", handler.Requests[0].Query);
+        Assert.DoesNotContain("year=", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task A_blank_statistics_symbol_is_refused()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetStatisticsAsync(" "));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_null_statistics_symbol_is_refused_with_ArgumentNullException()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => endpoints.GetStatisticsAsync(null!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    // ---- insider-trading/reporting-name -------------------------------------------------------------------------
+
+    [Fact]
+    public void A_reporting_name_row_is_a_cik_and_a_name_and_nothing_else()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-reporting-name.head.json"),
+            FmpJsonContext.Default.ListInsiderReportingName)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)));
+        Assert.Equal("0001706288", rows[0].ReportingCik);
+        Assert.Equal("Cook Adam T", rows[0].ReportingName);
+    }
+
+    [Fact]
+    public void The_name_lookup_matches_a_prefix_of_a_surname_first_name()
+    {
+        // Measured 2026-08-28 on two queries: name=Cook answered 133 rows, every one beginning "Cook";
+        // name=Apple answered 20, including "Applebach Richard Jr" and "Applebaum Michelle Galanter". So it is
+        // a prefix match against a name EDGAR spells surname-first, not a substring match and not a match on a
+        // company. Searching for a given name finds nothing.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-reporting-name.head.json"),
+            FmpJsonContext.Default.ListInsiderReportingName)!;
+
+        Assert.All(rows, r => Assert.StartsWith("Cook", r.ReportingName));
+    }
+
+    [Fact]
+    public async Task The_reporting_name_call_sends_the_name_as_typed()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.SearchReportingNameAsync("Cook");
+
+        Assert.Equal("/stable/insider-trading/reporting-name", handler.Requests[0].AbsolutePath);
+        Assert.Contains("name=Cook", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task A_null_name_is_refused_with_ArgumentNullException()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => endpoints.SearchReportingNameAsync(null!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_blank_name_is_refused()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.SearchReportingNameAsync(" "));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    // ---- insider-trading-transaction-type -----------------------------------------------------------------------
+
+    [Fact]
+    public void The_transaction_type_list_is_the_eighteen_codes_search_accepts()
+    {
+        // The whole response, not a head: the list IS the answer. These eighteen are what
+        // SearchAsync(transactionType:) draws from, and they are served by an endpoint rather than fixed in the
+        // SDK — which is exactly why InsiderTrade.TransactionType is a string and not an enum. FMP can add a
+        // nineteenth without an SDK release, and a closed enum would also have no member for the blank that
+        // appears on 40 of 1,000 rows.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-transaction-type.json"),
+            FmpJsonContext.Default.ListInsiderTransactionType)!;
+
+        Assert.Equal(18, rows.Count);
+        Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)));
+        Assert.Equal("A-Award", rows[0].TransactionType);
+        Assert.Equal("Z-Trust", rows[^1].TransactionType);
+        Assert.Contains(rows, r => r.TransactionType == "S-Sale");
+        Assert.Contains(rows, r => r.TransactionType == "P-Purchase");
+    }
+
+    [Fact]
+    public void Every_measured_transaction_type_on_a_trade_row_is_in_the_list_or_blank()
+    {
+        // The two fixtures agree, which is the point of modelling the list at all. Measured over 1,000 rows of
+        // insider-trading/latest, every transactionType was drawn from these eighteen or was the empty string.
+        var codes = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-transaction-type.json"),
+            FmpJsonContext.Default.ListInsiderTransactionType)!
+            .Select(r => r.TransactionType ?? "").ToHashSet(StringComparer.Ordinal);
+        var trades = JsonSerializer.Deserialize(
+            Binding.Fixture("insider-trading-latest.head.json"),
+            FmpJsonContext.Default.ListInsiderTrade)!;
+
+        // `?? ""` on both sides rather than `!`: TransactionType is string?, and ToHashSet/Contains over a
+        // nullable element type would warn under TreatWarningsAsErrors. The blank is a legal value here anyway,
+        // which is what the assertion allows for.
+        Assert.All(trades, t => Assert.True(
+            t.TransactionType == "" || codes.Contains(t.TransactionType ?? ""),
+            $"'{t.TransactionType}' is not one of the eighteen codes and is not blank."));
+    }
+
+    [Fact]
+    public async Task The_transaction_type_call_sends_no_parameters_at_all()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetTransactionTypesAsync();
+
+        Assert.Equal("/stable/insider-trading-transaction-type", handler.Requests[0].AbsolutePath);
+        // The path is NOT under insider-trading/ — it is a sibling. Getting that wrong answers 404, which
+        // FmpTransport surfaces as an exception rather than an empty list, so it would be loud; the assertion
+        // above is here so it is loud at build time instead.
+        Assert.DoesNotContain("insider-trading/transaction-type", handler.Requests[0].AbsolutePath);
+    }
 }

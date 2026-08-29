@@ -166,6 +166,6 @@ public sealed record HolderAnalytics
     [JsonPropertyName("changeInPerformance")] public decimal? ChangeInPerformance { get; init; }
 
     /// <summary>Whether FMP includes this position in the filer's aggregate performance figures on
-    /// <c>HolderPerformance</c>.</summary>
+    /// <see cref="HolderPerformance"/>.</summary>
     [JsonPropertyName("isCountedForPerformance")] public bool? IsCountedForPerformance { get; init; }
 }

@@ -10,7 +10,7 @@ namespace FmpDotNet.Endpoints;
 /// on crossing 5% of a class. Its subject is an institutional stake, its fields are voting and dispositive
 /// power, and its reporting person is an entity (<c>"The Vanguard Group"</c>). It shares nothing with a Form 4
 /// transaction but the word "ownership", so it is here rather than on
-/// <c>InsiderTradesEndpoints</c>. <see cref="SecFilingsEndpoints"/> set that precedent, sending three of
+/// <see cref="InsiderTradesEndpoints"/>. <see cref="SecFilingsEndpoints"/> set that precedent, sending three of
 /// its twelve documented paths to <see cref="DirectoryEndpoints"/> and <see cref="SearchEndpoints"/>: this SDK
 /// files a path by what it returns.</para>
 ///
@@ -99,8 +99,8 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// advances <c>page</c> by 1,000 reads a tenth of the holder list and is never told. A larger
     /// <c>limit</c> is therefore refused here rather than passed on to be clamped.</para>
     ///
-    /// <para>Every other paged path in this slice caps at 1,000; see <c>MaxOwnershipPageSize</c> and
-    /// <c>InsiderTradesEndpoints.MaxInsiderTradePageSize</c>.</para></summary>
+    /// <para>Every other paged path in this slice caps at 1,000; see <see cref="MaxOwnershipPageSize"/> and
+    /// <see cref="InsiderTradesEndpoints.MaxInsiderTradePageSize"/>.</para></summary>
     public const int MaxHolderAnalyticsPageSize = 100;
 
     /// <summary>Every institution reporting a position in one symbol for one quarter, with FMP's
@@ -233,7 +233,7 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     }
 
     /// <summary>The largest page <see cref="GetLatestFilingsAsync"/> and
-    /// <c>GetBeneficialOwnershipAsync</c> will ask for, measured rather than documented.
+    /// <see cref="GetBeneficialOwnershipAsync"/> will ask for, measured rather than documented.
     ///
     /// <para>A <b>cap, not a page size</b>, for the same reason as
     /// <see cref="SecFilingsEndpoints.MaxSecFilingPageSize"/>: measured 2026-08-28,
@@ -245,7 +245,7 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// <see cref="MaxHolderAnalyticsPageSize"/>. One constant for the whole group would have let a caller ask
     /// that path for 1,000 rows and receive 100 in silence.</para>
     ///
-    /// <para><b>On <c>GetBeneficialOwnershipAsync</c> this is a sibling-derived bound rather than a
+    /// <para><b>On <see cref="GetBeneficialOwnershipAsync"/> this is a sibling-derived bound rather than a
     /// measured one.</b> No query on that path produced a result set large enough to provoke a clamp — the
     /// widest found was 180 rows, and <c>limit=2000</c> for AAPL answered its whole 99-row set. The guard is
     /// applied there because an unbounded <c>limit</c> is worse than a conservative one, not because 1,000 was

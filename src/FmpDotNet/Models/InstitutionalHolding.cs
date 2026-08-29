@@ -22,7 +22,7 @@ public sealed record InstitutionalHolding
     public LocalDate? Date { get; init; }
 
     /// <summary>The date the filing was submitted. Bare ISO on this path — <c>"2026-08-07"</c> — unlike
-    /// <c>InstitutionalFiling.FilingDate</c>, which carries a dummy midnight and needs a different
+    /// <see cref="InstitutionalFiling.FilingDate"/>, which carries a dummy midnight and needs a different
     /// converter.</summary>
     [JsonPropertyName("filingDate")]
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]
@@ -30,7 +30,7 @@ public sealed record InstitutionalHolding
 
     /// <summary>The date EDGAR accepted the submission. <b>A date, not a timestamp, on this path</b> — measured
     /// 2026-08-28 it carries no time component at all, and was equal to <see cref="FilingDate"/> on every row
-    /// sampled. <c>InstitutionalFiling.AcceptedDate</c> is the one place in this group where it is a real
+    /// sampled. <see cref="InstitutionalFiling.AcceptedDate"/> is the one place in this group where it is a real
     /// clock.</summary>
     [JsonPropertyName("acceptedDate")]
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]

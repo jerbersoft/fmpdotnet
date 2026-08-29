@@ -1,0 +1,56 @@
+[
+  {
+    "transactionType": "A-Award"
+  },
+  {
+    "transactionType": "C-Conversion"
+  },
+  {
+    "transactionType": "D-Return"
+  },
+  {
+    "transactionType": "E-ExpireShort"
+  },
+  {
+    "transactionType": "F-InKind"
+  },
+  {
+    "transactionType": "G-Gift"
+  },
+  {
+    "transactionType": "H-ExpireLong"
+  },
+  {
+    "transactionType": "I-Discretionary"
+  },
+  {
+    "transactionType": "J-Other"
+  },
+  {
+    "transactionType": "L-Small"
+  },
+  {
+    "transactionType": "M-Exempt"
+  },
+  {
+    "transactionType": "O-OutOfTheMoney"
+  },
+  {
+    "transactionType": "P-Purchase"
+  },
+  {
+    "transactionType": "S-Sale"
+  },
+  {
+    "transactionType": "U-Tender"
+  },
+  {
+    "transactionType": "W-Will"
+  },
+  {
+    "transactionType": "X-InTheMoney"
+  },
+  {
+    "transactionType": "Z-Trust"
+  }
+]

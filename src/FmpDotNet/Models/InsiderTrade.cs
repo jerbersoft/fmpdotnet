@@ -45,7 +45,7 @@ public sealed record InsiderTrade
     [JsonPropertyName("companyCik")] public string? CompanyCik { get; init; }
 
     /// <summary>The SEC transaction code — <c>"S-Sale"</c>, <c>"P-Purchase"</c>, <c>"A-Award"</c>. Eighteen
-    /// exist and <c>Endpoints.InsiderTradesEndpoints.GetTransactionTypesAsync</c> serves the list.
+    /// exist and <see cref="Endpoints.InsiderTradesEndpoints.GetTransactionTypesAsync"/> serves the list.
     ///
     /// <para><b><c>""</c> on 40 of 1,000 rows measured 2026-08-28</b>, which is FMP's value and not an absence:
     /// a Form 3 initial statement reports a holding rather than a transaction, so there is no code to send.
