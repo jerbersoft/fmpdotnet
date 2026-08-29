@@ -68,7 +68,8 @@ public sealed record IndustryPerformance
     [JsonPropertyName("date")] public LocalDate? Date { get; init; }
 
     /// <summary>FMP's own industry label — <c>Advertising Agencies</c>, <c>Oil &amp; Gas Midstream</c>. Labels
-    /// carrying <c>&amp;</c> and <c>,</c> were measured to work when URL-encoded on the way out.</summary>
+    /// carrying <c>&amp;</c> and <c>,</c> were measured 2026-08-29 to work when URL-encoded on the way
+    /// out.</summary>
     [JsonPropertyName("industry")] public string? Industry { get; init; }
 
     /// <summary>The exchange this average was taken over. See <see cref="SectorPerformance.Exchange"/>.</summary>
@@ -98,12 +99,9 @@ public sealed record SectorPe
 
     /// <summary>The aggregate price-to-earnings ratio.
     ///
-    /// <para><b>Zero is an in-band sentinel and this SDK does not translate it.</b> Measured 2026-08-29, 12 of
-    /// 254 industry-PE rows read exactly <c>0</c>, emitted as JSON <c>0</c> rather than <c>0.0</c>. Across 359
-    /// measured values <c>pe</c> was never negative and never null, so zero is carrying "no meaningful
-    /// aggregate PE" rather than a measurement — Biotechnology on the NYSE is not a zero-multiple industry.
-    /// The SDK has no way to tell which zeros are real, so it reports what FMP sent. Treat <c>0</c> as "no
-    /// answer", not as a ratio.</para></summary>
+    /// <para>None of the 64 measured sector-PE values read <c>0</c> (measured 2026-08-29). The <c>pe: 0</c>
+    /// sentinel is documented on <see cref="IndustryPe.Pe"/>, where it was actually observed — that is not a
+    /// guarantee this shape can never carry it, only that no measured row has.</para></summary>
     [JsonPropertyName("pe")] public decimal? Pe { get; init; }
 }
 
@@ -111,9 +109,9 @@ public sealed record SectorPe
 /// <c>stable/industry-pe-snapshot</c> and <c>stable/historical-industry-pe</c>.
 ///
 /// <para><see cref="IndustryPerformance"/> with <see cref="Pe"/> in place of
-/// <see cref="IndustryPerformance.AverageChange"/>. The <c>pe: 0</c> sentinel documented on
-/// <see cref="SectorPe.Pe"/> was measured on this shape specifically — all 12 of the zeros are industry
-/// rows.</para></summary>
+/// <see cref="IndustryPerformance.AverageChange"/>. The <c>pe: 0</c> sentinel is documented on
+/// <see cref="Pe"/> below — all 12 measured zeros are industry rows; none appeared among the 64 measured
+/// sector-PE values.</para></summary>
 public sealed record IndustryPe
 {
     /// <summary>The trading day the row describes. See <see cref="SectorPerformance.Date"/>.</summary>
@@ -126,7 +124,13 @@ public sealed record IndustryPe
     /// <summary>The exchange this ratio was taken over. See <see cref="SectorPerformance.Exchange"/>.</summary>
     [JsonPropertyName("exchange")] public string? Exchange { get; init; }
 
-    /// <summary>The aggregate price-to-earnings ratio. <b>Zero is an in-band sentinel</b> — see
-    /// <see cref="SectorPe.Pe"/>, where the measurement is recorded.</summary>
+    /// <summary>The aggregate price-to-earnings ratio.
+    ///
+    /// <para><b>Zero is an in-band sentinel and this SDK does not translate it.</b> Measured 2026-08-29, 12 of
+    /// the 254 industry-PE snapshot rows read exactly <c>0</c>, emitted as JSON <c>0</c> rather than
+    /// <c>0.0</c>. Across 359 measured <c>pe</c> values the field was never negative and never null, so zero
+    /// is carrying "no meaningful aggregate PE" rather than a measurement — Biotechnology on the NYSE is not
+    /// a zero-multiple industry. The SDK has no way to tell which zeros are real, so it reports what FMP
+    /// sent. Treat <c>0</c> as "no answer", not as a ratio.</para></summary>
     [JsonPropertyName("pe")] public decimal? Pe { get; init; }
 }
