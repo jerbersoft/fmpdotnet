@@ -3815,14 +3815,18 @@ public sealed class CotEndpoints(FmpTransport transport)
 `CotEndpoints` now exists. In `src/FmpDotNet/Models/CotReport.cs` and `src/FmpDotNet/Models/CotAnalysis.cs`,
 turn the placeholders left by Task 6 into real cross-references:
 
-- `CotReport.cs`, type summary: `<c>GetReportAsync</c>` →
-  `<see cref="Endpoints.CotEndpoints.GetReportAsync"/>`
-- `CotAnalysis.cs`, type summary: `<c>GetAnalysisAsync</c>` →
-  `<see cref="Endpoints.CotEndpoints.GetAnalysisAsync"/>`
-- `CotAnalysis.cs`, `Symbol` and `CotSymbol` summaries: `<c>GetSymbolsAsync</c>` →
-  `<see cref="Endpoints.CotEndpoints.GetSymbolsAsync"/>` (three occurrences)
+Find them by grep rather than by eye — a count written here has been wrong before, and the grep cannot be:
 
-A build with `-warnaserror` is the check; a wrong cref is CS1574 and fails it.
+```bash
+grep -rn '<c>GetReportAsync</c>\|<c>GetAnalysisAsync</c>\|<c>GetSymbolsAsync</c>' src/
+```
+
+Promote **every** hit to its `<see cref="Endpoints.CotEndpoints.X"/>` form — `GetReportAsync` in
+`CotReport.cs`, `GetAnalysisAsync` and `GetSymbolsAsync` in `CotAnalysis.cs`. Re-run the grep afterwards and
+expect nothing back.
+
+A missed promotion is not a build failure, only a weaker doc, which is why it needs the grep. A *wrong* one is
+CS1574, so `dotnet build src/FmpDotNet -warnaserror` is the other half of the check.
 
 - [ ] **Step 5: Wire the facade**
 
