@@ -1,7 +1,7 @@
 namespace FmpDotNet;
 
-/// <summary>The indicator asked of <c>GetAsync</c>, which selects the path segment after
-/// <c>stable/technical-indicators/</c>.
+/// <summary>The indicator asked of <see cref="Endpoints.TechnicalIndicatorsEndpoints.GetAsync"/>, which selects
+/// the path segment after <c>stable/technical-indicators/</c>.
 ///
 /// <para>All nine paths return the <b>same shape</b> — <c>date, open, high, low, close, volume</c> plus one
 /// column named after the segment. Measured 2026-08-29 across 88 non-empty responses, there were exactly nine

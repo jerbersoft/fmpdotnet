@@ -1,6 +1,7 @@
 namespace FmpDotNet;
 
-/// <summary>The bar size asked of <c>GetAsync</c> on the technical-indicator paths.
+/// <summary>The bar size asked of <see cref="Endpoints.TechnicalIndicatorsEndpoints.GetAsync"/> on the
+/// technical-indicator paths.
 ///
 /// <para><b>Deliberately not <see cref="ChartInterval"/>, and the reason is measured.</b>
 /// <see cref="OneDay"/> is valid here, while <c>stable/historical-chart/1day</c> answered HTTP 404 with the
@@ -51,7 +52,7 @@ public enum TechnicalIndicatorTimeframe
     ///
     /// <para>The one member with no counterpart on <see cref="ChartInterval"/>, and the reason these are two
     /// types. Daily rows carry <c>00:00:00</c> as their time — see the timestamp note on
-    /// <c>TechnicalIndicatorBar</c>.</para></summary>
+    /// <see cref="Models.TechnicalIndicatorBar"/>.</para></summary>
     OneDay,
 }
 

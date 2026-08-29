@@ -489,6 +489,9 @@ internal static class Probe
                 "page" => 0,
                 "part" => 0,
                 "quarter" => LiveApi.SettledQuarter,
+                // Name-only dispatch, like the other arms above. Safe while
+                // TechnicalIndicatorsEndpoints.GetAsync is the only facade method declaring periodLength; a second
+                // one should narrow on declaring type, the way the from/to arms earlier in this file do.
                 "periodLength" => LiveApi.IndicatorPeriodLength,
                 _ => throw Unknown(parameter),
             };
