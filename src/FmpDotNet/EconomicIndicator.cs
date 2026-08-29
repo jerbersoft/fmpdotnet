@@ -1,6 +1,6 @@
 namespace FmpDotNet;
 
-/// <summary>The series asked of <c>GetIndicatorAsync</c>.
+/// <summary>The series asked of <see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>.
 ///
 /// <para><b>Deliberately not a string, and the reason is that the endpoint does not reject a wrong one.</b>
 /// Measured 2026-08-29, <c>stable/economic-indicators?name=gdp</c> answers <b>HTTP 200</b>,
@@ -20,7 +20,8 @@ namespace FmpDotNet;
 ///
 /// <para><b>The whole endpoint is stale.</b> Measured 2026-08-29, the newest row on every one of the 21
 /// non-empty series is dated between 2025-10-01 and 2025-11-26 — nine months earlier. A caller asking for a
-/// window computed from today gets an empty array with HTTP 200. See <c>GetIndicatorAsync</c>.</para></summary>
+/// window computed from today gets an empty array with HTTP 200. See
+/// <see cref="Endpoints.EconomicsEndpoints.GetIndicatorAsync"/>.</para></summary>
 public enum EconomicIndicator
 {
     /// <summary>Nominal gross domestic product, quarterly — wire <c>GDP</c>. Newest row measured 2026-08-29:

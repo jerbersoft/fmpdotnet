@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**166 of FMP's 243 endpoint paths are modelled.**
+**169 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -245,6 +245,9 @@ without a table entry fails the build rather than leaving a page that reads as c
 | FMP endpoint | Method |
 |---|---|
 | `stable/economic-calendar` | `GetEconomicCalendarAsync` |
+| `stable/economic-indicators` | `GetIndicatorAsync` |
+| `stable/market-risk-premium` | `GetMarketRiskPremiumsAsync` |
+| `stable/treasury-rates` | `GetTreasuryRatesAsync` |
 
 `fmp.InsiderTrades`
 

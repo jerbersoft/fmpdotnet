@@ -365,4 +365,90 @@ public class EconomicsEndpointsTests
         Assert.Equal(5.18m, rows[0].Year20);
         Assert.Equal(5.19m, rows[0].Year30);
     }
+
+    [Fact]
+    public async Task The_indicator_name_goes_out_as_the_wire_string_and_never_as_the_member_name()
+    {
+        // The trap this whole enum exists for. Measured 2026-08-29, `name=gdp` answers HTTP 200 with twelve
+        // bytes of `Invalid name` rather than an error status — so a member name reaching the wire is a
+        // failure that looks like a success until the transport tries to parse it.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndicatorAsync(EconomicIndicator.SmoothedUsRecessionProbabilities);
+
+        Assert.Equal("/stable/economic-indicators", handler.Requests[0].AbsolutePath);
+        Assert.Contains("name=smoothedUSRecessionProbabilities", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task The_indicator_range_is_optional_at_both_ends()
+    {
+        // Both ends optional and both omitted from the query when null — not sent as empty. FmpRequest.With
+        // drops a null, and this pins that the method relies on it rather than formatting "".
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndicatorAsync(EconomicIndicator.Gdp);
+
+        Assert.DoesNotContain("from=", handler.Requests[0].Query);
+        Assert.DoesNotContain("to=", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task The_indicator_range_is_sent_in_FMPs_date_form_when_supplied()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndicatorAsync(
+            EconomicIndicator.Gdp, new LocalDate(2025, 9, 1), new LocalDate(2025, 11, 30));
+
+        Assert.Contains("from=2025-09-01", handler.Requests[0].Query);
+        Assert.Contains("to=2025-11-30", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task No_limit_parameter_is_ever_sent_to_the_indicator_path()
+    {
+        // Measured 2026-08-29: `name=CPI&limit=100` returns the same 2 rows as `name=CPI`, byte-identical.
+        // The parameter is accepted and discarded, so offering it would promise filtering FMP does not do —
+        // the same class of defect as the `-by-id` trap closed in #31.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetIndicatorAsync(EconomicIndicator.ConsumerPriceIndex);
+
+        Assert.DoesNotContain("limit=", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task A_backwards_range_is_refused_before_the_request_goes_out(bool treasury)
+    {
+        // FMP answers a backwards range rather than reporting one. Both new date-ranged methods take the same
+        // house guard the calendar already takes.
+        var (endpoints, handler) = Build();
+        var from = new LocalDate(2025, 11, 30);
+        var to = new LocalDate(2025, 9, 1);
+
+        var thrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => treasury
+                ? endpoints.GetTreasuryRatesAsync(from, to)
+                : endpoints.GetIndicatorAsync(EconomicIndicator.Gdp, from, to));
+
+        Assert.Equal("to", thrown.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_two_parameterless_paths_are_requested_where_they_live()
+    {
+        var (endpoints, handler) = Build();
+        await endpoints.GetMarketRiskPremiumsAsync();
+
+        var (treasury, treasuryHandler) = Build();
+        await treasury.GetTreasuryRatesAsync();
+
+        Assert.Equal("/stable/market-risk-premium", handler.Requests[0].AbsolutePath);
+        Assert.Equal("", handler.Requests[0].Query.Replace("?apikey=k", ""));
+        Assert.Equal("/stable/treasury-rates", treasuryHandler.Requests[0].AbsolutePath);
+    }
 }

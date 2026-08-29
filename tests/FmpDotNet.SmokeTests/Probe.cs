@@ -369,6 +369,11 @@ internal static class Probe
         // and the sweep is measuring shape rather than depth.
         if (type == typeof(ChartInterval)) return ChartInterval.OneHour;
 
+        // Gdp and not Inflation or ThreeMonthCertificateOfDepositRate: those two are valid names that answer
+        // a well-formed EMPTY array (measured 2026-08-29), so probing with either would record `outcome
+        // empty` as this endpoint's healthy baseline.
+        if (type == typeof(EconomicIndicator)) return EconomicIndicator.Gdp;
+
         // Dispatched on NAME, not just type, for the reason the string arm is: `from` and `to` both taking
         // SettledWeekday makes every range one day wide, and a one-day window answers zero rows on anything
         // sparse. See LiveApi.RangeStart for the measurement that forced this.
@@ -391,10 +396,24 @@ internal static class Probe
         if (type == typeof(LocalDate))
             return parameter.Name switch
             {
-                // The economic calendar's own doc: "the widest range verified intact here is one week", after a
-                // 6-month window returned FEWER rows than the 3-month window it contains and a -3-to-+12-month
-                // window returned 0. A week sits exactly on that boundary with no margin, so it keeps the day.
+                // The indicator series are frozen in late 2025, so this is the one range in the sweep that is
+                // FIXED rather than relative — see LiveApi.IndicatorRangeStart. The relative window every
+                // other date-ranged probe uses answers an empty array here.
                 "from" when parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
+                    && parameter.Member.Name == nameof(Endpoints.EconomicsEndpoints.GetIndicatorAsync)
+                    => LiveApi.IndicatorRangeStart,
+                "to" when parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
+                    && parameter.Member.Name == nameof(Endpoints.EconomicsEndpoints.GetIndicatorAsync)
+                    => LiveApi.IndicatorRangeEnd,
+
+                // The economic calendar's own doc: "the widest range verified intact here is one week", after
+                // a 6-month window returned FEWER rows than the 3-month window it contains and a
+                // -3-to-+12-month window returned 0. A week sits exactly on that boundary with no margin, so
+                // it keeps the day. NARROWED to this one method in #40: GetTreasuryRatesAsync and
+                // GetIndicatorAsync joined this facade, and a single-day window answers 1 row on the first
+                // and none at all on the second.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.EconomicsEndpoints)
+                    && parameter.Member.Name == nameof(Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync)
                     => LiveApi.SettledWeekday,
 
                 // The earnings calendar is the deliberate exception among the Calendar methods, and this arm

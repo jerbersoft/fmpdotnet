@@ -62,7 +62,7 @@ public sealed record MarketRiskPremium
 ///
 /// <para><b>This is the one path in issue #40's group whose data is current.</b> Measured 2026-08-29 the bare
 /// call answered 2026-05-29 through 2026-08-27; the indicator, ESG-benchmark and COT paths beside it are all
-/// months or years stale. See <c>GetTreasuryRatesAsync</c>.</para></summary>
+/// months or years stale. See <see cref="Endpoints.EconomicsEndpoints.GetTreasuryRatesAsync"/>.</para></summary>
 public sealed record TreasuryRate
 {
     /// <summary>The trading day this curve was observed on. Weekends and holidays are absent rather than

@@ -118,6 +118,30 @@ internal static class LiveApi
     /// window as unsafe on their own endpoints and keep <see cref="SettledWeekday"/>.</para></summary>
     public static LocalDate CalendarWeekStart => SettledWeekday.PlusDays(-6);
 
+    /// <summary>The window <c>GetIndicatorAsync</c> is probed over — <b>fixed dates, deliberately</b>, and
+    /// the only fixed date range in this file.
+    ///
+    /// <para>Every other range here is relative, because <see cref="SettledWeekday"/> records that "a
+    /// hard-coded date is a smoke suite with an expiry". <b>On this endpoint the reasoning inverts: the data
+    /// is what is frozen.</b> Measured 2026-08-29, every one of the 21 <see cref="EconomicIndicator"/> series
+    /// that carries data stops between 2025-10-01 and 2025-11-26, and
+    /// <c>name=GDP&amp;from=2026-05-23&amp;to=2026-08-21</c> — precisely the window
+    /// <see cref="RangeStart"/> and <see cref="SettledWeekday"/> produce — answered a well-formed
+    /// <b>empty array</b> at HTTP 200. A relative window records <c>outcome empty</c> on the day it is
+    /// written and matches that baseline green forever, which is the failure
+    /// <see cref="Exchange"/>, <see cref="Cik"/> and <see cref="FilerCik"/> were each named for.</para>
+    ///
+    /// <para>2025-09-01 … 2025-11-30 is ninety days and answered 1 row for <c>GDP</c>, 2 for <c>CPI</c> and 3
+    /// for <c>federalFunds</c>. Ninety days rather than wider because width does not behave monotonically
+    /// here — the 183-day window containing this one answered nothing, measured the same day.</para>
+    ///
+    /// <para><b>If this probe starts recording <c>outcome empty</c>, FMP has moved its data</b>, and the fix
+    /// is to re-measure the series' extent and move this window — not to widen it.</para></summary>
+    public static readonly LocalDate IndicatorRangeStart = new(2025, 9, 1);
+
+    /// <summary>The end of <see cref="IndicatorRangeStart"/>'s window.</summary>
+    public static readonly LocalDate IndicatorRangeEnd = new(2025, 11, 30);
+
     /// <summary>The last fiscal year complete enough that every company has filed for it.</summary>
     public static int SettledYear => Today.Year - 1;
 
