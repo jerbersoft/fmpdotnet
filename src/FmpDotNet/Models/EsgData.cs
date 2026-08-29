@@ -7,10 +7,10 @@ namespace FmpDotNet.Models;
 /// <summary>One filing's environmental, social and governance scores. From
 /// <c>stable/esg-disclosures</c>.
 ///
-/// <para>One row per SEC filing rather than per period: measured 2026-08-29 on AAPL the rows are 10-Q and
-/// 10-K filings, each carrying the four scores as of that filing. <see cref="Date"/> is the period end and
-/// <see cref="AcceptedDate"/> is when EDGAR accepted it, which is why the two differ by about a
-/// month.</para></summary>
+/// <para>One row per SEC filing rather than per period: measured 2026-08-29 on AAPL's full history the
+/// rows are 10-Q, 10-K and the obsolete 10-K405 filings (see <see cref="FormType"/>), each carrying the
+/// four scores as of that filing. <see cref="Date"/> is the period end and <see cref="AcceptedDate"/> is
+/// when EDGAR accepted it, which is why the two differ by about a month.</para></summary>
 public sealed record EsgDisclosure
 {
     /// <summary>The period end the filing reports.</summary>
@@ -35,7 +35,11 @@ public sealed record EsgDisclosure
     /// <summary>The registrant's name as EDGAR carries it.</summary>
     [JsonPropertyName("companyName")] public string? CompanyName { get; init; }
 
-    /// <summary>The EDGAR form type the scores were taken from — <c>10-Q</c>, <c>10-K</c>.</summary>
+    /// <summary>The EDGAR form type the scores were taken from — <c>10-Q</c>, <c>10-K</c>, or
+    /// <c>10-K405</c>. Not a two-value set: measured 2026-08-29 on AAPL's full 130-row history (1993-12-31
+    /// to 2026-06-27) the breakdown was 98 <c>10-Q</c>, 30 <c>10-K</c> and 2 <c>10-K405</c> — an obsolete
+    /// EDGAR annual-report variant discontinued in 2003 that survives only in the older rows. A caller
+    /// filtering on <c>formType is "10-Q" or "10-K"</c> silently drops those two rows.</summary>
     [JsonPropertyName("formType")] public string? FormType { get; init; }
 
     /// <summary>The environmental score, 0 to 100.</summary>

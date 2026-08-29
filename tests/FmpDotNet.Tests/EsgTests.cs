@@ -157,6 +157,30 @@ public class EsgTests
         Assert.Contains("symbol=AAPL", ratingsHandler.Requests[0].Query);
     }
 
+    [Fact]
+    public async Task An_empty_answer_is_an_empty_list_rather_than_null_on_all_three_methods()
+    {
+        // Pins the "never null" half of each method's doc comment: GetDisclosuresAsync's and
+        // GetRatingsAsync's "empty for a symbol FMP has not scored/rated, not an error", and
+        // GetBenchmarkAsync's "empty for a year FMP has no benchmark for, not an error". Driven through a
+        // bare `[]` response on each; a separate Build() per call since each stub handler answers one
+        // request only.
+        var (disclosures, _) = Build();
+        var (ratings, _) = Build();
+        var (benchmark, _) = Build();
+
+        var disclosureRows = await disclosures.GetDisclosuresAsync("NOSUCH");
+        var ratingRows = await ratings.GetRatingsAsync("NOSUCH");
+        var benchmarkRows = await benchmark.GetBenchmarkAsync(1900);
+
+        Assert.NotNull(disclosureRows);
+        Assert.Empty(disclosureRows);
+        Assert.NotNull(ratingRows);
+        Assert.Empty(ratingRows);
+        Assert.NotNull(benchmarkRows);
+        Assert.Empty(benchmarkRows);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]

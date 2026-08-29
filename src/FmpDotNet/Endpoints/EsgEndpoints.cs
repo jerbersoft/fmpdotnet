@@ -15,8 +15,9 @@ public sealed class EsgEndpoints(FmpTransport transport)
 {
     /// <summary>One company's ESG scores, filing by filing — <c>stable/esg-disclosures</c>.
     ///
-    /// <para>One row per SEC filing, newest first. Measured 2026-08-29, <c>?symbol=AAPL</c> answered rows
-    /// from 10-Q and 10-K filings with all eleven fields populated on each.</para></summary>
+    /// <para>One row per SEC filing, newest first. Measured 2026-08-29, <c>?symbol=AAPL</c> answered 130
+    /// rows across three form types — 10-Q, 10-K and the obsolete 10-K405 — with all eleven fields
+    /// populated on each. See <see cref="EsgDisclosure.FormType"/> for the breakdown.</para></summary>
     /// <param name="symbol">The ticker, as FMP spells it.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>That company's scored filings. Never <see langword="null"/>; empty for a symbol FMP has not
