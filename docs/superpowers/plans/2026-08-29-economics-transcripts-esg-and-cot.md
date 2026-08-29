@@ -1948,8 +1948,15 @@ that clause with:
     /// <see cref="TranscriptsEndpoints.GetTranscriptAsync"/> answers a call in full.</para>
 ```
 
-Read the surrounding paragraph before editing — the exact sentence must be located rather than guessed at,
-and the type-level summary of `DirectoryEndpoints` may carry the same claim.
+Read the surrounding paragraph before editing — the exact sentence must be located rather than guessed at.
+**There are two copies of this claim, not one**, and the second is on a *model* rather than an endpoint:
+`src/FmpDotNet/Models/DirectoryListings.cs`, on `TranscriptSymbol`'s type summary, says "The transcripts
+themselves are not modelled — that is three further paths in the long tail of issue #25." Rewrite both. From
+inside `FmpDotNet.Models` the cref needs the same qualification the surrounding
+`<see cref="Endpoints.DirectoryEndpoints"/>` uses, or it is CS1574. Find every copy rather than trusting this
+list:
+
+    grep -rn "three further paths\|themselves are not modelled" src/
 
 `tests/FmpDotNet.SmokeTests/LiveApi.cs` — `SettledQuarter`'s summary begins "The fiscal quarter the five 13F
 probes ask for". A sixth probe now uses it. Change the opening to:
