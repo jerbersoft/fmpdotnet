@@ -625,3 +625,65 @@ public sealed class PercentSuffixedDecimalJsonConverter : JsonConverter<decimal?
             value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "%");
     }
 }
+
+/// <summary>Maps FMP's three string spellings of absence — <c>""</c>, <c>"N/A"</c> and <c>"NULL"</c> — to
+/// <see langword="null"/>, and passes every other value through verbatim.
+///
+/// <para><b>Absence is spelled four ways in the ETF and mutual-fund group, and one field uses two of
+/// them.</b> Measured 2026-08-30: <c>etf/holdings.asset</c> was <c>""</c> on 17,988 of 35,185 rows (51.1%);
+/// <c>funds/disclosure.lei</c> was <c>"N/A"</c> on 495; <c>funds/disclosure-holders-search</c> sent the literal
+/// four-character string <c>"NULL"</c> on six fields at once — <c>symbol</c>, <c>entityOrgType</c>,
+/// <c>reportingFileNumber</c>, <c>city</c>, <c>zipCode</c>, <c>state</c> — on 26-28% of rows, alongside a real
+/// JSON <see langword="null"/> in <c>address</c> on the same rows. On the widest query taken
+/// (<c>name=Trust</c>, 66,065 rows) <c>className</c> carried <b>both</b> string spellings: <c>"NULL"</c> ×1,278
+/// and <c>"N/A"</c> ×192.</para>
+///
+/// <para><b>What this costs, stated plainly.</b> A caller can no longer tell "FMP sent nothing" from "FMP sent
+/// the word NULL". That is the same trade <see cref="TolerantDecimalJsonConverter"/> already documents, and it
+/// is accepted here for a reason that converter cannot claim: the alternative is asking every caller to know
+/// four spellings, on more than a quarter of the rows, on the fields they most want. A caller who writes
+/// <c>row.State ?? "unknown"</c> without this converter gets the string <c>"NULL"</c> and no warning.</para>
+///
+/// <para><b>Applied to exactly the properties measured to carry a sentinel, and to no others.</b>
+/// <c>etf/holdings.name</c> was populated on all 35,185 rows, so an empty name would be information rather
+/// than absence and that property is left alone — as are <c>title</c>, <c>units</c>, <c>assetCat</c>,
+/// <c>issuerCat</c>, <c>cik</c>, <c>classId</c>, <c>seriesId</c>, <c>entityName</c>, <c>seriesName</c> and
+/// <c>fairValLevel</c>, none of which was ever measured sending one.</para>
+///
+/// <para>A JSON number reads as its literal text rather than throwing. No measured row sent one into these
+/// fields; the branch is there because a number read into a plain <see cref="string"/> property throws under
+/// this SDK's context options, and the throw aborts the <b>whole array</b> — the failure measured on
+/// <see cref="Models.NetWorthDebtDetails.Rate"/> and documented on
+/// <see cref="ScalarAsStringJsonConverter"/>. Two of the fields this converter is applied to are numeric
+/// strings (<c>entityOrgType</c> is <c>"30"</c>, <c>"32"</c>, <c>"33"</c>), so it is a shape FMP could
+/// plausibly unquote.</para></summary>
+public sealed class SentinelStringJsonConverter : JsonConverter<string?>
+{
+    /// <inheritdoc/>
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.String:
+                return reader.GetString() switch
+                {
+                    null or "" or "N/A" or "NULL" => null,
+                    var text => text,
+                };
+            case JsonTokenType.Number:
+                return Encoding.UTF8.GetString(
+                    reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan);
+            case JsonTokenType.Null:
+                return null;
+            default:
+                // Skip() is required, not optional: returning from a StartObject without consuming to its
+                // EndObject desynchronises the reader for every field after it.
+                reader.Skip();
+                return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
+}
