@@ -14,7 +14,7 @@ public sealed class FmpClient(
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
     TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance,
-    EtfAndFundsEndpoints etfAndFunds)
+    EtfAndFundsEndpoints etfAndFunds, IndexesEndpoints indexes)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -146,4 +146,12 @@ public sealed class FmpClient(
     /// <see cref="EtfAndFundsEndpoints.GetEtfHoldingsAsync"/> or
     /// <see cref="EtfAndFundsEndpoints.SearchFundsByNameAsync"/> in a loop.</para></summary>
     public EtfAndFundsEndpoints EtfAndFunds { get; } = etfAndFunds;
+
+    /// <summary>Index membership — the Dow Jones, S&amp;P 500 and Nasdaq 100 member lists, and every change
+    /// FMP records to them.
+    ///
+    /// <para><b>No method here takes a parameter</b>, which is measured rather than incidental, and the
+    /// change feeds cannot be replayed into a membership list. See <see cref="IndexesEndpoints"/> before
+    /// reaching for either.</para></summary>
+    public IndexesEndpoints Indexes { get; } = indexes;
 }

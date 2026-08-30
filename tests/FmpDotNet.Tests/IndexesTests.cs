@@ -1,6 +1,9 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Web;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -284,5 +287,74 @@ public class IndexesTests
             """[{"headQuarter":"Starbase, TX"}]""", FmpJsonContext.Default.ListIndexConstituent)!;
 
         Assert.Equal("Starbase, TX", rows[0].Headquarters);
+    }
+
+    private static (IndexesEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new IndexesEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Each_of_the_six_paths_is_asked_exactly_once_and_none_twice()
+    {
+        // Six methods, six distinct paths, no shared prefix. The failure this catches is a copy-paste
+        // between the three sibling methods, which returns plausible data from the wrong index and would
+        // read as correct in every other test in this file.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetDowJonesConstituentsAsync();
+        await endpoints.GetSp500ConstituentsAsync();
+        await endpoints.GetNasdaqConstituentsAsync();
+        await endpoints.GetDowJonesConstituentChangesAsync();
+        await endpoints.GetSp500ConstituentChangesAsync();
+        await endpoints.GetNasdaqConstituentChangesAsync();
+
+        Assert.Equal(
+            [
+                "/stable/dowjones-constituent",
+                "/stable/sp500-constituent",
+                "/stable/nasdaq-constituent",
+                "/stable/historical-dowjones-constituent",
+                "/stable/historical-sp500-constituent",
+                "/stable/historical-nasdaq-constituent",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath).ToArray());
+        Assert.Equal(6, handler.Requests.Select(u => u.AbsolutePath).Distinct().Count());
+    }
+
+    [Fact]
+    public async Task None_of_the_six_sends_a_query_parameter_except_the_key()
+    {
+        // Measured 2026-08-30: on all six paths, limit, page, symbol and an unknown wibble=42 each returned
+        // a response BYTE-IDENTICAL to the bare request, and on the three historical paths so did
+        // from/to. There is no parameter to offer, so the signatures offer none — and this test fails the
+        // moment somebody adds one back "for convenience", which would be a signature that lies.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetSp500ConstituentsAsync();
+        await endpoints.GetSp500ConstituentChangesAsync();
+
+        Assert.All(handler.Requests, uri =>
+        {
+            var query = HttpUtility.ParseQueryString(uri.Query);
+            Assert.Equal(["apikey"], query.AllKeys.Where(k => k is not null).Select(k => k!).ToArray());
+        });
+    }
+
+    [Fact]
+    public async Task An_empty_response_is_an_empty_list_and_never_null()
+    {
+        var (endpoints, _) = Build("[]");
+
+        Assert.Empty(await endpoints.GetDowJonesConstituentsAsync());
+        Assert.Empty(await endpoints.GetDowJonesConstituentChangesAsync());
     }
 }

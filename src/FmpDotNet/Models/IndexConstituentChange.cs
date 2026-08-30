@@ -17,7 +17,7 @@ namespace FmpDotNet.Models;
 /// carrying a <c>dateFirstAdded</c>, <b>24 have no addition row at all</b> in the matching feed, so replaying
 /// the changes does not reconstruct the membership. That is why the methods are named
 /// <c>…ConstituentChangesAsync</c> rather than <c>GetHistorical…ConstituentsAsync</c>, and why this SDK
-/// offers no as-of-date membership method — see <c>IndexesEndpoints</c>.</para>
+/// offers no as-of-date membership method — see <see cref="FmpDotNet.Endpoints.IndexesEndpoints"/>.</para>
 ///
 /// <para><b>One record serves all three paths.</b> The key tuple was identical on every row of all three
 /// responses, measured 2026-08-30. What differs between them is not the shape but how they spell absence —
