@@ -158,4 +158,5 @@ namespace FmpDotNet.Serialization;
 // IndexConstituent, three change feeds share IndexConstituentChange, and the two market-hours paths were
 // measured byte-equal row for row and share ExchangeMarketHours.
 [JsonSerializable(typeof(List<IndexConstituentChange>))]
+[JsonSerializable(typeof(List<IndexConstituent>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;

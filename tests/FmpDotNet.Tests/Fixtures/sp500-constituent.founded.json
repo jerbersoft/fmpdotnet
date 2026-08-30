@@ -1,0 +1,17 @@
+[
+  { "symbol": "MMM", "name": "3M", "sector": "Industrials", "subSector": "Conglomerates",
+    "headQuarter": "Saint Paul, Minnesota", "dateFirstAdded": "1957-03-04", "cik": "0000066740",
+    "founded": "1902" },
+  { "symbol": "KLAC", "name": "KLA Corporation", "sector": "Technology", "subSector": "Semiconductors",
+    "headQuarter": "Milpitas, California", "dateFirstAdded": "1997-09-30", "cik": "0000319201",
+    "founded": "1975/1977" },
+  { "symbol": "LOW", "name": "Lowe's", "sector": "Consumer Cyclical", "subSector": "Home Improvement",
+    "headQuarter": "Mooresville, North Carolina", "dateFirstAdded": "1984-02-29", "cik": "0000060667",
+    "founded": "1904/1946/1959" },
+  { "symbol": "NSC", "name": "Norfolk Southern Railway", "sector": "Industrials", "subSector": "Railroads",
+    "headQuarter": "Atlanta, Georgia", "dateFirstAdded": "1957-03-04", "cik": "0000702165",
+    "founded": "1881/1894" },
+  { "symbol": "RDDT", "name": "Reddit, Inc.", "sector": "Communication Services",
+    "subSector": "Internet Content & Information", "headQuarter": "San Francisco, CA",
+    "dateFirstAdded": "2026-08-18", "cik": "0001713445", "founded": "2005-06-23" }
+]

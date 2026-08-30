@@ -175,4 +175,114 @@ public class IndexesTests
         Assert.Null(row.DateAdded);
         Assert.Equal(new LocalDate(2026, 6, 29), row.Date);
     }
+
+    [Fact]
+    public void A_constituent_binds_all_eight_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("dowjones-constituent.head.json"),
+            FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.Equal(2, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("GOOGL", rows[0].Symbol);
+        Assert.Equal("Alphabet Inc.", rows[0].Name);
+        Assert.Equal("Communication Services", rows[0].Sector);
+        Assert.Equal("Internet Content & Information", rows[0].SubSector);
+        Assert.Equal("Mountain View, California", rows[0].Headquarters);
+        Assert.Equal(new LocalDate(2026, 6, 29), rows[0].DateFirstAdded);
+        Assert.Equal("0001652044", rows[0].Cik);
+        Assert.Equal("1998-09-04", rows[0].Founded);
+    }
+
+    [Fact]
+    public void Founded_is_a_string_because_the_sp500_sends_bare_years()
+    {
+        // THE test of this task, and the one most likely to be written unfalsifiably. Fed only the Dow
+        // Jones fixture — 30 of 30 rows ISO — it passes against a LocalDate? binding too, which is exactly
+        // how the wrong type gets shipped. It must be fed the S&P forms.
+        //
+        // Measured 2026-08-30 across 635 rows: dowjones-constituent 30/30 ISO, nasdaq-constituent 102/102
+        // ISO, sp500-constituent 23 ISO, 477 BARE YEARS and 3 multi-valued. A LocalDate? binding is correct
+        // on 155 of 635 rows and silently drops 95.4% of the S&P values, because
+        // NullableLocalDateJsonConverter answers an unparseable string with null rather than throwing. The
+        // loss surfaces as an error nowhere.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("sp500-constituent.founded.json"),
+            FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.Equal("1902", rows[0].Founded);                 // a bare year: not a date at all
+        Assert.Equal("1975/1977", rows[1].Founded);            // KLAC — two foundings
+        Assert.Equal("1904/1946/1959", rows[2].Founded);       // LOW — three
+        Assert.Equal("1881/1894", rows[3].Founded);            // NSC — two
+        Assert.Equal("2005-06-23", rows[4].Founded);           // and the ISO form, on the same path
+
+        // Every row carried a value. Under a LocalDate? binding four of these five arrive null, and this
+        // test would not even COMPILE — comparing a LocalDate? to "1902" is a type error — which is the
+        // strongest falsifiability available and the reason the assertions are string comparisons rather
+        // than a null check.
+        Assert.All(rows, r => Assert.False(string.IsNullOrEmpty(r.Founded)));
+    }
+
+    [Fact]
+    public void DateFirstAdded_is_a_real_date_and_is_null_on_seven_nasdaq_rows()
+    {
+        // The other date-shaped field on this record IS a date — ISO on all 628 non-null values measured
+        // 2026-08-30, with no second pattern anywhere. It is null on exactly 7 of 102 Nasdaq rows and never
+        // null on the other two paths, so a non-nullable binding would have thrown on a live Nasdaq call.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("nasdaq-constituent.head.json"),
+            FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.Null(rows[0].DateFirstAdded);
+        Assert.Equal(["DateFirstAdded"], Binding.Unbound(rows[0]));
+        Assert.Equal(new LocalDate(2026, 7, 7), rows[1].DateFirstAdded);
+        Assert.Empty(Binding.Unbound(rows[1]));
+    }
+
+    [Fact]
+    public void Sector_is_a_string_and_not_the_query_side_enum()
+    {
+        // All 11 distinct sector values measured across 635 rows on 2026-08-30 fall inside FmpDotNet.Sector
+        // and none outside it — and the record still binds a string. That enum exists to BUILD a `sector=`
+        // query value; nothing measured says what happens when FMP adds a twelfth sector, and a
+        // response-side enum would turn that into a deserialisation failure on a row the caller could
+        // otherwise have read. Every other response record in this SDK binds `sector` as a string for the
+        // same reason.
+        //
+        // subSector is free text by any reading: 114 distinct values over the same 635 rows.
+        var rows = JsonSerializer.Deserialize(
+            """[{"sector":"Wormholes","subSector":"Traversable"}]""",
+            FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.Equal("Wormholes", rows[0].Sector);
+        Assert.Equal("Traversable", rows[0].SubSector);
+    }
+
+    [Fact]
+    public void The_row_count_is_not_a_company_count()
+    {
+        // sp500-constituent returned 503 rows over 500 distinct CIKs measured 2026-08-30 — FOX/FOXA,
+        // NWS/NWSA and GOOGL/GOOG are the three pairs — and nasdaq-constituent 102 rows over 101. Every
+        // `name` is distinct too, so neither `name` nor `symbol` identifies a company and a caller
+        // de-duplicating on either gets the wrong answer. The record therefore promises no uniqueness; this
+        // test pins that Cik is surfaced, which is the only field that could support one.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("sp500-constituent.founded.json"),
+            FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.All(rows, r => Assert.False(string.IsNullOrEmpty(r.Cik)));
+        Assert.Equal("0000066740", rows[0].Cik);
+    }
+
+    [Fact]
+    public void The_headquarters_key_is_spelled_headQuarter_on_the_wire()
+    {
+        // One wire key, one house name, and the attribute is the only thing joining them. Deleting it binds
+        // nothing, silently — Binding.Unbound above is the only other thing that would notice.
+        var rows = JsonSerializer.Deserialize(
+            """[{"headQuarter":"Starbase, TX"}]""", FmpJsonContext.Default.ListIndexConstituent)!;
+
+        Assert.Equal("Starbase, TX", rows[0].Headquarters);
+    }
 }
