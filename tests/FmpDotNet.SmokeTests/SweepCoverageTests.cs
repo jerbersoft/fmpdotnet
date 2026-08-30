@@ -7,21 +7,22 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All thirteen checks below are pure
+/// still ask it something worth answering.) All fourteen checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining ten pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining eleven pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
 /// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
 /// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
 /// calendars need a narrow one, a single day where five calendars need a week, an issuer's CIK where four
 /// 13F paths need an institutional filer's, a window computed from today where the indicator series stopped in
 /// late 2025, a narrow calendar window inherited by the treasury path that wants a wide one, and a ticker and a
-/// recent range where the COT paths want a futures contract code and a range the frozen data covers — so a
-/// probe that runs without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
+/// recent range where the COT paths want a futures contract code and a range the frozen data covers, and a
+/// ticker where five of nine ETF and mutual-fund paths want a fund and a sixth wants a fund company's name — so
+/// a probe that runs without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
 /// arguments by parameter name, so an endpoint added with a parameter named or typed in a way
@@ -243,6 +244,47 @@ public class SweepCoverageTests
             .SelectMany(m => m.GetParameters())
             .First(p => p.Name == "cik");
         Assert.Equal(LiveApi.Cik, Probe.Argument(issuerKeyed));
+    }
+
+    [Fact]
+    public void The_sweep_asks_the_etf_and_fund_paths_for_a_fund_rather_than_for_apple()
+    {
+        // The synthesiser produces a well-formed symbol for every one of these, so the generic argument check
+        // above passes either way — this is the check that the symbol means the right thing. Measured
+        // 2026-08-30, LiveApi.Symbol (AAPL) answers ZERO rows on all four ETF-only paths AND on
+        // funds/disclosure-dates: five of the nine endpoints would record `outcome empty` as their baseline
+        // and match it every week after.
+        //
+        // QQQ was chosen by measurement rather than by taste: of the ETFs probed it is the smallest that
+        // answers non-empty on all eight symbol paths — 30 / 8 / 107 / 1 / 11 / 28 / 87 rows across the seven
+        // symbol-only paths, plus 101 rows for funds/disclosure at SettledYear/SettledQuarter (2025 Q3) —
+        // for roughly 124 KB in total, against SPY's ~500 KB.
+        var symbolKeyed = Probe.EndpointMethods(typeof(Endpoints.EtfAndFundsEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .Where(p => p.Name == "symbol")
+            .ToList();
+
+        // Eight of the nine methods take a symbol; SearchFundsByNameAsync takes a name. If that number
+        // changes this test should be revisited rather than adjusted.
+        Assert.Equal(8, symbolKeyed.Count);
+        Assert.All(symbolKeyed, p => Assert.Equal(LiveApi.EtfSymbol, Probe.Argument(p)));
+        Assert.NotEqual(LiveApi.Symbol, LiveApi.EtfSymbol);
+
+        // And the ninth gets a fund-company word, not a ticker and not the M&A acquirer name. Measured
+        // 2026-08-30, `name` on this path is a whole-word match against the REGISTRANT name: "Schwab"
+        // answered 211 rows, while a prefix and a two-word phrase both answer zero.
+        var nameKeyed = Probe.EndpointMethods(typeof(Endpoints.EtfAndFundsEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .Single(p => p.Name == "name");
+
+        Assert.Equal(LiveApi.FundNameQuery, Probe.Argument(nameKeyed));
+        Assert.NotEqual(LiveApi.AcquirerNameQuery, LiveApi.FundNameQuery);
+
+        // The AAPL default survives everywhere else: the quote path still gets a ticker.
+        var quoteSymbol = Probe.EndpointMethods(typeof(Endpoints.QuoteEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .First(p => p.Name == "symbol");
+        Assert.Equal(LiveApi.Symbol, Probe.Argument(quoteSymbol));
     }
 
     [Fact]

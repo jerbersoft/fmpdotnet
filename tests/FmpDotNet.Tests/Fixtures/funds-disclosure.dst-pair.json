@@ -1,0 +1,12 @@
+[{"cik":"0000884394","date":"2026-03-31","acceptedDate":"2026-05-28 15:11:03","symbol":"PM",
+  "name":"Philip Morris International Inc","lei":"HL3H1H2BGXWVG3BSWR90",
+  "title":"Philip Morris International Inc","cusip":"718172109","isin":"US7181721090",
+  "balance":18128850,"units":"NS","cur_cd":"USD","valUsd":2997424059,"pctVal":0.4602323652851295,
+  "payoffProfile":"Long","assetCat":"EC","issuerCat":"CORP","invCountry":"US","isRestrictedSec":"N",
+  "fairValLevel":"1","isCashCollateral":"N","isNonCashCollateral":"N","isLoanByFund":"N"},
+ {"cik":"0000884394","date":"2025-12-31","acceptedDate":"2026-02-26 16:49:39","symbol":"BDX",
+  "name":"Becton Dickinson & Co","lei":"ICE2EP6D98PQUILVRZ91","title":"Becton Dickinson & Co",
+  "cusip":"075887109","isin":"US0758871091","balance":3487338,"units":"NS","cur_cd":"USD",
+  "valUsd":676787685.66,"pctVal":0.09505083965591922,"payoffProfile":"Long","assetCat":"EC",
+  "issuerCat":"CORP","invCountry":"US","isRestrictedSec":"N","fairValLevel":"1",
+  "isCashCollateral":"N","isNonCashCollateral":"N","isLoanByFund":"N"}]

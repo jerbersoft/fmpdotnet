@@ -3,7 +3,7 @@
 # The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
 # them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
 #
-# Measured 2026-08-29. Regenerate — after checking the diff is drift and not
+# Measured 2026-08-30. Regenerate — after checking the diff is drift and not
 # a break — with:
 #
 #     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
@@ -1052,6 +1052,117 @@ set FiscalYear
 set Industry
 set IndustryRank
 set Symbol
+
+[EtfAndFunds.GetEtfAssetExposureAsync]
+outcome rows
+set Asset
+set MarketValue
+set SharesNumber
+set Symbol
+set WeightPercentage
+
+[EtfAndFunds.GetEtfCountryWeightingsAsync]
+outcome rows
+set Country
+set WeightPercentage
+
+[EtfAndFunds.GetEtfHoldingsAsync]
+outcome rows
+set Asset
+set Isin
+set MarketValue
+set Name
+set SecurityCusip
+set SharesNumber
+set Symbol
+set UpdatedAt
+set WeightPercentage
+
+[EtfAndFunds.GetEtfInfoAsync]
+outcome rows
+set AssetClass
+set AssetsUnderManagement
+set AvgVolume
+set Description
+set Domicile
+set EtfCompany
+set ExpenseRatio
+set HoldingsCount
+set InceptionDate
+set IsActivelyTrading
+set Isin
+set Name
+set Nav
+set NavCurrency
+set SectorsList
+set SecurityCusip
+set Symbol
+set UpdatedAt
+set Website
+
+[EtfAndFunds.GetEtfSectorWeightingsAsync]
+outcome rows
+set Sector
+set Symbol
+set WeightPercentage
+
+[EtfAndFunds.GetFundDisclosureAsync]
+outcome rows
+set AcceptedDate
+set AssetCategory
+set Balance
+set Cik
+set CurrencyCode
+set Cusip
+set Date
+set FairValueLevel
+set InvestmentCountry
+set IsCashCollateral
+set IsLoanByFund
+set IsNonCashCollateral
+set IsRestrictedSecurity
+set Isin
+set IssuerCategory
+set Lei
+set Name
+set PayoffProfile
+set PercentValue
+set Symbol
+set Title
+set Units
+set ValueUsd
+
+[EtfAndFunds.GetFundDisclosureDatesAsync]
+outcome rows
+set Date
+set Quarter
+set Year
+
+[EtfAndFunds.GetFundHoldersAsync]
+outcome rows
+set Change
+set Cik
+set DateReported
+set Holder
+set SecurityCusip
+set Shares
+set WeightPercent
+
+[EtfAndFunds.SearchFundsByNameAsync]
+outcome rows
+set Address
+set Cik
+set City
+set ClassId
+set ClassName
+set EntityName
+set EntityOrgType
+set ReportingFileNumber
+set SeriesId
+set SeriesName
+set State
+set Symbol
+set ZipCode
 
 [InsiderTrades.GetLatestAsync]
 outcome rows

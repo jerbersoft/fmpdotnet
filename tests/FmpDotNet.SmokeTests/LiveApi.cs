@@ -224,6 +224,25 @@ internal static class LiveApi
     /// endpoint to a single row. MSFT for the same reason AAPL was chosen: it carries every field.</para></summary>
     public const string SecondSymbol = "MSFT";
 
+    /// <summary>The fund every ETF and mutual-fund probe uses.
+    ///
+    /// <para><b>Named rather than falling out of the default string case, because the default is silently
+    /// wrong here in the worst way.</b> <c>Probe.Argument</c> maps any unrecognised string to
+    /// <see cref="Symbol"/>, and measured 2026-08-30 <c>AAPL</c> answers an <b>empty array at HTTP 200</b> on
+    /// all four ETF-only paths and on <c>funds/disclosure-dates</c> — five of the nine endpoints in that group
+    /// would record <c>outcome empty</c> as their healthy baseline and agree with themselves for ever. This is
+    /// the same failure <see cref="Exchange"/> and <see cref="Industry"/> exist to prevent.</para>
+    ///
+    /// <para><b>QQQ was chosen by measurement, not by taste.</b> Of the ETFs probed 2026-08-30 it is the
+    /// smallest that answers non-empty on <b>all eight</b> symbol paths: 30 rows on
+    /// <c>etf/asset-exposure</c>, 8 on <c>etf/country-weightings</c>, 107 on <c>etf/holdings</c>, 1 on
+    /// <c>etf/info</c>, 11 on <c>etf/sector-weightings</c>, 28 on <c>funds/disclosure-dates</c>, 87 on
+    /// <c>funds/disclosure-holders-latest</c>, and 101 on <c>funds/disclosure</c> at
+    /// <see cref="SettledYear"/>/<see cref="SettledQuarter"/>. That is roughly <b>124 KB</b> across the eight,
+    /// against SPY's ~500 KB — and none of these paths can be narrowed, so payload size is the whole
+    /// cost.</para></summary>
+    public const string EtfSymbol = "QQQ";
+
     /// <summary>The exchange the whole-exchange probe asks for.
     ///
     /// <para><b>Named rather than falling out of the default string case, because the default is silently
@@ -402,6 +421,25 @@ internal static class LiveApi
     /// both spell the same word — they are probing different endpoints, and a future change to one must not
     /// silently move the other.</para></summary>
     public const string CompanyNameQuery = "Apple";
+
+    /// <summary>The word the fund share-class search is probed with.
+    ///
+    /// <para>Named rather than falling out of the default string case, for the reason recorded on
+    /// <see cref="Exchange"/>: <c>funds/disclosure-holders-search</c> matches a <b>registrant's</b> name, so
+    /// <c>name=Apple</c> — which is what <see cref="AcquirerNameQuery"/> would supply — answers an empty array
+    /// with HTTP 200.</para>
+    ///
+    /// <para><b>One whole word, because that is all this path matches.</b> Measured 2026-08-30 the match is
+    /// case-insensitive, whole-word and single-word: <c>Vanguard</c> answered 548 rows while <c>Vangua</c> and
+    /// <c>Vanguard Group</c> each answered <b>0</b>. <c>"Schwab"</c> answered <b>211 rows, 90 KB</b> — chosen
+    /// over <c>Vanguard</c> and <c>Fidelity</c> (2,379 rows, 1.0 MB) because the sweep measures shape rather
+    /// than depth, and over <c>Trust</c>, which answers 66,065 rows and 27.4 MB and cannot be
+    /// narrowed.</para>
+    ///
+    /// <para>Its own constant rather than reusing <see cref="CompanyNameQuery"/> or
+    /// <see cref="AcquirerNameQuery"/>, for the reason those two are separate from each other: a change to one
+    /// probe must not silently move another.</para></summary>
+    public const string FundNameQuery = "Schwab";
 
     /// <summary>The EDGAR form type the form-type filing search is probed with.
     ///

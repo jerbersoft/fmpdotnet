@@ -1,0 +1,12 @@
+[{"cik":"0000884394","date":"2026-03-31","acceptedDate":"2026-05-28 15:11:03","symbol":"PM",
+  "name":"Philip Morris International Inc","lei":"HL3H1H2BGXWVG3BSWR90",
+  "title":"Philip Morris International Inc","cusip":"718172109","isin":"US7181721090",
+  "balance":18128850,"units":"NS","cur_cd":"USD","valUsd":2997424059,"pctVal":0.4602323652851295,
+  "payoffProfile":"Long","assetCat":"EC","issuerCat":"CORP","invCountry":"US","isRestrictedSec":"N",
+  "fairValLevel":"1","isCashCollateral":"N","isNonCashCollateral":"N","isLoanByFund":"N"},
+ {"cik":"0000884394","date":"2026-03-31","acceptedDate":"2026-05-28 15:11:03","symbol":"AEP",
+  "name":"American Electric Power Co Inc","lei":"1B4S6S7G0TW5EE83BO58",
+  "title":"American Electric Power Co Inc","cusip":"025537101","isin":"US0255371017",
+  "balance":6301711,"units":"NS","cur_cd":"USD","valUsd":826028277.88,"pctVal":0.1268305520467281,
+  "payoffProfile":"Long","assetCat":"EC","issuerCat":"CORP","invCountry":"US","isRestrictedSec":"N",
+  "fairValLevel":"1","isCashCollateral":"N","isNonCashCollateral":"N","isLoanByFund":"N"}]

@@ -3,18 +3,42 @@ using System.Text;
 
 namespace FmpDotNet.Tests;
 
-/// <summary>Answers every request from a queue of canned responses and records what was asked.</summary>
+/// <summary>Answers every request from a queue of canned responses and records what was asked.
+///
+/// <para>A <see cref="StringContent"/> template is cloned per dispatch, so a single canned response can back
+/// more than one request without the second read hitting the first's disposed content. Any other
+/// <see cref="HttpContent"/> — the streaming payloads a couple of tests hand-build to pin flat-memory
+/// behaviour — is handed out as-is, unmaterialised, exactly as before.</para></summary>
 internal sealed class StubHandler(params HttpResponseMessage[] responses) : HttpMessageHandler
 {
     private int _index;
 
     public List<Uri> Requests { get; } = [];
 
-    protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         Requests.Add(request.RequestUri!);
-        var response = responses[Math.Min(_index++, responses.Length - 1)];
-        return Task.FromResult(response);
+        var template = responses[Math.Min(_index++, responses.Length - 1)];
+        // Only a StringContent template is cloned. Any other HttpContent — the streaming payloads a couple
+        // of tests hand-build to pin flat-memory behaviour — is handed back as the same instance every
+        // dispatch, so a second call against one such response would read content the transport already
+        // disposed. Safe today: every non-StringContent response in this suite is dispatched once.
+        return template.Content is StringContent ? await CloneAsync(template).ConfigureAwait(false) : template;
+    }
+
+    private static async Task<HttpResponseMessage> CloneAsync(HttpResponseMessage template)
+    {
+        var clone = new HttpResponseMessage(template.StatusCode) { ReasonPhrase = template.ReasonPhrase };
+        foreach (var header in template.Headers)
+            clone.Headers.TryAddWithoutValidation(header.Key, header.Value);
+
+        var bytes = await template.Content!.ReadAsByteArrayAsync().ConfigureAwait(false);
+        var content = new ByteArrayContent(bytes);
+        foreach (var header in template.Content.Headers)
+            content.Headers.TryAddWithoutValidation(header.Key, header.Value);
+        clone.Content = content;
+
+        return clone;
     }
 
     public static HttpResponseMessage Json(string body, HttpStatusCode status = HttpStatusCode.OK) =>

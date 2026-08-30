@@ -575,3 +575,198 @@ public sealed class ScalarAsStringJsonConverter : JsonConverter<string?>
     public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
         => writer.WriteStringValue(value);
 }
+
+/// <summary>Reads a percentage FMP sends as a string with a trailing <c>%</c> — <c>"97.52%"</c> — as a
+/// <see cref="decimal"/>.
+///
+/// <para><b>Written for <c>stable/etf/country-weightings</c>, which is the only path measured to do this.</b>
+/// Measured 2026-08-30, all 227 rows returned across 13 ETFs sent <c>weightPercentage</c> as a quoted string
+/// with a trailing <c>%</c> and a varying number of decimals — <c>"97.52%"</c>, <c>"0.1%"</c>, <c>"0%"</c>,
+/// <c>"100%"</c>. Its sibling <c>stable/etf/sector-weightings</c>, one letter apart in the URL, sends the
+/// identically-named field as a <b>bare JSON number</b>. One name, two wire types, two converters.</para>
+///
+/// <para><b>Why not <see cref="TolerantDecimalJsonConverter"/>.</b> That converter parses quoted numbers with
+/// <c>NumberStyles.Float</c>, and <c>decimal.TryParse("97.52%", NumberStyles.Float, …)</c> is
+/// <see langword="false"/> — so it would bind <see langword="null"/> on all 227 rows without failing anything.
+/// <c>NumberStyles.AllowTrailingSign</c> does not help either; <c>%</c> is not a sign.</para>
+///
+/// <para>A bare JSON number passes through unchanged, so a future normalisation of the field costs nothing.
+/// An unparseable value becomes <see langword="null"/> rather than throwing, following this file's standing
+/// convention that one bad value costs one field rather than the whole response.</para></summary>
+public sealed class PercentSuffixedDecimalJsonConverter : JsonConverter<decimal?>
+{
+    /// <inheritdoc/>
+    public override decimal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.Number:
+                return reader.TryGetDecimal(out var value) ? value : null;
+            case JsonTokenType.String:
+                var text = (reader.GetString() ?? "").AsSpan().Trim();
+                if (text.Length > 0 && text[^1] == '%') text = text[..^1];
+                return decimal.TryParse(
+                    text, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+            default:
+                return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, decimal? value, JsonSerializerOptions options)
+    {
+        // The wire form, not a bare number: a caller who serialises a row and hands it back to something that
+        // expects FMP's own shape gets what FMP sent. Read accepts both, so this cannot round-trip lossily.
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(
+            value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "%");
+    }
+}
+
+/// <summary>Maps FMP's three string spellings of absence — <c>""</c>, <c>"N/A"</c> and <c>"NULL"</c> — to
+/// <see langword="null"/>, and passes every other value through verbatim.
+///
+/// <para><b>Absence is spelled four ways in the ETF and mutual-fund group, and one field uses two of
+/// them.</b> Measured 2026-08-30: <c>etf/holdings.asset</c> was <c>""</c> on 17,988 of 35,185 rows (51.1%);
+/// <c>funds/disclosure.lei</c> was <c>"N/A"</c> on 495; <c>funds/disclosure-holders-search</c> sent the literal
+/// four-character string <c>"NULL"</c> on six fields at once — <c>symbol</c>, <c>entityOrgType</c>,
+/// <c>reportingFileNumber</c>, <c>city</c>, <c>zipCode</c>, <c>state</c> — on 26-28% of rows, alongside a real
+/// JSON <see langword="null"/> in <c>address</c> on the same rows. On the widest query taken
+/// (<c>name=Trust</c>, 66,065 rows) <c>className</c> carried <b>both</b> string spellings: <c>"NULL"</c> ×1,278
+/// and <c>"N/A"</c> ×192.</para>
+///
+/// <para><b>What this costs, stated plainly.</b> A caller can no longer tell "FMP sent nothing" from "FMP sent
+/// the word NULL". That is the same trade <see cref="TolerantDecimalJsonConverter"/> already documents, and it
+/// is accepted here for a reason that converter cannot claim: the alternative is asking every caller to know
+/// four spellings, on more than a quarter of the rows, on the fields they most want. A caller who writes
+/// <c>row.State ?? "unknown"</c> without this converter gets the string <c>"NULL"</c> and no warning.</para>
+///
+/// <para><b>Applied to exactly the properties measured to carry a sentinel, and to no others.</b>
+/// <c>etf/holdings.name</c> was populated on all 35,185 rows, so an empty name would be information rather
+/// than absence and that property is left alone — as are <c>title</c>, <c>units</c>, <c>assetCat</c>,
+/// <c>issuerCat</c>, <c>cik</c>, <c>classId</c>, <c>seriesId</c>, <c>entityName</c>, <c>seriesName</c> and
+/// <c>fairValLevel</c>, none of which was ever measured sending one.</para>
+///
+/// <para>A JSON number reads as its literal text rather than throwing. No measured row sent one into these
+/// fields; the branch is there because a number read into a plain <see cref="string"/> property throws under
+/// this SDK's context options, and the throw aborts the <b>whole array</b> — the failure measured on
+/// <see cref="Models.NetWorthDebtDetails.Rate"/> and documented on
+/// <see cref="ScalarAsStringJsonConverter"/>. Two of the fields this converter is applied to are numeric
+/// strings (<c>entityOrgType</c> is <c>"30"</c>, <c>"32"</c>, <c>"33"</c>), so it is a shape FMP could
+/// plausibly unquote.</para></summary>
+public sealed class SentinelStringJsonConverter : JsonConverter<string?>
+{
+    /// <inheritdoc/>
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.String:
+                return reader.GetString() switch
+                {
+                    null or "" or "N/A" or "NULL" => null,
+                    var text => text,
+                };
+            case JsonTokenType.Number:
+                return Encoding.UTF8.GetString(
+                    reader.HasValueSequence ? reader.ValueSequence.ToArray() : reader.ValueSpan);
+            case JsonTokenType.Null:
+                return null;
+            default:
+                // Skip() is required, not optional: returning from a StartObject without consuming to its
+                // EndObject desynchronises the reader for every field after it.
+                reader.Skip();
+                return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
+}
+
+/// <summary>Reads an ISO-8601 timestamp that carries its own <c>Z</c> — <c>"2026-08-29T23:12:50.006Z"</c> — as
+/// an <see cref="Instant"/>.
+///
+/// <para><b>The fourth converter in this file for a wall-clock timestamp string, and the only one that
+/// needs no zone measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
+/// <see cref="NullableEasternInstantJsonConverter"/> both read <c>"uuuu-MM-dd HH:mm:ss"</c>, which carries no
+/// offset, and each had to establish its zone by measuring a DST shift.
+/// <see cref="NullableLocalDateTimeJsonConverter"/> declines to guess where nobody measured. This form states
+/// its offset, so there is nothing to establish.</para>
+///
+/// <para><b>Written for <c>stable/etf/info.updatedAt</c></b>, which sent
+/// <c>uuuu-MM-dd'T'HH:mm:ss.fff'Z'</c> on 33 of 33 rows measured 2026-08-30 — while its sibling
+/// <c>stable/etf/holdings</c> sends the space-separated form for the same concept. One name, two formats, on
+/// two paths one word apart in the URL. Substituting
+/// <see cref="NullableFmpInstantJsonConverter"/> here binds <see langword="null"/> on every row: its pattern
+/// expects a space separator and no <c>Z</c>.</para>
+///
+/// <para>Uses NodaTime's <see cref="InstantPattern.ExtendedIso"/>, which reads the fractional seconds and the
+/// <c>Z</c> and tolerates a value with no fractional part. Null on an unparseable value, like the rest of this
+/// file.</para></summary>
+public sealed class NullableIsoInstantJsonConverter : JsonConverter<Instant?>
+{
+    private static readonly InstantPattern Pattern = InstantPattern.ExtendedIso;
+
+    /// <inheritdoc/>
+    public override Instant? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, Instant? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}
+
+/// <summary>Reads FMP's <c>Y</c>/<c>N</c> string flags as a <see cref="bool"/>.
+///
+/// <para><b>Written for the four <c>is*</c> fields on <c>stable/funds/disclosure</c></b> —
+/// <c>isRestrictedSec</c>, <c>isCashCollateral</c>, <c>isNonCashCollateral</c> and <c>isLoanByFund</c> — which
+/// are quoted single letters and not JSON booleans. <c>stable/etf/info.isActivelyTrading</c>, by contrast, is a
+/// real JSON boolean and must not take this converter.</para>
+///
+/// <para><b>A total function over a measured domain, not a two-case parse.</b> Measured 2026-08-30 over a
+/// 3,861-row sample, two of the four were <c>N</c> on <b>every</b> row — <c>isRestrictedSec</c> and
+/// <c>isNonCashCollateral</c> — so their <c>Y</c> form is inferred from the other two rather than observed.
+/// Anything that is neither <c>Y</c> nor <c>N</c>, including <c>""</c> and <c>"N/A"</c>, becomes
+/// <see langword="null"/>: an unmeasured third value costs one field rather than the whole row, and this
+/// converter never has to be right about a value nobody has seen.</para>
+///
+/// <para>A real JSON <see langword="true"/> or <see langword="false"/> passes through, so a future
+/// normalisation of the field costs nothing. No measured row sent one.</para></summary>
+public sealed class YesNoBooleanJsonConverter : JsonConverter<bool?>
+{
+    /// <inheritdoc/>
+    public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.TokenType switch
+        {
+            JsonTokenType.True => true,
+            JsonTokenType.False => false,
+            JsonTokenType.String => reader.GetString() switch
+            {
+                "Y" => true,
+                "N" => false,
+                _ => null,
+            },
+            _ => null,
+        };
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
+    {
+        // The wire form, not a JSON boolean: a caller who serialises a row gets back what FMP sent. Read
+        // accepts both forms, so this cannot round-trip lossily.
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(value.Value ? "Y" : "N");
+    }
+}

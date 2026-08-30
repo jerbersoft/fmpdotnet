@@ -1,0 +1,9 @@
+[{"symbol":"SPY","asset":"NVDA","name":"NVIDIA CORP","isin":"US67066G1040","securityCusip":"67066G104",
+  "sharesNumber":296861422,"weightPercentage":8.29427804,"marketValue":67656626530,
+  "updatedAt":"2026-08-29 13:47:36"},
+ {"symbol":"SPY","asset":"AAPL","name":"APPLE INC","isin":"US0378331005","securityCusip":"037833100",
+  "sharesNumber":180016521,"weightPercentage":6.94019363,"marketValue":56611327255,
+  "updatedAt":"2026-08-29 13:47:36"},
+ {"symbol":"SPY","asset":"MSFT","name":"MICROSOFT CORP","isin":"US5949181045","securityCusip":"594918104",
+  "sharesNumber":91046214,"weightPercentage":5.63550616,"marketValue":45968959992,
+  "updatedAt":"2026-08-29 13:47:36"}]
