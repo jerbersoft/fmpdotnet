@@ -171,7 +171,9 @@ same wire value, header `10:05:53 GMT`, same 0.76-hour impossibility under Easte
 
 The value is **constant across every row of a response** — 33 of 33 responses had exactly one distinct
 `updatedAt` — so it is a per-symbol cache stamp, not a per-holding one. Staleness varies widely: on the same
-sweep, ARKK read 3.2 hours old and IJH/IJR read 284 hours — **twelve days**.
+sweep, SCHD read 3.2 hours old and IJH/IJR read 284 hours — **twelve days**. SCHD is the same response the
+UTC falsification above turns on: `updatedAt` `2026-08-30 06:51:13` against its own `Date` header
+`Sun, 30 Aug 2026 10:05:35 GMT`.
 
 ## `funds/disclosure`'s `acceptedDate` is the SEC-filings field verbatim, so it is Eastern
 
@@ -446,7 +448,7 @@ Echo fields **are** reliable: `etf/holdings.symbol` was constant across every ro
 
 - `funds/disclosure-dates`: back to **2019-09-30** (SPY), **2019-11-30** (FXAIX), **2020-04-30** (ARKK).
 - `funds/disclosure`: answered for every quarter 2024 Q1 – 2026 Q2 tried; 2026 Q3 and Q4 return `[]`.
-- `etf/holdings` staleness on 2026-08-30 ranged from **3.2 hours** (ARKK) to **284 hours** (IJH, IJR).
+- `etf/holdings` staleness on 2026-08-30 ranged from **3.2 hours** (SCHD) to **284 hours** (IJH, IJR).
 - `funds/disclosure-holders-latest` reporting dates in one response spanned **2019-09-30 to 2026-07-31**.
 
 ## What the design has to decide
