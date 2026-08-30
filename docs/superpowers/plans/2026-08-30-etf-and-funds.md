@@ -87,7 +87,7 @@ literal string instead of `null` — a documented value, not a silent one, and a
 | `tests/FmpDotNet.Tests/EtfAndFundsTests.cs` | binding, traps, converters, request shapes, guards |
 | `tests/FmpDotNet.Tests/Fixtures/etf-*.json`, `funds-*.json` | eleven captures, given verbatim in the tasks below |
 
-**Modified (10)**
+**Modified (11)**
 
 | file | change |
 |---|---|
@@ -101,6 +101,20 @@ literal string instead of `null` — a documented value, not a silent one, and a
 | `tests/FmpDotNet.SmokeTests/SweepCoverageTests.cs` | one pinning test, and the class doc's own counts |
 | `tests/FmpDotNet.SmokeTests/baseline-ordinary.txt` | nine new outcome blocks, from a live run |
 | `README.md` | generated block regenerated; prose arithmetic by hand |
+| `tests/FmpDotNet.Tests/StubHandler.cs` | **added during execution** — clone a `StringContent` response per dispatch |
+
+### The eleventh modified file, added during execution
+
+`tests/FmpDotNet.Tests/StubHandler.cs` is not in the spec's list and was not in this plan's. Task 7's
+`All_nine_paths_are_reachable_and_each_asks_a_different_one` makes nine sequential calls against one canned
+response, and the stub returned the *same* `HttpResponseMessage` instance every dispatch — so the second read
+hit content the transport had already disposed. That is a plan defect: the test was written without checking
+the stub's reuse semantics.
+
+The fix clones only `StringContent`-backed responses per dispatch and hands any other `HttpContent` out
+as-is, which keeps the hand-built streaming payloads the flat-memory tests depend on unmaterialised. Chosen
+over giving the test nine canned responses because the trap is real for every future test that calls twice,
+and hiding it would leave it for the next person to rediscover.
 
 ## `EndpointCoverageTests` needs no new argument arm, and must not be given one
 
