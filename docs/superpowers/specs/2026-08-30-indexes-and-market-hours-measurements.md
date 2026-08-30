@@ -392,3 +392,11 @@ Stated plainly so the design does not quietly assume it.
 
 Both weekday items above are answerable with three calls on any weekday and should be settled before the
 design's converter choices are frozen.
+
+## Weekday addendum — not taken
+
+Attempted 2026-08-30 (Sunday). Both open gaps need a trading day and this was not one, so the three calls were
+not made: they would have re-measured the Sunday state already recorded above at the cost of three requests
+against the key's quota. `ExchangeMarketHours.IsMarketOpen` ships documenting the `true` case as unmeasured,
+and the negative-offset hour form ships covered by pattern test rather than by capture. Both are stated that
+way in the XML docs, which is the honest position and not a defect.
