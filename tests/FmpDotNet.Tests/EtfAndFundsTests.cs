@@ -84,13 +84,21 @@ public class EtfAndFundsTests
     {
         // The trap this pins: `weightPercentage` is a NUMBER on stable/etf/sector-weightings and a
         // "97.52%" STRING on stable/etf/country-weightings, measured 2026-08-30. The two records therefore
-        // carry different converters on identically-named properties. Giving this one the percent converter
-        // would still pass — it reads bare numbers — but giving the country one no converter nulls 227 rows.
-        var row = JsonSerializer.Deserialize(
+        // carry different converters on identically-named properties, and giving the country one no
+        // converter nulls 227 rows.
+        //
+        // The write assertion is the guard. PercentSuffixedDecimalJsonConverter READS a bare number fine, so
+        // a read-only assertion would pass whether or not it were attached here — it could not fail if
+        // someone added it "for consistency". Its Write appends "%", so attaching it would silently change
+        // what this SDK serialises on this path, and that is what the second assertion catches.
+        var rows = JsonSerializer.Deserialize(
             """[{"symbol":"SPY","sector":"Technology","weightPercentage":37.4}]""",
-            FmpJsonContext.Default.ListEtfSectorWeighting)![0];
+            FmpJsonContext.Default.ListEtfSectorWeighting)!;
 
-        Assert.Equal(37.4m, row.WeightPercentage);
+        Assert.Equal(37.4m, rows[0].WeightPercentage);
+        Assert.Contains(
+            "\"weightPercentage\":37.4",
+            JsonSerializer.Serialize(rows, FmpJsonContext.Default.ListEtfSectorWeighting));
     }
 
     [Fact]
@@ -456,11 +464,20 @@ public class EtfAndFundsTests
     {
         // The only genuine JSON boolean in the whole slice — true on all 33 rows measured 2026-08-30. The
         // four `is*` fields on funds/disclosure are `Y`/`N` STRINGS and need YesNoBooleanJsonConverter; this
-        // one does not, and giving it that converter would bind null on every row.
-        var row = JsonSerializer.Deserialize(
-            """[{"isActivelyTrading":false}]""", FmpJsonContext.Default.ListEtfInfo)![0];
+        // one does not.
+        //
+        // The write assertion is the guard. YesNoBooleanJsonConverter READS a real JSON boolean correctly —
+        // its Read maps JsonTokenType.True and False straight through — so a read-only assertion would pass
+        // whether or not it were attached, and could not fail if someone added it. Its Write emits "Y"/"N",
+        // so attaching it would silently change what this SDK serialises, and that is what the second
+        // assertion catches.
+        var rows = JsonSerializer.Deserialize(
+            """[{"isActivelyTrading":false}]""", FmpJsonContext.Default.ListEtfInfo)!;
 
-        Assert.False(row.IsActivelyTrading);
+        Assert.False(rows[0].IsActivelyTrading);
+        Assert.Contains(
+            "\"isActivelyTrading\":false",
+            JsonSerializer.Serialize(rows, FmpJsonContext.Default.ListEtfInfo));
     }
 
     [Fact]
