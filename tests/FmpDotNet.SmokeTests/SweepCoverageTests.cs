@@ -7,22 +7,24 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All fourteen checks below are pure
+/// still ask it something worth answering.) All fifteen checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining eleven pin the literal argument <see cref="Probe.Argument"/> would synthesise for
-/// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully — a
-/// ticker where the endpoint wants a company name, a single day where a filing search needs a wide date range, a
-/// bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and economic
-/// calendars need a narrow one, a single day where five calendars need a week, an issuer's CIK where four
-/// 13F paths need an institutional filer's, a window computed from today where the indicator series stopped in
-/// late 2025, a narrow calendar window inherited by the treasury path that wants a wide one, and a ticker and a
-/// recent range where the COT paths want a futures contract code and a range the frozen data covers, and a
-/// ticker where five of nine ETF and mutual-fund paths want a fund and a sixth wants a fund company's name — so
-/// a probe that runs without error but never asks a meaningful question doesn't slip back in unnoticed.</para>
+/// non-empty. The remaining twelve pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully
+/// — a ticker where the endpoint wants a company name, a single day where a filing search needs a wide date
+/// range, a bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and
+/// economic calendars need a narrow one, a single day where five calendars need a week, an issuer's CIK where
+/// four 13F paths need an institutional filer's, a window computed from today where the indicator series
+/// stopped in late 2025, a narrow calendar window inherited by the treasury path that wants a wide one, a
+/// ticker and a recent range where the COT paths want a futures contract code and a range the frozen data
+/// covers, a ticker where five of nine ETF and mutual-fund paths want a fund and a sixth wants a fund
+/// company's name, and a ninety-day trailing window where the holiday calendar holds three days and a quiet
+/// quarter none — so a probe that runs without error but never asks a meaningful question doesn't slip back
+/// in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
 /// arguments by parameter name, so an endpoint added with a parameter named or typed in a way
