@@ -43,7 +43,12 @@ names what the wire actually does.
   result in restrictions placed on this API Key." No task here needs the bulk sweep.
 - **Never `source` the `.env` file and never `set -a` it.** It has clobbered `PATH` for a whole shell before.
   Extract the one variable into the one command, exactly as Tasks 1 and 9 show.
-- **Line length is 120 characters** in `src/` and `tests/`, matching every file already there.
+- **Line length is 120 characters** in `src/` and `tests/` — the target this slice holds itself to.
+  Measured 2026-08-30: **81 of 229** `.cs` files in `src/` and `tests/` already exceed it, and `Models/`
+  routinely runs to 130-290 (`CotReport.cs:142` is 141, `EnterpriseValues.cs:19` is 290). So an
+  over-long line is a **Minor** finding against house style, not an Important one against repo
+  convention. An earlier wording of this bullet claimed the 120 limit matched every file already
+  there; that was not measured and is not true.
 - **Every bound property is nullable**, including the two booleans. The deserialiser cannot promise a key is
   present. Where no measured row omitted a key, the XML doc says so — the nullability is a statement about the
   deserialiser, not about the data.
