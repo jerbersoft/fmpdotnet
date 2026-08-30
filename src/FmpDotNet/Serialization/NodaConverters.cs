@@ -691,8 +691,8 @@ public sealed class SentinelStringJsonConverter : JsonConverter<string?>
 /// <summary>Reads an ISO-8601 timestamp that carries its own <c>Z</c> — <c>"2026-08-29T23:12:50.006Z"</c> — as
 /// an <see cref="Instant"/>.
 ///
-/// <para><b>The fourth converter in this file for a timestamp, and the only one that needs no zone
-/// measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
+/// <para><b>The fourth converter in this file for a wall-clock timestamp string, and the only one that
+/// needs no zone measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
 /// <see cref="NullableEasternInstantJsonConverter"/> both read <c>"uuuu-MM-dd HH:mm:ss"</c>, which carries no
 /// offset, and each had to establish its zone by measuring a DST shift.
 /// <see cref="NullableLocalDateTimeJsonConverter"/> declines to guess where nobody measured. This form states

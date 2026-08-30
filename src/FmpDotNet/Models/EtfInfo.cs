@@ -56,8 +56,9 @@ public sealed record EtfInfo
     /// <summary>The issuer's brand — <c>"SPDR"</c>, <c>"Vanguard"</c>.</summary>
     [JsonPropertyName("etfCompany")] public string? EtfCompany { get; init; }
 
-    /// <summary>The expense ratio as a <b>fraction</b>, not a percentage: SPY measured <c>0.09</c>, which is
-    /// 0.09% — nine basis points — and not 9%. Measured 2026-08-30.</summary>
+    /// <summary>The expense ratio <b>already expressed as a percentage figure</b>, not as a fraction of one:
+    /// SPY measured <c>0.09</c>, which is 0.09% — nine basis points — and not 9%. Multiplying it by 100 is the
+    /// mistake this sentence exists to prevent. Measured 2026-08-30.</summary>
     [JsonPropertyName("expenseRatio")] public decimal? ExpenseRatio { get; init; }
 
     /// <summary>Assets under management, in <see cref="NavCurrency"/>. SPY measured
