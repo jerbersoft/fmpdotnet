@@ -462,4 +462,192 @@ public class EtfAndFundsTests
 
         Assert.False(row.IsActivelyTrading);
     }
+
+    [Fact]
+    public void A_fund_disclosure_row_binds_all_twenty_three_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure.SPY.2026q1.head.json"),
+            FmpJsonContext.Default.ListFundDisclosure)!;
+
+        Assert.Equal(2, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("0000884394", rows[0].Cik);
+        Assert.Equal(new LocalDate(2026, 3, 31), rows[0].Date);
+        Assert.Equal("PM", rows[0].Symbol);
+        Assert.Equal("Philip Morris International Inc", rows[0].Name);
+        Assert.Equal("HL3H1H2BGXWVG3BSWR90", rows[0].Lei);
+        Assert.Equal("Philip Morris International Inc", rows[0].Title);
+        Assert.Equal("718172109", rows[0].Cusip);
+        Assert.Equal("US7181721090", rows[0].Isin);
+        Assert.Equal(18128850m, rows[0].Balance);
+        Assert.Equal("NS", rows[0].Units);
+        Assert.Equal("USD", rows[0].CurrencyCode);
+        Assert.Equal(2997424059m, rows[0].ValueUsd);
+        Assert.Equal(0.4602323652851295m, rows[0].PercentValue);
+        Assert.Equal("Long", rows[0].PayoffProfile);
+        Assert.Equal("EC", rows[0].AssetCategory);
+        Assert.Equal("CORP", rows[0].IssuerCategory);
+        Assert.Equal("US", rows[0].InvestmentCountry);
+        Assert.False(rows[0].IsRestrictedSecurity);
+        Assert.Equal("1", rows[0].FairValueLevel);
+        Assert.False(rows[0].IsCashCollateral);
+        Assert.False(rows[0].IsNonCashCollateral);
+        Assert.False(rows[0].IsLoanByFund);
+    }
+
+    [Fact]
+    public void The_accepted_date_reads_as_eastern_on_both_sides_of_the_dst_boundary()
+    {
+        // The zone was established by identity against a field this SDK already measured against EDGAR.
+        // Twenty NPORT-P filings across two CIKs and ten quarters were looked up a second time through
+        // stable/sec-filings-search/cik, whose acceptedDate was measured Eastern against EDGAR on 2026-08-26.
+        // Twelve of nineteen matched TO THE SECOND (10 of 10 for the SPY trust); the largest residual across
+        // all nineteen was 90 SECONDS, against 3,600 for an hour. Nothing in that distribution is an offset.
+        //
+        // The two rows below are the heads of two different measured responses, chosen so that a FIXED offset
+        // fails one of them: 15:11:03 on 2026-05-28 is EDT (UTC-4) and 16:49:39 on 2026-02-26 is EST (UTC-5).
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure.dst-pair.json"),
+            FmpJsonContext.Default.ListFundDisclosure)!;
+
+        Assert.Equal(Instant.FromUtc(2026, 5, 28, 19, 11, 3), rows[0].AcceptedDate);   // EDT, -4
+        Assert.Equal(Instant.FromUtc(2026, 2, 26, 21, 49, 39), rows[1].AcceptedDate);  // EST, -5
+
+        // And it is NOT the UTC reading that EtfHolding.UpdatedAt takes on the identical wire shape.
+        Assert.NotEqual(Instant.FromUtc(2026, 5, 28, 15, 11, 3), rows[0].AcceptedDate);
+    }
+
+    [Theory]
+    [InlineData("\"Y\"", true)]
+    [InlineData("\"N\"", false)]
+    [InlineData("\"X\"", null)]
+    [InlineData("\"\"", null)]
+    [InlineData("\"N/A\"", null)]
+    [InlineData("null", null)]
+    public void Yes_and_no_become_true_and_false_and_everything_else_becomes_null(string wire, bool? expected)
+    {
+        // The four `is*` fields are Y/N STRINGS, not JSON booleans — unlike EtfInfo.IsActivelyTrading, which
+        // is a real one. Written as a total function over a measured domain rather than a two-case parse:
+        // isRestrictedSec and isNonCashCollateral were `N` on all 3,861 rows sampled 2026-08-30, so their `Y`
+        // form is unmeasured, and an unexpected third value must cost one field rather than the whole row.
+        // The hole is not last in the object — see the note in Every_spelling_of_absence_reads_as_null.
+        var row = JsonSerializer.Deserialize(
+            $$"""[{"isLoanByFund":{{wire}},"cik":"0000884394"}]""",
+            FmpJsonContext.Default.ListFundDisclosure)![0];
+
+        Assert.Equal(expected, row.IsLoanByFund);
+    }
+
+    [Fact]
+    public void The_disclosure_sentinels_become_null_and_the_row_survives()
+    {
+        // A verbatim measured row: ARKK's 2026 Q1 BRERA HOLDINGS PLC WTS line, which carries THREE spellings
+        // of absence at once — a real JSON null in `symbol`, "N/A" in `lei`, and "" in `isin`.
+        var row = JsonSerializer.Deserialize(
+            """
+            [{"cik":"0001579982","date":"2026-01-30","acceptedDate":"2026-03-31 14:42:43","symbol":null,
+              "name":"BRERA HOLDINGS PLC WTS","lei":"N/A","title":"BRERA HOLDINGS PLC WTS",
+              "cusip":"000000000","isin":"","balance":4316257,"units":"NS","cur_cd":"USD",
+              "valUsd":4359419.57,"pctVal":0.06529031951794871,"payoffProfile":"Long","assetCat":"EC",
+              "issuerCat":"CORP","invCountry":"US","isRestrictedSec":"N","fairValLevel":"1",
+              "isCashCollateral":"N","isNonCashCollateral":"N","isLoanByFund":"N"}]
+            """,
+            FmpJsonContext.Default.ListFundDisclosure)![0];
+
+        Assert.Null(row.Symbol);   // a real JSON null — 176 of 11,522 rows measured 2026-08-30
+        Assert.Null(row.Lei);      // "N/A" — 495 rows
+        Assert.Null(row.Isin);     // ""    — 149 rows
+        Assert.Equal("BRERA HOLDINGS PLC WTS", row.Name);
+        Assert.Equal("000000000", row.Cusip);
+        Assert.Equal(4316257m, row.Balance);
+    }
+
+    [Fact]
+    public void The_currency_code_can_be_usdusd_and_binds_verbatim()
+    {
+        // A verbatim measured row: FXAIX's 2026 Q1 S&P 500 E-mini futures line. `cur_cd` was USDUSD on 29 of
+        // 3,861 rows measured 2026-08-30 — all of them equity-futures lines (units NC, assetCat DE,
+        // payoffProfile N/A). A doubled currency code, not a typo in this test. It is recorded so that a
+        // strict three-letter currency type is never chosen for this field: this row would not fit it.
+        var row = JsonSerializer.Deserialize(
+            """
+            [{"symbol":"ESH6","name":"CHICAGO MERCANTILE EXCH INC","cusip":"N/A","isin":"",
+              "title":"S and P500 EMINI FUT MAR26 ESH6","balance":2288,"units":"NC","cur_cd":"USDUSD",
+              "valUsd":5282494.16,"pctVal":0.0007040306952703573,"payoffProfile":"N/A","assetCat":"DE"}]
+            """,
+            FmpJsonContext.Default.ListFundDisclosure)![0];
+
+        Assert.Equal("USDUSD", row.CurrencyCode);
+        Assert.Equal("NC", row.Units);
+        Assert.Null(row.Cusip);           // "N/A"
+        Assert.Null(row.PayoffProfile);   // "N/A" — 123 rows measured
+        Assert.Equal("DE", row.AssetCategory);
+    }
+
+    [Fact]
+    public void The_fair_value_level_stays_a_string_and_takes_no_sentinel_converter()
+    {
+        // fairValLevel is a quoted integer — "1" x3,829, "2" x28, "3" x4, measured 2026-08-30 — and it is a
+        // CODE, not a quantity: an ASC 820 fair-value level. Parsing it to int? would invent a numeric
+        // identity the source does not have. It carries NO sentinel converter, because no measured row ever
+        // sent a sentinel here — see the ruling recorded at the top of this plan.
+        var row = JsonSerializer.Deserialize(
+            """[{"fairValLevel":"3"}]""", FmpJsonContext.Default.ListFundDisclosure)![0];
+
+        Assert.Equal("3", row.FairValueLevel);
+    }
+
+    [Fact]
+    public void A_fund_disclosure_date_binds_all_three_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-dates.SPY.json"),
+            FmpJsonContext.Default.ListFundDisclosureDate)!;
+
+        Assert.Equal(8, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].Date);
+        Assert.Equal(2026, rows[0].Year);
+        Assert.Equal(2, rows[0].Quarter);
+    }
+
+    [Fact]
+    public void The_disclosure_dates_come_back_newest_first()
+    {
+        // Measured 2026-08-30 over 127 rows: `date` descending on every response. Nothing re-sorts this
+        // client-side, so the <returns> doc reports the measured order and this test holds it honest.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-dates.SPY.json"),
+            FmpJsonContext.Default.ListFundDisclosureDate)!;
+
+        Assert.Equal(rows.Select(r => r.Date).OrderByDescending(d => d), rows.Select(r => r.Date));
+    }
+
+    [Fact]
+    public void The_year_and_quarter_are_calendar_quarters_of_a_fiscal_period_end()
+    {
+        // The two fields do not describe the same calendar the `date` does. `date` is the fund's FISCAL
+        // period-end — FXAIX reports on 2026-05-31 and 2025-11-30, ARKK on 2026-01-30 — while `year` and
+        // `quarter` count CALENDAR quarters, so FXAIX's May date reads as Q2. Verified over 80 rows across
+        // three funds 2026-08-30: year == date.Year and quarter == (date.Month - 1) / 3 + 1, with ZERO
+        // mismatches. That relation is what makes the two fields usable as arguments to
+        // GetFundDisclosureAsync, which is the only reason a caller reads them.
+        //
+        // The rows below are verbatim measured captures from FXAIX and ARKK.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"date":"2026-05-31","year":2026,"quarter":2},
+             {"date":"2026-02-28","year":2026,"quarter":1},
+             {"date":"2025-11-30","year":2025,"quarter":4},
+             {"date":"2026-01-30","year":2026,"quarter":1}]
+            """,
+            FmpJsonContext.Default.ListFundDisclosureDate)!;
+
+        foreach (var row in rows)
+        {
+            Assert.Equal(row.Date!.Value.Year, row.Year);
+            Assert.Equal((row.Date.Value.Month - 1) / 3 + 1, row.Quarter);
+        }
+    }
 }

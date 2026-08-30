@@ -727,3 +727,46 @@ public sealed class NullableIsoInstantJsonConverter : JsonConverter<Instant?>
         else writer.WriteStringValue(Pattern.Format(value.Value));
     }
 }
+
+/// <summary>Reads FMP's <c>Y</c>/<c>N</c> string flags as a <see cref="bool"/>.
+///
+/// <para><b>Written for the four <c>is*</c> fields on <c>stable/funds/disclosure</c></b> —
+/// <c>isRestrictedSec</c>, <c>isCashCollateral</c>, <c>isNonCashCollateral</c> and <c>isLoanByFund</c> — which
+/// are quoted single letters and not JSON booleans. <c>stable/etf/info.isActivelyTrading</c>, by contrast, is a
+/// real JSON boolean and must not take this converter.</para>
+///
+/// <para><b>A total function over a measured domain, not a two-case parse.</b> Measured 2026-08-30 over a
+/// 3,861-row sample, two of the four were <c>N</c> on <b>every</b> row — <c>isRestrictedSec</c> and
+/// <c>isNonCashCollateral</c> — so their <c>Y</c> form is inferred from the other two rather than observed.
+/// Anything that is neither <c>Y</c> nor <c>N</c>, including <c>""</c> and <c>"N/A"</c>, becomes
+/// <see langword="null"/>: an unmeasured third value costs one field rather than the whole row, and this
+/// converter never has to be right about a value nobody has seen.</para>
+///
+/// <para>A real JSON <see langword="true"/> or <see langword="false"/> passes through, so a future
+/// normalisation of the field costs nothing. No measured row sent one.</para></summary>
+public sealed class YesNoBooleanJsonConverter : JsonConverter<bool?>
+{
+    /// <inheritdoc/>
+    public override bool? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => reader.TokenType switch
+        {
+            JsonTokenType.True => true,
+            JsonTokenType.False => false,
+            JsonTokenType.String => reader.GetString() switch
+            {
+                "Y" => true,
+                "N" => false,
+                _ => null,
+            },
+            _ => null,
+        };
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, bool? value, JsonSerializerOptions options)
+    {
+        // The wire form, not a JSON boolean: a caller who serialises a row gets back what FMP sent. Read
+        // accepts both forms, so this cannot round-trip lossily.
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(value.Value ? "Y" : "N");
+    }
+}

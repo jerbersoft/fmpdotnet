@@ -150,4 +150,6 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<EtfHolding>))]
 [JsonSerializable(typeof(List<EtfAssetExposure>))]
 [JsonSerializable(typeof(List<EtfInfo>))]
+[JsonSerializable(typeof(List<FundDisclosure>))]
+[JsonSerializable(typeof(List<FundDisclosureDate>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
