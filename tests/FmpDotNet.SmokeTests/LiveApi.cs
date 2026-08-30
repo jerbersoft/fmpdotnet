@@ -143,6 +143,29 @@ internal static class LiveApi
     /// <summary>The end of <see cref="IndicatorRangeStart"/>'s window.</summary>
     public static readonly LocalDate IndicatorRangeEnd = new(2025, 11, 30);
 
+    /// <summary>The window the holiday probe asks for — <b>fixed dates, deliberately</b>, and the third of
+    /// three fixed ranges in this file. See <see cref="IndicatorRangeStart"/> and <see cref="CotRangeStart"/>
+    /// for the other two, each frozen for a different reason.
+    ///
+    /// <para><b>Fixed because the calendar is SPARSE, not because the data stops.</b> That is what makes this
+    /// one different from the other two. Measured 2026-08-30, <c>holidays-by-exchange</c> answers about 13
+    /// rows a year for NASDAQ, so the ninety-day window <see cref="RangeStart"/> and
+    /// <see cref="SettledWeekday"/> produce — 2026-05-23 to 2026-08-21 — contains exactly <b>three</b>
+    /// holidays, and a quiet quarter takes it to zero. An endpoint that answers zero records
+    /// <c>outcome empty</c> with no properties and matches that baseline every week thereafter, which is the
+    /// silent green <see cref="Exchange"/> and <see cref="Cik"/> were each named for.</para>
+    ///
+    /// <para>2024-01-01 to 2026-12-31 answered <b>38 rows</b> on 2026-08-30, spanning full closures and the
+    /// early-close shape, so the baseline records both of the record's two states rather than one.</para>
+    ///
+    /// <para><b>The <c>from</c> bound is EXCLUSIVE upstream</b> — measured 2026-08-30, the window is
+    /// <c>(from, to]</c> and a single-day range always answers an empty array. A relative range narrowed to
+    /// a day here would be empty by construction, not by drift.</para></summary>
+    public static readonly LocalDate HolidayRangeStart = new(2024, 1, 1);
+
+    /// <summary>The end of <see cref="HolidayRangeStart"/>'s window. Inclusive upstream.</summary>
+    public static readonly LocalDate HolidayRangeEnd = new(2026, 12, 31);
+
     /// <summary>The contract the two dated COT probes ask for — <c>NG</c>, Natural Gas.
     ///
     /// <para><b>Named rather than falling out of the default string case, for the reason recorded on

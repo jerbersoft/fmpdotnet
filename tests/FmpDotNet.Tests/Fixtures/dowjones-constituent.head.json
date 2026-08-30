@@ -1,0 +1,8 @@
+[
+  { "symbol": "GOOGL", "name": "Alphabet Inc.", "sector": "Communication Services",
+    "subSector": "Internet Content & Information", "headQuarter": "Mountain View, California",
+    "dateFirstAdded": "2026-06-29", "cik": "0001652044", "founded": "1998-09-04" },
+  { "symbol": "NVDA", "name": "Nvidia", "sector": "Technology", "subSector": "Semiconductors",
+    "headQuarter": "Santa Clara, CA", "dateFirstAdded": "2024-11-08", "cik": "0001045810",
+    "founded": "1993-04-05" }
+]

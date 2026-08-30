@@ -1,0 +1,8 @@
+[
+  { "symbol": "ADBE", "name": "Adobe Inc.", "sector": "Technology",
+    "subSector": "Software - Infrastructure", "headQuarter": "San Jose, CA", "dateFirstAdded": null,
+    "cik": "0000796343", "founded": "1982-12-01" },
+  { "symbol": "SPCX", "name": "Space Exploration Technologies Corp.", "sector": "Industrials",
+    "subSector": "Aerospace & Defense", "headQuarter": "Starbase, TX", "dateFirstAdded": "2026-07-07",
+    "cik": "0001181412", "founded": "2002-03-14" }
+]

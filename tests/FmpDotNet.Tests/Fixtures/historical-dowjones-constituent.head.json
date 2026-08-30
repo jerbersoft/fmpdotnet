@@ -1,0 +1,11 @@
+[
+  { "dateAdded": "June 29, 2026", "addedSecurity": "Alphabet Inc.", "removedTicker": "VZ",
+    "removedSecurity": "Verizon Communications Inc.", "date": "2026-06-29", "symbol": "GOOGL",
+    "reason": "To better reflect today's U.S. economy, where AI, cloud computing, and digital services play a much larger role than traditional telecommunications." },
+  { "dateAdded": "November 8, 2024", "addedSecurity": "Sherwin-Williams", "removedTicker": "DOW",
+    "removedSecurity": "Dow Inc.", "date": "2024-11-07", "symbol": "SHW",
+    "reason": "Market capitalization change" },
+  { "dateAdded": "August 31, 2020", "addedSecurity": "", "removedTicker": "PFE",
+    "removedSecurity": "Pfizer Inc", "date": "2020-08-31", "symbol": "PFE",
+    "reason": "Market capitalization change" }
+]

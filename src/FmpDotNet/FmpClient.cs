@@ -14,7 +14,7 @@ public sealed class FmpClient(
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
     TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance,
-    EtfAndFundsEndpoints etfAndFunds)
+    EtfAndFundsEndpoints etfAndFunds, IndexesEndpoints indexes, MarketHoursEndpoints marketHours)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -146,4 +146,21 @@ public sealed class FmpClient(
     /// <see cref="EtfAndFundsEndpoints.GetEtfHoldingsAsync"/> or
     /// <see cref="EtfAndFundsEndpoints.SearchFundsByNameAsync"/> in a loop.</para></summary>
     public EtfAndFundsEndpoints EtfAndFunds { get; } = etfAndFunds;
+
+    /// <summary>Index membership — the Dow Jones, S&amp;P 500 and Nasdaq 100 member lists, and every change
+    /// FMP records to them.
+    ///
+    /// <para><b>No method here takes a parameter</b>, which is measured rather than incidental, and the
+    /// change feeds cannot be replayed into a membership list. See <see cref="IndexesEndpoints"/> before
+    /// reaching for either.</para></summary>
+    public IndexesEndpoints Indexes { get; } = indexes;
+
+    /// <summary>When exchanges trade — opening and closing bells for 81 exchanges, and the holiday calendar
+    /// behind them.
+    ///
+    /// <para>Its own facade rather than a corner of <see cref="Indexes"/>: the two groups share no path
+    /// prefix, no parameter, no record and no concept. Read
+    /// <see cref="MarketHoursEndpoints.GetHolidaysAsync"/> before passing a date range — the window is
+    /// half-open and a single-day range always answers empty.</para></summary>
+    public MarketHoursEndpoints MarketHours { get; } = marketHours;
 }

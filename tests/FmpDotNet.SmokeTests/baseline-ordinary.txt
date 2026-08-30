@@ -1164,6 +1164,69 @@ set State
 set Symbol
 set ZipCode
 
+[Indexes.GetDowJonesConstituentChangesAsync]
+outcome rows
+set AddedSecurity
+set Date
+set DateAdded
+set Reason
+set RemovedSecurity
+set RemovedTicker
+set Symbol
+
+[Indexes.GetDowJonesConstituentsAsync]
+outcome rows
+set Cik
+set DateFirstAdded
+set Founded
+set Headquarters
+set Name
+set Sector
+set SubSector
+set Symbol
+
+[Indexes.GetNasdaqConstituentChangesAsync]
+outcome rows
+set AddedSecurity
+set Date
+set DateAdded
+set Reason
+set RemovedSecurity
+set RemovedTicker
+set Symbol
+
+[Indexes.GetNasdaqConstituentsAsync]
+outcome rows
+set Cik
+set DateFirstAdded
+set Founded
+set Headquarters
+set Name
+set Sector
+set SubSector
+set Symbol
+
+[Indexes.GetSp500ConstituentChangesAsync]
+outcome rows
+set AddedSecurity
+set Date
+set DateAdded
+set Reason
+set RemovedSecurity
+set RemovedTicker
+set Symbol
+
+[Indexes.GetSp500ConstituentsAsync]
+outcome rows
+set Cik
+set DateFirstAdded
+set Founded
+set Headquarters
+set Name
+set Sector
+set SubSector
+set Symbol
+
 [InsiderTrades.GetLatestAsync]
 outcome rows
 set AcquisitionOrDisposition
@@ -1416,6 +1479,49 @@ set TotalInvested
 set TotalInvestedChange
 set TotalPuts
 set TotalPutsChange
+
+[MarketHours.GetAllExchangesAsync]
+outcome rows
+set ClosingAdditional
+set ClosingAdditionalText
+set ClosingHour
+set ClosingHourText
+set Exchange
+set IsClosedToday
+set IsMarketOpen
+set Name
+set OpeningAdditional
+set OpeningAdditionalText
+set OpeningHour
+set OpeningHourText
+set Timezone
+
+[MarketHours.GetExchangeAsync]
+outcome rows
+set ClosingHourText
+set Exchange
+set IsClosedToday
+set IsMarketOpen
+set Name
+set OpeningHourText
+set Timezone
+null ClosingAdditional
+null ClosingAdditionalText
+null ClosingHour
+null OpeningAdditional
+null OpeningAdditionalText
+null OpeningHour
+
+[MarketHours.GetHolidaysAsync]
+outcome rows
+set AdjustedCloseTime
+set ClosesEarly
+set Date
+set Exchange
+set IsClosed
+set IsFullyClosed
+set Name
+null AdjustedOpenTime
 
 [MarketPerformance.GetBiggestGainersAsync]
 outcome rows

@@ -1,0 +1,4 @@
+[
+  { "exchange": "NASDAQ", "name": "NASDAQ", "openingHour": "CLOSED", "closingHour": "CLOSED",
+    "timezone": "America/New_York", "isMarketOpen": false }
+]

@@ -1,0 +1,10 @@
+[
+  { "exchange": "NASDAQ", "date": "2026-07-03", "name": "Independence Day", "isClosed": true,
+    "adjOpenTime": null, "adjCloseTime": null },
+  { "exchange": "NASDAQ", "date": "2026-12-24", "name": "Christmas", "isClosed": null,
+    "adjOpenTime": null, "adjCloseTime": "13:00", "isFullyClosed": false },
+  { "exchange": "NASDAQ", "date": "2015-11-27", "name": "Thanksgiving", "isClosed": null,
+    "adjOpenTime": null, "adjCloseTime": "13:30", "isFullyClosed": false },
+  { "exchange": "NASDAQ", "date": "2032-12-31", "name": "Christmas", "isClosed": true,
+    "adjOpenTime": null, "adjCloseTime": null }
+]

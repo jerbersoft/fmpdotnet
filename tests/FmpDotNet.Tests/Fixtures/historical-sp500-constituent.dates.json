@@ -1,0 +1,15 @@
+[
+  { "dateAdded": "August 05, 2026", "addedSecurity": "Ferguson plc", "removedTicker": "EA",
+    "removedSecurity": "Electronic Arts ", "date": "2026-08-05", "symbol": "FERG",
+    "reason": "Electronic Arts was acquired by an investor consortium consisting of Saudi Arabia's Public Investment Fund (PIF), Silver Lake, and Affinity Partners." },
+  { "dateAdded": "July 9, 2025", "addedSecurity": "Datadog", "removedTicker": "JNPR",
+    "removedSecurity": "Juniper Networks", "date": "2025-07-08", "symbol": "DDOG",
+    "reason": "S&P 500 constituent Hewlett Packard Enterprise Co. acquired Juniper Networks." },
+  { "dateAdded": "July 7, 2003", "addedSecurity": "Prologis", "removedTicker": null,
+    "removedSecurity": null, "date": "2003-07-17", "symbol": "PLD",
+    "reason": "Market capitalization changes" },
+  { "dateAdded": "March 04, 1957", "addedSecurity": "St. Regis Corp", "removedTicker": "",
+    "removedSecurity": "", "date": "1957-03-03", "symbol": "SRT", "reason": "" },
+  { "dateAdded": "March 04, 1957", "addedSecurity": "American Electric Power", "removedTicker": "",
+    "removedSecurity": "", "date": "1957-03-04", "symbol": "AEP", "reason": "" }
+]

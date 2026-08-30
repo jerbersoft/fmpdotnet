@@ -154,4 +154,13 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<FundDisclosureDate>))]
 [JsonSerializable(typeof(List<FundHolder>))]
 [JsonSerializable(typeof(List<FundShareClass>))]
+// Indexes and Market Hours (#38). FOUR entries for nine paths, not nine: three constituent paths share
+// IndexConstituent, three change feeds share IndexConstituentChange, and the two market-hours paths were
+// measured byte-equal row for row and share ExchangeMarketHours.
+[JsonSerializable(typeof(List<IndexConstituentChange>))]
+[JsonSerializable(typeof(List<IndexConstituent>))]
+// ONE entry serves both market-hours methods: GetExchangeAsync deserialises the same list type and takes
+// its first row, following CompanyEndpoints.GetProfileAsync.
+[JsonSerializable(typeof(List<ExchangeMarketHours>))]
+[JsonSerializable(typeof(List<ExchangeHoliday>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
