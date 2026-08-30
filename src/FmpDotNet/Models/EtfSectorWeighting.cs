@@ -26,7 +26,7 @@ public sealed record EtfSectorWeighting
 
     /// <summary>The sector name — <c>"Basic Materials"</c>, <c>"Technology"</c>, <c>"Cash &amp; Others"</c>.
     ///
-    /// <para>A free string rather than the SDK's <see cref="Sector"/> enum, and the reason is
+    /// <para>A free string rather than the SDK's <see cref="FmpDotNet.Sector"/> enum, and the reason is
     /// <c>Cash &amp; Others</c>: it is not a sector, it is the residual, and it appeared on all 13 ETFs
     /// measured 2026-08-30. An enum here would have to invent a member for it or lose the row.</para></summary>
     [JsonPropertyName("sector")] public string? Sector { get; init; }

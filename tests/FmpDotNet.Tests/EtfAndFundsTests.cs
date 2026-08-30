@@ -583,6 +583,42 @@ public class EtfAndFundsTests
     }
 
     [Fact]
+    public void The_futures_row_nulls_its_name_its_cusip_and_its_country()
+    {
+        // QQQ's own 2026 Q1 CME E-Mini futures line, verbatim: SIX sentinels at once — "N/A" in `name`,
+        // `lei`, `cusip`, `payoffProfile` and `invCountry`, and "" in `isin`. Measured 2026-08-30, `name` and
+        // `invCountry` each carried "N/A" on 120 of 11,522 rows, 1.0%.
+        //
+        // This test exists because Name and InvestmentCountry were the only two converter-bearing properties
+        // on this record whose converter could be deleted with the whole suite still green: every other
+        // sentinel assertion here was fed a value SentinelStringJsonConverter leaves alone, so it passed
+        // whether or not the converter was attached.
+        var row = JsonSerializer.Deserialize(
+            """
+            [{"cik":"0001067839","date":"2026-03-31","acceptedDate":"2026-05-28 06:53:06","symbol":"NQM6",
+              "name":"N/A","lei":"N/A","title":"CME E-Mini NASDAQ 100 Index Future","cusip":"N/A","isin":"",
+              "balance":700,"units":"NC","cur_cd":"USDUSD","valUsd":-12012436.8,
+              "pctVal":-0.0032285713047007715,"payoffProfile":"N/A","assetCat":"DE","issuerCat":"OTHER",
+              "invCountry":"N/A","isRestrictedSec":"N","fairValLevel":"1","isCashCollateral":"N",
+              "isNonCashCollateral":"N","isLoanByFund":"N"}]
+            """,
+            FmpJsonContext.Default.ListFundDisclosure)![0];
+
+        Assert.Null(row.Name);
+        Assert.Null(row.InvestmentCountry);
+        Assert.Null(row.Cusip);
+        Assert.Null(row.Lei);
+        Assert.Null(row.Isin);
+        Assert.Null(row.PayoffProfile);
+
+        // The row survives its own absences: everything beside the sentinels still binds.
+        Assert.Equal("NQM6", row.Symbol);
+        Assert.Equal(700m, row.Balance);
+        Assert.Equal(-12012436.8m, row.ValueUsd);
+        Assert.Equal("1", row.FairValueLevel);
+    }
+
+    [Fact]
     public void The_currency_code_can_be_usdusd_and_binds_verbatim()
     {
         // A verbatim measured row: FXAIX's 2026 Q1 S&P 500 E-mini futures line. `cur_cd` was USDUSD on 29 of

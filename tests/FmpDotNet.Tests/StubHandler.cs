@@ -19,6 +19,10 @@ internal sealed class StubHandler(params HttpResponseMessage[] responses) : Http
     {
         Requests.Add(request.RequestUri!);
         var template = responses[Math.Min(_index++, responses.Length - 1)];
+        // Only a StringContent template is cloned. Any other HttpContent — the streaming payloads a couple
+        // of tests hand-build to pin flat-memory behaviour — is handed back as the same instance every
+        // dispatch, so a second call against one such response would read content the transport already
+        // disposed. Safe today: every non-StringContent response in this suite is dispatched once.
         return template.Content is StringContent ? await CloneAsync(template).ConfigureAwait(false) : template;
     }
 

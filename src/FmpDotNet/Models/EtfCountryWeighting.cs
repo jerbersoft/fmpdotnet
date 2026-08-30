@@ -5,7 +5,7 @@ namespace FmpDotNet.Models;
 
 /// <summary>One country's share of an ETF's holdings, from <c>stable/etf/country-weightings</c>.
 ///
-/// <para><b>Two keys, and no symbol.</b> Measured 2026-08-30 over 226 rows across 13 ETFs, the shape is exactly
+/// <para><b>Two keys, and no symbol.</b> Measured 2026-08-30 over 227 rows across 13 ETFs, the shape is exactly
 /// <c>country</c> and <c>weightPercentage</c> — the response never names the fund it describes, unlike
 /// <see cref="EtfSectorWeighting"/>, which echoes <c>symbol</c> on every row. A caller holding rows from two
 /// funds has to keep track of which is which.</para>
@@ -23,7 +23,7 @@ public sealed record EtfCountryWeighting
     /// <summary>The country name, as FMP spells it — <c>"United States"</c>, <c>"United Kingdom"</c>. Not an
     /// ISO code, and <c>"Other"</c> is one of the values, so this is not a country vocabulary a caller can
     /// map exhaustively. Nullable because the deserialiser cannot promise a key is present, not because any
-    /// measured row omitted it: no row was missing a key across all 226 measured 2026-08-30.</summary>
+    /// measured row omitted it: no row was missing a key across all 227 measured 2026-08-30.</summary>
     [JsonPropertyName("country")] public string? Country { get; init; }
 
     /// <summary>The share of the fund, as a percentage — <c>97.52</c> means 97.52%.

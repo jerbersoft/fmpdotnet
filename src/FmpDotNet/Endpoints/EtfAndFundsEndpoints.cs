@@ -12,7 +12,7 @@ namespace FmpDotNet.Endpoints;
 ///   <item><description><b>There is no pagination anywhere in this group.</b> <c>limit</c> and <c>page</c>
 ///     were ignored on every path — verified by byte-identical responses with and without them, including a
 ///     17,252-row, 4.9 MB <c>etf/holdings?symbol=BND</c>. There are therefore no walk helpers and no page
-///     ceilings here, unlike three other facades on this client, and <b>no way to ask for less than
+///     ceilings here, unlike elsewhere on this client, and <b>no way to ask for less than
 ///     everything</b>. Two methods can return a great deal: <see cref="GetEtfHoldingsAsync"/> and
 ///     <see cref="SearchFundsByNameAsync"/>, whose <c>name=Trust</c> query returned <b>66,065 rows and
 ///     27.4 MB</b>.</description></item>
