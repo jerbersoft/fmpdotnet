@@ -476,6 +476,16 @@ internal static class Probe
                 "to" when parameter.Member.DeclaringType == typeof(Endpoints.CotEndpoints)
                     => LiveApi.CotRangeEnd,
 
+                // The holiday calendar is sparse — about 13 NASDAQ rows a year, measured 2026-08-30 — so the
+                // ninety-day window the generic arm gives holds THREE holidays and a quiet quarter holds
+                // none. FIXED rather than relative for that reason; see LiveApi.HolidayRangeStart. Narrowed
+                // by declaring type because MarketHoursEndpoints has exactly one date-ranged method and a
+                // second one should be measured before it inherits this window.
+                "from" when parameter.Member.DeclaringType == typeof(Endpoints.MarketHoursEndpoints)
+                    => LiveApi.HolidayRangeStart,
+                "to" when parameter.Member.DeclaringType == typeof(Endpoints.MarketHoursEndpoints)
+                    => LiveApi.HolidayRangeEnd,
+
                 // Everything else -- the three sec-filings-search paths this dispatch was written for, plus the
                 // per-symbol chart and market-cap methods -- is unaffected by width and keeps the 90-day range.
                 "from" => LiveApi.RangeStart,

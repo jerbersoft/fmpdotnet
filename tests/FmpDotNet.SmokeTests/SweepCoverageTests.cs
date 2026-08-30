@@ -351,4 +351,39 @@ public class SweepCoverageTests
             "A COT window wider than a quarter makes `analysis` and `report` disagree at `analysis`'s 13-row "
             + "cap, which reads as drift and is not.");
     }
+
+    [Fact]
+    public void The_sweep_asks_the_holiday_path_for_a_window_with_holidays_in_it()
+    {
+        // The generic LocalDate arm gives `from` LiveApi.RangeStart and `to` LiveApi.SettledWeekday — a
+        // ninety-day trailing window. Measured 2026-08-30 against the 446-row NASDAQ corpus, that window
+        // (2026-05-23 .. 2026-08-21) holds THREE holidays and a quiet quarter takes it to zero, which
+        // records `outcome empty` as this endpoint's healthy baseline and matches itself green for ever.
+        //
+        // This is the THIRD fixed range in the sweep, after LiveApi.IndicatorRangeStart and
+        // LiveApi.CotRangeStart, and it is fixed for its own reason: not that the data stops, but that the
+        // holiday calendar is SPARSE — about 13 rows a year for NASDAQ — so a window has to be years wide
+        // before it is safely non-empty. 2024-01-01 .. 2026-12-31 returned 38 rows on 2026-08-30.
+        var holidays = typeof(Endpoints.MarketHoursEndpoints)
+            .GetMethod(nameof(Endpoints.MarketHoursEndpoints.GetHolidaysAsync))!;
+
+        Assert.Equal(LiveApi.Exchange, Probe.Argument(holidays.GetParameters()[0]));
+        Assert.Equal(LiveApi.HolidayRangeStart, Probe.Argument(holidays.GetParameters()[1]));
+        Assert.Equal(LiveApi.HolidayRangeEnd, Probe.Argument(holidays.GetParameters()[2]));
+        Assert.NotEqual(LiveApi.RangeStart, Probe.Argument(holidays.GetParameters()[1]));
+
+        // Wide enough to be safe, and the SDK's own documented boundary rule means a one-day range would
+        // answer empty no matter what falls on that day.
+        Assert.True(
+            NodaTime.Period.Between(LiveApi.HolidayRangeStart, LiveApi.HolidayRangeEnd).Years >= 2,
+            "The holiday calendar is sparse; a window narrower than two years is one quiet stretch away "
+            + "from an empty baseline.");
+
+        // And the single-exchange path keeps the existing arm — no new string constant was needed, because
+        // NASDAQ answered 200 on both market-hours paths on 2026-08-30.
+        var single = typeof(Endpoints.MarketHoursEndpoints)
+            .GetMethod(nameof(Endpoints.MarketHoursEndpoints.GetExchangeAsync))!;
+
+        Assert.Equal(LiveApi.Exchange, Probe.Argument(single.GetParameters()[0]));
+    }
 }
