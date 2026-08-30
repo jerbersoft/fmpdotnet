@@ -67,7 +67,8 @@ public sealed record IndexConstituent
     /// entirely on the path:</para>
     ///
     /// <list type="bullet">
-    ///   <item><description><c>dowjones-constituent</c> — ISO <c>uuuu-MM-dd</c> on <b>30 of 30</b> rows.</description></item>
+    ///   <item><description><c>dowjones-constituent</c> — ISO <c>uuuu-MM-dd</c> on
+    ///     <b>30 of 30</b> rows.</description></item>
     ///   <item><description><c>nasdaq-constituent</c> — ISO on <b>102 of 102</b> rows.</description></item>
     ///   <item><description><c>sp500-constituent</c> — ISO on 23, a <b>bare year</b> on <b>477 of 503</b>,
     ///     and three values that are neither.</description></item>

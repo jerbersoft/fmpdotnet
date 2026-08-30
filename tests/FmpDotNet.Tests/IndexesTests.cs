@@ -260,7 +260,7 @@ public class IndexesTests
     }
 
     [Fact]
-    public void The_row_count_is_not_a_company_count()
+    public void Cik_is_the_only_field_that_could_identify_a_company()
     {
         // sp500-constituent returned 503 rows over 500 distinct CIKs measured 2026-08-30 — FOX/FOXA,
         // NWS/NWSA and GOOGL/GOOG are the three pairs — and nasdaq-constituent 102 rows over 101. Every
