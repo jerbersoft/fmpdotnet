@@ -358,6 +358,11 @@ internal static class Probe
                 "cusip" => LiveApi.Cusip,
                 "isin" => LiveApi.Isin,
                 "query" => LiveApi.SearchQuery,
+                // funds/disclosure-holders-search matches a fund REGISTRANT's name — "Vanguard", "Schwab" —
+                // not a company being acquired. Its own constant for the reason the InsiderTrades and
+                // Congress arms above have theirs.
+                "name" when parameter.Member.DeclaringType == typeof(Endpoints.EtfAndFundsEndpoints)
+                    => LiveApi.FundNameQuery,
                 "name" => LiveApi.AcquirerNameQuery,
                 "company" => LiveApi.CompanyNameQuery,
                 "formType" => LiveApi.FormType,
@@ -367,6 +372,13 @@ internal static class Probe
                 // HTTP 200 there, which is the silent green this file's other named constants exist to stop.
                 "symbol" when parameter.Member.DeclaringType == typeof(Endpoints.CotEndpoints)
                     => LiveApi.CotContract,
+
+                // The ETF and mutual-fund paths want a FUND. Measured 2026-08-30, AAPL answers `[]` with HTTP
+                // 200 on all four ETF-only paths and on funds/disclosure-dates — five of nine endpoints
+                // recording `outcome empty` as their baseline, which is the silent green this file's other
+                // named constants exist to stop. QQQ answers non-empty on all eight symbol paths.
+                "symbol" when parameter.Member.DeclaringType == typeof(Endpoints.EtfAndFundsEndpoints)
+                    => LiveApi.EtfSymbol,
                 _ => LiveApi.Symbol,
             };
 
