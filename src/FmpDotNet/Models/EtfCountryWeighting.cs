@@ -13,8 +13,11 @@ namespace FmpDotNet.Models;
 /// <para><b>The weight arrives as a percent-suffixed STRING here and as a bare number on the sibling
 /// path.</b> See <see cref="WeightPercentage"/>.</para>
 ///
-/// <para>Measured 2026-08-30, rows come back <b>ordered by weight, descending</b>, and a fund with no country
-/// breakdown answers <c>[]</c> at HTTP 200 rather than an error — GLD, SLV and TLT all did.</para></summary>
+/// <para>Measured 2026-08-30, rows come back <b>ordered by weight, descending</b>. A commodity fund still
+/// answers a row rather than an empty list: GLD and SLV each returned one row, <c>"Other"</c> at
+/// <c>"100%"</c>, and TLT returned two — <c>"United States"</c> at <c>"98.19%"</c> and <c>"Other"</c> at
+/// <c>"1.81%"</c>. Some symbols do answer an empty list at HTTP 200 rather than an error, so the list can
+/// still come back empty.</para></summary>
 public sealed record EtfCountryWeighting
 {
     /// <summary>The country name, as FMP spells it — <c>"United States"</c>, <c>"United Kingdom"</c>. Not an
