@@ -62,7 +62,7 @@ and **no row was ever missing a key**.
 | path | keys | distinct key orders | rows measured |
 |---|---|---|---|
 | `etf/asset-exposure` | 5 | 1 | 16,065 |
-| `etf/country-weightings` | 2 | 1 | 226 |
+| `etf/country-weightings` | 2 | 1 | 227 |
 | `etf/holdings` | 9 | 1 | 35,185 |
 | `etf/info` | 19 | 1 | 33 |
 | `etf/sector-weightings` | 3 | 1 | 95 |

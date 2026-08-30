@@ -91,7 +91,7 @@ literal string instead of `null` — a documented value, not a silent one, and a
 
 | file | change |
 |---|---|
-| `src/FmpDotNet/Serialization/NodaConverters.cs` | four new converters; two doc additions to existing ones |
+| `src/FmpDotNet/Serialization/NodaConverters.cs` | four new converters, appended; nothing existing changed |
 | `src/FmpDotNet/Serialization/FmpJsonContext.cs` | nine `[JsonSerializable]` entries |
 | `src/FmpDotNet/FmpClient.cs` | constructor parameter and property |
 | `src/FmpDotNet/DependencyInjection/FmpServiceCollectionExtensions.cs` | one `TryAddTransient` |
@@ -415,7 +415,7 @@ namespace FmpDotNet.Models;
 
 /// <summary>One country's share of an ETF's holdings, from <c>stable/etf/country-weightings</c>.
 ///
-/// <para><b>Two keys, and no symbol.</b> Measured 2026-08-30 over 226 rows across 13 ETFs, the shape is exactly
+/// <para><b>Two keys, and no symbol.</b> Measured 2026-08-30 over 227 rows across 13 ETFs, the shape is exactly
 /// <c>country</c> and <c>weightPercentage</c> — the response never names the fund it describes, unlike
 /// <see cref="EtfSectorWeighting"/>, which echoes <c>symbol</c> on every row. A caller holding rows from two
 /// funds has to keep track of which is which.</para>
@@ -433,7 +433,7 @@ public sealed record EtfCountryWeighting
     /// <summary>The country name, as FMP spells it — <c>"United States"</c>, <c>"United Kingdom"</c>. Not an
     /// ISO code, and <c>"Other"</c> is one of the values, so this is not a country vocabulary a caller can
     /// map exhaustively. Nullable because the deserialiser cannot promise a key is present, not because any
-    /// measured row omitted it: no row was missing a key across all 226 measured 2026-08-30.</summary>
+    /// measured row omitted it: no row was missing a key across all 227 measured 2026-08-30.</summary>
     [JsonPropertyName("country")] public string? Country { get; init; }
 
     /// <summary>The share of the fund, as a percentage — <c>97.52</c> means 97.52%.
@@ -484,7 +484,7 @@ public sealed record EtfSectorWeighting
 
     /// <summary>The sector name — <c>"Basic Materials"</c>, <c>"Technology"</c>, <c>"Cash &amp; Others"</c>.
     ///
-    /// <para>A free string rather than the SDK's <see cref="Sector"/> enum, and the reason is
+    /// <para>A free string rather than the SDK's <see cref="FmpDotNet.Sector"/> enum, and the reason is
     /// <c>Cash &amp; Others</c>: it is not a sector, it is the residual, and it appeared on all 13 ETFs
     /// measured 2026-08-30. An enum here would have to invent a member for it or lose the row.</para></summary>
     [JsonPropertyName("sector")] public string? Sector { get; init; }
@@ -2843,7 +2843,7 @@ namespace FmpDotNet.Endpoints;
 ///   <item><description><b>There is no pagination anywhere in this group.</b> <c>limit</c> and <c>page</c>
 ///     were ignored on every path — verified by byte-identical responses with and without them, including a
 ///     17,252-row, 4.9 MB <c>etf/holdings?symbol=BND</c>. There are therefore no walk helpers and no page
-///     ceilings here, unlike three other facades on this client, and <b>no way to ask for less than
+///     ceilings here, unlike elsewhere on this client, and <b>no way to ask for less than
 ///     everything</b>. Two methods can return a great deal: <see cref="GetEtfHoldingsAsync"/> and
 ///     <c>SearchFundsByNameAsync</c>, whose <c>name=Trust</c> query returned <b>66,065 rows and
 ///     27.4 MB</b>.</description></item>
