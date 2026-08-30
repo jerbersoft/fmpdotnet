@@ -1696,21 +1696,28 @@ Append inside `EtfAndFundsTests`:
         Assert.Equal("USDUSD", row.CurrencyCode);
         Assert.Equal("NC", row.Units);
         Assert.Null(row.Cusip);           // "N/A"
-        Assert.Null(row.PayoffProfile);   // "N/A" — 123 rows measured
+        Assert.Null(row.PayoffProfile);   // "N/A" — 123 of the 11,522 rows measured 2026-08-30, 1.1%
         Assert.Equal("DE", row.AssetCategory);
     }
 
     [Fact]
     public void The_fair_value_level_stays_a_string_and_takes_no_sentinel_converter()
     {
-        // fairValLevel is a quoted integer — "1" x3,829, "2" x28, "3" x4, measured 2026-08-30 — and it is a
-        // CODE, not a quantity: an ASC 820 fair-value level. Parsing it to int? would invent a numeric
-        // identity the source does not have. It carries NO sentinel converter, because no measured row ever
-        // sent a sentinel here — see the ruling recorded at the top of this plan.
-        var row = JsonSerializer.Deserialize(
-            """[{"fairValLevel":"3"}]""", FmpJsonContext.Default.ListFundDisclosure)![0];
+        // fairValLevel is a quoted integer — "1" x3,829, "2" x28, "3" x4 over the 3,861-row sample measured
+        // 2026-08-30 — and it is a CODE, not a quantity: an ASC 820 fair-value level. Parsing it to int?
+        // would invent a numeric identity the source does not have. It carries NO sentinel converter, because
+        // no measured row ever sent a sentinel here — see the ruling recorded at the top of this plan.
+        //
+        // The second row is the guard, and it is deliberately a value FMP was never measured sending. A test
+        // that fed only "3" would pass whether or not the converter is attached, because "3" is not one of
+        // the four sentinels — so it could not fail if someone later added the converter and reverted the
+        // ruling. Feeding a sentinel is the only assertion that can.
+        var rows = JsonSerializer.Deserialize(
+            """[{"fairValLevel":"3"},{"fairValLevel":"N/A"}]""",
+            FmpJsonContext.Default.ListFundDisclosure)!;
 
-        Assert.Equal("3", row.FairValueLevel);
+        Assert.Equal("3", rows[0].FairValueLevel);
+        Assert.Equal("N/A", rows[1].FairValueLevel);
     }
 
     [Fact]
