@@ -118,8 +118,8 @@ public class EtfAndFundsTests
         // subtraction. It needs 30 decimal places and decimal has 28. Checked on .NET 10 rather than assumed:
         // System.Text.Json ROUNDS it and does not throw. Recorded here so that nobody later "fixes" this by
         // switching the slice to double, which would round every large figure in the group far more
-        // damagingly — `etf/asset-exposure.marketValue` reaches 7,434,183,997,921.512 with 17 significant
-        // digits, which double cannot hold.
+        // damagingly — `etf/asset-exposure.marketValue` reaches 7,434,183,997,921.512, which binary64
+        // cannot represent: the nearest double is 7,434,183,997,921.51171875.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("etf-sector-weightings.SPY.json"),
             FmpJsonContext.Default.ListEtfSectorWeighting)!;
@@ -337,11 +337,12 @@ public class EtfAndFundsTests
     }
 
     [Fact]
-    public void An_asset_exposure_market_value_keeps_all_seventeen_of_its_significant_digits()
+    public void An_asset_exposure_market_value_binds_exactly_rather_than_to_the_nearest_double()
     {
-        // 7,434,183,997,921.512 is the measured maximum on this field, 2026-08-30. double holds about 15-17
-        // significant digits and would not round-trip it; decimal does. This is the other half of the
-        // argument in The_thirty_place_sector_weight_rounds_and_does_not_throw.
+        // 7,434,183,997,921.512 is the measured maximum on this field, 2026-08-30 — 16 significant digits,
+        // and not exactly representable in binary64: the nearest double is 7,434,183,997,921.51171875. A
+        // double-typed property would bind that instead and this assertion would fail. This is the other
+        // half of the argument in The_thirty_place_sector_weight_rounds_and_does_not_throw.
         var row = JsonSerializer.Deserialize(
             """[{"marketValue":7434183997921.512}]""",
             FmpJsonContext.Default.ListEtfAssetExposure)![0];

@@ -43,7 +43,8 @@ public sealed record EtfSectorWeighting
     /// Checked on .NET 10 rather than assumed: System.Text.Json <b>rounds it to 28 places and does not
     /// throw</b>, losing about 4e-31 of a percentage point on a value that is already numerical noise.
     /// Switching this slice to <see cref="double"/> to "fix" that would round every large figure in the group
-    /// far more damagingly — <c>EtfAssetExposure.MarketValue</c> reaches 7,434,183,997,921.512 with 17
-    /// significant digits.</para></summary>
+    /// far more damagingly — <c>EtfAssetExposure.MarketValue</c> reaches 7,434,183,997,921.512, which
+    /// <see cref="double"/> cannot represent exactly: the nearest is
+    /// 7,434,183,997,921.51171875.</para></summary>
     [JsonPropertyName("weightPercentage")] public decimal? WeightPercentage { get; init; }
 }

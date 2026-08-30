@@ -40,7 +40,8 @@ public sealed record EtfAssetExposure
     [JsonPropertyName("weightPercentage")] public decimal? WeightPercentage { get; init; }
 
     /// <summary>The position's value. Measured range 2026-08-30: <b>−103,015,045.5</b> to
-    /// <b>7,434,183,997,921.512</b> — 17 significant digits, which is why every figure in this group is
-    /// <see cref="decimal"/> and not <see cref="double"/>.</summary>
+    /// <b>7,434,183,997,921.512</b> — 16 significant digits, and not exactly representable in binary64 (the
+    /// nearest <see cref="double"/> is 7,434,183,997,921.51171875), which is why every figure in this group
+    /// is <see cref="decimal"/> and not <see cref="double"/>.</summary>
     [JsonPropertyName("marketValue")] public decimal? MarketValue { get; init; }
 }
