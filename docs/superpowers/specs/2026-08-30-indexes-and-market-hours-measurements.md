@@ -1,8 +1,8 @@
 # Indexes and Market Hours — measurements
 
 Every fact the design will rest on, with the date it was measured. Measured against the live API on
-**2026-08-30** across **54 captured responses** — 47 JSON arrays, one of them empty, and 7 plain-text error
-bodies. **6,323 rows**, 1,461,198 bytes on the wire. Two cross-checks ran against endpoints the SDK already
+**2026-08-30** across **59 captured responses** — 52 JSON arrays, three of them empty, and 7 plain-text error
+bodies. **6,326 rows**, 1,461,701 bytes on the wire. Two cross-checks ran against endpoints the SDK already
 ships (`stable/available-exchanges`) and one path was cross-checked against another path in this same slice.
 No `*-bulk` path was touched.
 
@@ -76,10 +76,29 @@ and discarded. On `holidays-by-exchange` it is real, and it is the only way to r
 
 Two further `holidays-by-exchange` behaviours, both measured:
 
-- A **reversed** range (`from=2026-12-31&to=2024-01-01`) returns `[]` with HTTP 200 — the one empty array in
-  the corpus.
+- A **reversed** range (`from=2026-12-31&to=2024-01-01`) returns `[]` with HTTP 200.
 - An **unparseable** date (`from=nonsense`) is silently dropped: the response was byte-identical to omitting
   `from` altogether. A typo in a date is not reported.
+
+### The `from` boundary is exclusive — the range is `(from, to]`
+
+Measured 2026-08-30 against NASDAQ's Independence Day row, dated `2026-07-03`:
+
+| range | rows returned |
+|---|---|
+| `from=2026-07-03&to=2026-07-03` | **0** |
+| `from=2026-07-03&to=2026-07-04` | **0** |
+| `from=2026-07-02&to=2026-07-03` | 1 — `2026-07-03` |
+| `from=2026-07-02&to=2026-07-04` | 1 — `2026-07-03` |
+| `from=2023-12-31&to=2024-01-02` | 1 — `2024-01-01` |
+
+`to` is inclusive; **`from` is not.** A range whose `from` equals the holiday's own date excludes it, and a
+single-day range therefore always returns `[]` regardless of what falls on that day.
+
+This was found by a discrepancy rather than looked for: filtering the 446-row full history to
+2024-01-01 .. 2026-12-31 yields **39** rows, while the live call `from=2024-01-01&to=2026-12-31` returns
+**38**. The missing row is exactly `{"date": "2024-01-01", "name": "New Year's Day"}` — the row sitting on the
+`from` boundary.
 
 ### The default holiday window is the trailing year, and it hides every upcoming holiday
 
