@@ -131,8 +131,9 @@ follow the convention. The XML doc distinguishes the two cases, as `MarketMover.
 Following the house rule the statement records state, with `BulkEndOfDayPrice` the single deliberate
 exception. Nothing measured argues against it, and two things argue for it:
 
-- Magnitudes reach `7,434,183,997,921.512` and `125,580,304,518.46` with 17 significant digits. `double`
-  rounds those; `decimal` holds them.
+- Magnitudes reach `7,434,183,997,921.512` (16 significant digits) and `125,580,304,518.46` (14). Neither is
+  exactly representable in binary64 — the nearest `double`s are `7,434,183,997,921.51171875` and
+  `125,580,304,518.4600067138671875`. `decimal` holds both exactly.
 - The extreme small value, `1.4210854715202004e-14` (SPY's `Cash & Others` weight — 2⁻⁴⁶, a floating-point
   subtraction residue), needs 30 decimal places and `decimal` has 28. Checked on .NET 10 rather than assumed:
   `JsonSerializer.Deserialize<decimal>` **rounds it to 28 places and does not throw**. The loss is ~4e-31 of a

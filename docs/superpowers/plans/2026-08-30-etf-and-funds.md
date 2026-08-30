@@ -44,8 +44,9 @@ four dates inside one quarter and which is in fact 19 dates over seven years.
 - **Do not set `FMPDOTNET_SMOKE_BULK`.** FMP's documented warning: "Frequent abuse on this API Endpoint may
   result in restrictions placed on this API Key." No task here needs the bulk sweep.
 - **Line length is 120 characters** in `src/` and `tests/`, matching every file already there.
-- **`decimal`, never `double`, for every figure.** Measured magnitudes reach `7,434,183,997,921.512` with 17
-  significant digits, and the smallest is `1.4210854715202004e-14`. `BulkEndOfDayPrice` is the SDK's single
+- **`decimal`, never `double`, for every figure.** Measured magnitudes reach `7,434,183,997,921.512` — 16
+  significant digits, and not exactly representable in binary64: the nearest `double` is
+  `7,434,183,997,921.51171875`. The smallest measured is `1.4210854715202004e-14`. `BulkEndOfDayPrice` is the SDK's single
   deliberate `double` exception and nothing in this slice qualifies.
 - **Every property is nullable.** The deserialiser cannot promise a key is present. Two fields are nullable
   because FMP actually sent JSON `null` — `FundDisclosure.Symbol` and `FundShareClass.Address` — and the rest
@@ -304,8 +305,8 @@ public class EtfAndFundsTests
         // subtraction. It needs 30 decimal places and decimal has 28. Checked on .NET 10 rather than assumed:
         // System.Text.Json ROUNDS it and does not throw. Recorded here so that nobody later "fixes" this by
         // switching the slice to double, which would round every large figure in the group far more
-        // damagingly — `etf/asset-exposure.marketValue` reaches 7,434,183,997,921.512 with 17 significant
-        // digits, which double cannot hold.
+        // damagingly — `etf/asset-exposure.marketValue` reaches 7,434,183,997,921.512, which binary64
+        // cannot represent: the nearest double is 7,434,183,997,921.51171875.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("etf-sector-weightings.SPY.json"),
             FmpJsonContext.Default.ListEtfSectorWeighting)!;
@@ -478,8 +479,9 @@ public sealed record EtfSectorWeighting
     /// Checked on .NET 10 rather than assumed: System.Text.Json <b>rounds it to 28 places and does not
     /// throw</b>, losing about 4e-31 of a percentage point on a value that is already numerical noise.
     /// Switching this slice to <see cref="double"/> to "fix" that would round every large figure in the group
-    /// far more damagingly — <c>EtfAssetExposure.MarketValue</c> reaches 7,434,183,997,921.512 with 17
-    /// significant digits.</para></summary>
+    /// far more damagingly — <c>EtfAssetExposure.MarketValue</c> reaches 7,434,183,997,921.512, which
+    /// <see cref="double"/> cannot represent exactly: the nearest is
+    /// 7,434,183,997,921.51171875.</para></summary>
     [JsonPropertyName("weightPercentage")] public decimal? WeightPercentage { get; init; }
 }
 ```
@@ -801,11 +803,12 @@ Append inside the existing `EtfAndFundsTests` class in `tests/FmpDotNet.Tests/Et
     }
 
     [Fact]
-    public void An_asset_exposure_market_value_keeps_all_seventeen_of_its_significant_digits()
+    public void An_asset_exposure_market_value_binds_exactly_rather_than_to_the_nearest_double()
     {
-        // 7,434,183,997,921.512 is the measured maximum on this field, 2026-08-30. double holds about 15-17
-        // significant digits and would not round-trip it; decimal does. This is the other half of the
-        // argument in The_thirty_place_sector_weight_rounds_and_does_not_throw.
+        // 7,434,183,997,921.512 is the measured maximum on this field, 2026-08-30 — 16 significant digits,
+        // and not exactly representable in binary64: the nearest double is 7,434,183,997,921.51171875. A
+        // double-typed property would bind that instead and this assertion would fail. This is the other
+        // half of the argument in The_thirty_place_sector_weight_rounds_and_does_not_throw.
         var row = JsonSerializer.Deserialize(
             """[{"marketValue":7434183997921.512}]""",
             FmpJsonContext.Default.ListEtfAssetExposure)![0];
@@ -1035,8 +1038,9 @@ public sealed record EtfAssetExposure
     [JsonPropertyName("weightPercentage")] public decimal? WeightPercentage { get; init; }
 
     /// <summary>The position's value. Measured range 2026-08-30: <b>−103,015,045.5</b> to
-    /// <b>7,434,183,997,921.512</b> — 17 significant digits, which is why every figure in this group is
-    /// <see cref="decimal"/> and not <see cref="double"/>.</summary>
+    /// <b>7,434,183,997,921.512</b> — 16 significant digits, and not exactly representable in binary64 (the
+    /// nearest <see cref="double"/> is 7,434,183,997,921.51171875), which is why every figure in this group
+    /// is <see cref="decimal"/> and not <see cref="double"/>.</summary>
     [JsonPropertyName("marketValue")] public decimal? MarketValue { get; init; }
 }
 ```
@@ -1943,7 +1947,8 @@ public sealed record FundDisclosure
     [JsonPropertyName("cur_cd")] public string? CurrencyCode { get; init; }
 
     /// <summary>The position's value in US dollars. Wire key <c>valUsd</c>. Measured range 2026-08-30:
-    /// −41,402,229.68 to 125,580,304,518.46 — 17 significant digits, which is why this is
+    /// −41,402,229.68 to 125,580,304,518.46 — 14 significant digits, and not exactly representable in
+    /// binary64 (the nearest <see cref="double"/> is 125,580,304,518.4600067138671875), which is why this is
     /// <see cref="decimal"/>.</summary>
     [JsonPropertyName("valUsd")] public decimal? ValueUsd { get; init; }
 
