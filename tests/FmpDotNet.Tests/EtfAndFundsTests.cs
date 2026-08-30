@@ -674,4 +674,193 @@ public class EtfAndFundsTests
             Assert.Equal((row.Date.Value.Month - 1) / 3 + 1, row.Quarter);
         }
     }
+
+    [Fact]
+    public void A_fund_holder_binds_all_seven_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-latest.SPY.json"),
+            FmpJsonContext.Default.ListFundHolder)!;
+
+        Assert.Equal(5, rows.Count);
+        Assert.Equal("0001181848", rows[0].Cik);
+        Assert.Equal("SKYBRIDGE MULTI-ADVISER HEDGE FUND PORTFOLIOS LLC", rows[0].Holder);
+        Assert.Equal("78462F103", rows[0].SecurityCusip);
+        Assert.Equal(122518791.23m, rows[0].Shares);
+        Assert.Equal(new LocalDate(2026, 6, 30), rows[0].DateReported);
+        Assert.Equal(0m, rows[0].Change);
+        Assert.Equal(11.79723956m, rows[0].WeightPercent);
+
+        // Change is 0 on the head row, which Binding.Unbound does NOT count as unbound (only null, blank and
+        // empty collections count), so the whole-record check goes on a row where every field is non-zero.
+        Assert.Empty(Binding.Unbound(rows[3]));
+    }
+
+    [Fact]
+    public void One_holders_response_mixes_reporting_dates_across_years()
+    {
+        // "Latest" is each HOLDER's own most recent filing, not a single as-of date for the response.
+        // Measured 2026-08-30, SPY's 220 rows carried 19 distinct dates spanning 2019-09-30 to 2026-06-30,
+        // and AAPL's 3,209 rows carried 66 spanning 2019-09-30 to 2026-07-31. Four recent dates dominate, but
+        // 18 of SPY's rows and 292 of AAPL's report a date before 2026 at all — a holder that stopped filing
+        // in 2019 is still in the response, with its 2019 position. Rows in one response are therefore NOT
+        // comparable as of one date, and DateReported must be read per row.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-latest.SPY.json"),
+            FmpJsonContext.Default.ListFundHolder)!;
+
+        Assert.Equal(3, rows.Select(r => r.DateReported).Distinct().Count());
+        Assert.Equal(new LocalDate(2019, 9, 30), rows.Min(r => r.DateReported));
+        Assert.Equal(new LocalDate(2026, 6, 30), rows.Max(r => r.DateReported));
+    }
+
+    [Fact]
+    public void A_holders_change_is_signed_and_shares_are_fractional()
+    {
+        // Measured 2026-08-30: `change` was 0 on 2,532 of AAPL's 3,209 rows, positive on 291 and negative on
+        // 386; `shares` ranged -990 to 1,016,998,069 and is fractional (122518791.23, 3049046.052).
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-latest.SPY.json"),
+            FmpJsonContext.Default.ListFundHolder)!;
+
+        Assert.Equal(-894335m, rows[3].Change);
+        Assert.Equal(3049046.052m, rows[2].Shares);
+    }
+
+    [Fact]
+    public void An_empty_holder_or_na_cusip_becomes_null()
+    {
+        // Both rows are verbatim measured captures from the AAPL response. `holder` was "" on 16 rows and
+        // `securityCusip` was "N/A" on 3 — two different spellings on one path, and the reason the sentinel
+        // converter is applied to both properties.
+        var rows = JsonSerializer.Deserialize(
+            """
+            [{"cik":"0002042316","holder":"","securityCusip":"037833100","shares":3264563,
+              "dateReported":"2026-06-30","change":-150796,"weightPercent":0.00216968},
+             {"cik":"0002042513","holder":"Somebody","securityCusip":"N/A","shares":46772,
+              "dateReported":"2026-06-30","change":3469,"weightPercent":0.04495317}]
+            """,
+            FmpJsonContext.Default.ListFundHolder)!;
+
+        Assert.Null(rows[0].Holder);
+        Assert.Equal("037833100", rows[0].SecurityCusip);
+        Assert.Null(rows[1].SecurityCusip);
+        Assert.Equal("Somebody", rows[1].Holder);
+        Assert.Equal(-150796m, rows[0].Change);
+    }
+
+    [Fact]
+    public void A_holder_weight_can_exceed_one_hundred()
+    {
+        // Measured range 2026-08-30: 1.2e-07 to 264.39824722. Not range-checked, and must not be — the third
+        // percentage field in this group that exceeds 100.
+        var rows = JsonSerializer.Deserialize(
+            """[{"weightPercent":264.39824722},{"weightPercent":1.2e-07}]""",
+            FmpJsonContext.Default.ListFundHolder)!;
+
+        Assert.Equal(264.39824722m, rows[0].WeightPercent);
+        Assert.Equal(0.00000012m, rows[1].WeightPercent);
+    }
+
+    [Fact]
+    public void A_fund_share_class_binds_all_thirteen_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-search.nulls.json"),
+            FmpJsonContext.Default.ListFundShareClass)!;
+
+        Assert.Equal(4, rows.Count);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("BRACX", rows[0].Symbol);
+        Assert.Equal("0001221845", rows[0].Cik);
+        Assert.Equal("C000003891", rows[0].ClassId);
+        Assert.Equal("S000001469", rows[0].SeriesId);
+        Assert.Equal("BLACKROCK ALLOCATION TARGET SHARES", rows[0].EntityName);
+        Assert.Equal("30", rows[0].EntityOrgType);
+        Assert.Equal("BATS SERIES C", rows[0].SeriesName);
+        Assert.Equal("BATS SERIES C", rows[0].ClassName);
+        Assert.Equal("811-21457", rows[0].ReportingFileNumber);
+        Assert.Equal("100 BELLEVUE PARKWAY", rows[0].Address);
+        Assert.Equal("WILMINGTON", rows[0].City);
+        Assert.Equal("19809", rows[0].ZipCode);
+        Assert.Equal("DE", rows[0].State);
+    }
+
+    [Fact]
+    public void The_null_row_nulls_its_whole_address_block_and_keeps_everything_else()
+    {
+        // The sharpest case in the slice. Measured 2026-08-30, `entityOrgType`, `reportingFileNumber`,
+        // `city`, `zipCode` and `state` were the literal string "NULL" on exactly the same 1,540 rows on
+        // which `address` was a real JSON null — one missing address block, encoded two different ways inside
+        // one object. `symbol` was "NULL" on 82 more rows than that, so it is not purely the same population.
+        //
+        // What survives is the point: cik, classId, seriesId, entityName, seriesName and className are all
+        // real on this row. The sentinel converter must not cost them.
+        var row = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-search.nulls.json"),
+            FmpJsonContext.Default.ListFundShareClass)![1];
+
+        Assert.Null(row.Symbol);
+        Assert.Null(row.EntityOrgType);
+        Assert.Null(row.ReportingFileNumber);
+        Assert.Null(row.Address);
+        Assert.Null(row.City);
+        Assert.Null(row.ZipCode);
+        Assert.Null(row.State);
+
+        Assert.Equal("0000110055", row.Cik);
+        Assert.Equal("C000005579", row.ClassId);
+        Assert.Equal("S000002175", row.SeriesId);
+        Assert.Equal("BLACKROCK SUSTAINABLE BALANCED FUND, INC.", row.EntityName);
+        Assert.Equal("BLACKROCK SUSTAINABLE BALANCED FUND, INC.", row.SeriesName);
+        Assert.Equal("Investor B", row.ClassName);
+    }
+
+    [Fact]
+    public void The_address_block_carries_both_a_json_null_and_an_empty_string()
+    {
+        // Two rows, two encodings, one meaning. The BlackRock row sends address:null with "NULL" siblings;
+        // the Pioneer row sends "" on all four. Both were measured 2026-08-30 — which is why Address takes
+        // the converter even though its headline absence is a real JSON null.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("funds-disclosure-holders-search.nulls.json"),
+            FmpJsonContext.Default.ListFundShareClass)!;
+
+        Assert.Null(rows[1].Address);   // JSON null   — 1,540 of 5,869 rows
+        Assert.Null(rows[2].Address);   // ""          — 8 rows in the same corpus
+        Assert.Null(rows[2].City);
+        Assert.Equal("PPPAX", rows[2].Symbol);
+        Assert.Equal("0001175959", rows[2].Cik);
+    }
+
+    [Theory]
+    [InlineData("\"NULL\"")]
+    [InlineData("\"N/A\"")]
+    public void The_class_name_carries_two_spellings_of_absence(string wire)
+    {
+        // One field, two sentinels, in one corpus. On the widest query taken 2026-08-30 (`name=Trust`, 66,065
+        // rows) `className` was "NULL" x1,278 AND "N/A" x192. A caller checking for one of the two would miss
+        // the other, which is the argument for a converter over documentation here.
+        // The hole is not last in the object — see the note in Every_spelling_of_absence_reads_as_null.
+        var row = JsonSerializer.Deserialize(
+            $$"""[{"className":{{wire}},"cik":"0001350487"}]""",
+            FmpJsonContext.Default.ListFundShareClass)![0];
+
+        Assert.Null(row.ClassName);
+    }
+
+    [Fact]
+    public void The_entity_org_type_stays_a_string_and_its_sentinel_becomes_null()
+    {
+        // A numeric string with a non-numeric sentinel in the same field: "30" x3,635, "32" x17, "33" x5 and
+        // "NULL" x1,540, measured 2026-08-30. Any caller reaching for int.Parse gets an outright failure on a
+        // quarter of the rows. It stays a string because it is an SEC entity ORGANISATION TYPE — a code, not
+        // a quantity — and nothing a caller does with it is arithmetic.
+        var rows = JsonSerializer.Deserialize(
+            """[{"entityOrgType":"30"},{"entityOrgType":"NULL"}]""",
+            FmpJsonContext.Default.ListFundShareClass)!;
+
+        Assert.Equal("30", rows[0].EntityOrgType);
+        Assert.Null(rows[1].EntityOrgType);
+    }
 }

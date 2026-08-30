@@ -1,0 +1,11 @@
+[{"cik":"0001181848","holder":"SKYBRIDGE MULTI-ADVISER HEDGE FUND PORTFOLIOS LLC",
+  "securityCusip":"78462F103","shares":122518791.23,"dateReported":"2026-06-30","change":0,
+  "weightPercent":11.79723956},
+ {"cik":"0001520568","holder":"Skybridge G II Fund, LLC","securityCusip":"78462F103","shares":3209819,
+  "dateReported":"2026-06-30","change":0,"weightPercent":16.19559762},
+ {"cik":"0001494928","holder":"RIVERPARK FUNDS TRUST","securityCusip":"78462F103","shares":3049046.052,
+  "dateReported":"2026-06-30","change":0,"weightPercent":0.64064907},
+ {"cik":"0000107606","holder":"VANGUARD WINDSOR FUNDS","securityCusip":"78462F103","shares":397921,
+  "dateReported":"2026-04-30","change":-894335,"weightPercent":0.01063548},
+ {"cik":"0000886048","holder":"FIRST INVESTORS EQUITY FUNDS","securityCusip":"78462F103","shares":4400,
+  "dateReported":"2019-09-30","change":4400,"weightPercent":0.00082039}]
