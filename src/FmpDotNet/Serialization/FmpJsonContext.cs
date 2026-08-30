@@ -162,4 +162,5 @@ namespace FmpDotNet.Serialization;
 // ONE entry serves both market-hours methods: GetExchangeAsync deserialises the same list type and takes
 // its first row, following CompanyEndpoints.GetProfileAsync.
 [JsonSerializable(typeof(List<ExchangeMarketHours>))]
+[JsonSerializable(typeof(List<ExchangeHoliday>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;

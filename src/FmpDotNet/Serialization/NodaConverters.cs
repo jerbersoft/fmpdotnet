@@ -815,3 +815,39 @@ public sealed class LongFormLocalDateJsonConverter : JsonConverter<LocalDate?>
         else writer.WriteStringValue(Pattern.Format(value.Value));
     }
 }
+
+/// <summary>Reads a bare wall-clock time — <c>"13:00"</c> — as a <see cref="LocalTime"/>.
+///
+/// <para><b>Written for <c>stable/holidays-by-exchange</c>'s <c>adjOpenTime</c> and <c>adjCloseTime</c></b>,
+/// which are the only <see cref="LocalTime"/> fields in this SDK. All 50 non-null values measured 2026-08-30
+/// matched <c>HH:mm</c> — 49 of them <c>"13:00"</c> and one <c>"13:30"</c> on 2015-11-27.</para>
+///
+/// <para><b>The value carries no offset and the response carries no zone.</b> <c>holidays-by-exchange</c> has
+/// no <c>timezone</c> key at all — verified absent on all 446 rows — so a caller who needs an instant must
+/// take the zone from the matching <c>ExchangeMarketHours.Timezone</c>, fetched from
+/// <c>stable/exchange-market-hours</c>. This converter does not guess one, and could not: the same wire
+/// format on <c>all-exchange-market-hours</c> is spelled <c>"09:30 AM +09:00"</c> instead, which is the
+/// sharper half of this group's two-spellings-of-a-time problem.</para>
+///
+/// <para>This pattern round-trips exactly, unlike <see cref="LongFormLocalDateJsonConverter"/>, so a guard
+/// test for this converter may assert the serialised form. Null on an unparseable value, following the rest
+/// of this file.</para></summary>
+public sealed class LocalTimeJsonConverter : JsonConverter<LocalTime?>
+{
+    private static readonly LocalTimePattern Pattern = LocalTimePattern.CreateWithInvariantCulture("HH:mm");
+
+    /// <inheritdoc/>
+    public override LocalTime? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, LocalTime? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}
