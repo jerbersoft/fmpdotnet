@@ -1245,8 +1245,8 @@ Append to `src/FmpDotNet/Serialization/NodaConverters.cs`, after `SentinelString
 /// <summary>Reads an ISO-8601 timestamp that carries its own <c>Z</c> — <c>"2026-08-29T23:12:50.006Z"</c> — as
 /// an <see cref="Instant"/>.
 ///
-/// <para><b>The fourth converter in this file for a timestamp, and the only one that needs no zone
-/// measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
+/// <para><b>The fourth converter in this file for a wall-clock timestamp string, and the only one that
+/// needs no zone measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
 /// <see cref="NullableEasternInstantJsonConverter"/> both read <c>"uuuu-MM-dd HH:mm:ss"</c>, which carries no
 /// offset, and each had to establish its zone by measuring a DST shift.
 /// <see cref="NullableLocalDateTimeJsonConverter"/> declines to guess where nobody measured. This form states
@@ -1348,8 +1348,9 @@ public sealed record EtfInfo
     /// <summary>The issuer's brand — <c>"SPDR"</c>, <c>"Vanguard"</c>.</summary>
     [JsonPropertyName("etfCompany")] public string? EtfCompany { get; init; }
 
-    /// <summary>The expense ratio as a <b>fraction</b>, not a percentage: SPY measured <c>0.09</c>, which is
-    /// 0.09% — nine basis points — and not 9%. Measured 2026-08-30.</summary>
+    /// <summary>The expense ratio <b>already expressed as a percentage figure</b>, not as a fraction of one:
+    /// SPY measured <c>0.09</c>, which is 0.09% — nine basis points — and not 9%. Multiplying it by 100 is the
+    /// mistake this sentence exists to prevent. Measured 2026-08-30.</summary>
     [JsonPropertyName("expenseRatio")] public decimal? ExpenseRatio { get; init; }
 
     /// <summary>Assets under management, in <see cref="NavCurrency"/>. SPY measured
