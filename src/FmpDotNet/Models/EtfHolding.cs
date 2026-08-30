@@ -82,10 +82,9 @@ public sealed record EtfHolding
     ///
     /// <para><b>One value for the whole response, and it can be days old.</b> Measured 2026-08-30, 33 of 33
     /// responses carried exactly one distinct value across every row, and staleness ranged from <b>3.2
-    /// hours</b> (SCHD, the response above) to <b>284 hours</b> (IJH, IJR) — <b>twelve days</b>. It says when FMP
-    /// refreshed its copy — not when the
-    /// fund held these positions. Do not use it as a portfolio as-of date; <c>FundDisclosure.Date</c> is
-    /// that.</para></summary>
+    /// hours</b> (SCHD, the response above) to <b>284 hours</b> (IJH, IJR) — <b>twelve days</b>. It says
+    /// when FMP refreshed its copy — not when the fund held these positions. Do not use it as a portfolio
+    /// as-of date; <c>FundDisclosure.Date</c> is that.</para></summary>
     [JsonPropertyName("updatedAt")]
     [JsonConverter(typeof(NullableFmpInstantJsonConverter))]
     public Instant? UpdatedAt { get; init; }
