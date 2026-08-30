@@ -806,10 +806,11 @@ set NetIncome
 
 `set NetIncome` becoming `null NetIncome` is the alarm.
 
-Measured 2026-08-29: **178 ordinary endpoints, 2,269 properties recorded as populated**, and 21 recorded
+Measured 2026-08-30: **196 ordinary endpoints, 2,425 properties recorded as populated**, and 28 recorded
 empty — among them `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no
 EDGAR filing URL, plus `MarketCap` on the commodity and forex quote batches, where a market capitalisation is not a
-meaningful thing to ask for. There is no blind spot on any wire field the SDK models. Measured 2026-08-30: of the
+meaningful thing to ask for. Four of the 28 are not wire fields but `[JsonIgnore]` parses of them, all on the
+single-exchange market-hours path. There is no blind spot on any wire field the SDK models. Measured 2026-08-30: of the
 models' public properties 1757 are nullable, 26 are strings defaulting to `""` and 4 are collections defaulting to
 empty, all of which read correctly, and the only nineteen non-nullable value types are fifteen on two list
 wrappers that are never inspected, one `[JsonIgnore]` property the SDK sets from the request rather than from the
