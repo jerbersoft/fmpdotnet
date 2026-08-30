@@ -265,3 +265,46 @@ same ticker stripped to `symbols=CSIQ` returns 20.
 6. **Whether `tickers` is parsed** into a symbol and an exchange, or passed through as FMP spells it.
 7. **How the nine feeds map onto methods** — five `-latest` paths, four search paths, one article path, and the
    measured fact that the search paths are filtered views of the feeds rather than separate corpora.
+
+## Addendum — `fmp-articles.date` is UTC, not Eastern (measured 2026-08-30)
+
+The DST discriminator above ran on `press-releases-latest`, a Shape A path. It settles `publishedDate` for the nine
+feeds and says nothing about Shape B's `date`. Shape B cannot be measured the same way: its reachable history
+starts 2026-06-26, entirely inside EDT, so no DST boundary is in range, and the feeds share zero urls, so the same
+article cannot be compared across shapes.
+
+**Shape B's daily profile matches a known-Eastern editorial feed only under a clock offset.** `news/general-latest`
+is Eastern by the shared shape, and is editorial rather than wire-scheduled, so it is the fair control for FMP's
+own output. Hour-of-day histograms, weekdays only, 894 control rows over eight complete days against 779 Shape B
+rows:
+
+| hypothesis for `date` | lag it requires | correlation with the control |
+|---|---|---|
+| Eastern wall clock | 0 | **r = −0.225** |
+| UTC | 4 | r = +0.656 |
+| observed peak | 5–6 | r = +0.83 |
+
+Lag 0 — the only alignment Eastern permits — is the worst in the whole 24-hour sweep. The peak sitting at 5–6
+rather than exactly 4 is expected: FMP writes *about* the news the aggregate feed carries, so its profile trails by
+an hour or two on top of the clock offset. The raw histogram says the same plainly — Shape B troughs at 05:00–07:00
+and peaks at 21:00. Read as Eastern, FMP would be near-silent through the pre-market hours where Shape A peaks
+(08:00, 138 rows) and busiest at 9pm. Read as UTC, that becomes a 17:00 ET peak just after the close and an
+08:00–09:00 ET morning ramp.
+
+**So the two shapes take different converters.** `NullableEasternInstantJsonConverter` for the nine feeds'
+`publishedDate`; `NullableFmpInstantJsonConverter` (UTC) for `fmp-articles.date`. One facade, both converters.
+
+**This is inference from distribution, not a direct clock comparison.** Three routes to a direct one were tried and
+are closed: the rendered article page answers **403**; legacy `api/v3/fmp/articles` answers **403**, not entitled
+on this key; and matching an article to the press release it reports gives real pairs (CRWD, DG, AFRM, S, ULTA) but
+FMP writes 12–50 hours after the release — far too loose to bound a four-hour question.
+
+**The direct test is pending and needs a weekday.** Poll `fmp-articles` until an article appears that was not in the
+seed set, and compare its wire `date` to FMP's own `Date` response header at that moment: a gap near zero proves
+UTC, a gap near four hours proves Eastern. Four polls on Sunday 2026-08-30 (08:43–09:29 UTC) saw no new article,
+which is uninformative — measured publication is 44.6 articles per weekday against **3.5 per weekend day**, so the
+expected wait is ~7 hours on a Sunday and ~20 minutes on a weekday.
+
+**Corpus extent, corrected.** `fmp-articles` paginates for real well past page 0: pages 0–3 at `limit=200` returned
+800 rows with 800 distinct links and no overlap, spanning 2026-08-05 to 2026-08-28. The page-repetition described
+above begins only past the end of the corpus.
