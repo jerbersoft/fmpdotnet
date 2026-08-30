@@ -339,8 +339,12 @@ public class IndexesTests
         // moment somebody adds one back "for convenience", which would be a signature that lies.
         var (endpoints, handler) = Build();
 
+        await endpoints.GetDowJonesConstituentsAsync();
         await endpoints.GetSp500ConstituentsAsync();
+        await endpoints.GetNasdaqConstituentsAsync();
+        await endpoints.GetDowJonesConstituentChangesAsync();
         await endpoints.GetSp500ConstituentChangesAsync();
+        await endpoints.GetNasdaqConstituentChangesAsync();
 
         Assert.All(handler.Requests, uri =>
         {
