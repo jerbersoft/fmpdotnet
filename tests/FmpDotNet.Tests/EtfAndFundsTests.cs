@@ -255,7 +255,7 @@ public class EtfAndFundsTests
     {
         // Measured 2026-08-30: 33 of 33 responses carried exactly ONE distinct `updatedAt` across every row.
         // It is a per-symbol cache stamp, not a per-holding as-of date, and staleness ranged from 3.2 hours
-        // (ARKK) to 284 hours (IJH, IJR) on one sweep. The XML doc says so; this test holds the shape.
+        // (SCHD) to 284 hours (IJH, IJR) on one sweep. The XML doc says so; this test holds the shape.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("etf-holdings.SPY.head.json"),
             FmpJsonContext.Default.ListEtfHolding)!;
