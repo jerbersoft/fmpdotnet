@@ -159,4 +159,7 @@ namespace FmpDotNet.Serialization;
 // measured byte-equal row for row and share ExchangeMarketHours.
 [JsonSerializable(typeof(List<IndexConstituentChange>))]
 [JsonSerializable(typeof(List<IndexConstituent>))]
+// ONE entry serves both market-hours methods: GetExchangeAsync deserialises the same list type and takes
+// its first row, following CompanyEndpoints.GetProfileAsync.
+[JsonSerializable(typeof(List<ExchangeMarketHours>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
