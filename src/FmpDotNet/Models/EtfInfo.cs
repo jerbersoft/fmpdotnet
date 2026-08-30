@@ -82,7 +82,7 @@ public sealed record EtfInfo
     [JsonPropertyName("navCurrency")] public string? NavCurrency { get; init; }
 
     /// <summary>FMP's holdings count — <b>which is not the number of holdings
-    /// <c>EtfAndFundsEndpoints.GetEtfHoldingsAsync</c> returns.</b>
+    /// <see cref="Endpoints.EtfAndFundsEndpoints.GetEtfHoldingsAsync"/> returns.</b>
     ///
     /// <para>Cross-checked on 33 ETFs 2026-08-30 against the row count <c>stable/etf/holdings</c> returned for
     /// the same symbol on the same day, the two agreed on <b>one</b>. BND reports <b>346</b> and returns
@@ -117,7 +117,7 @@ public sealed record EtfInfo
     /// 2026-08-30, the two agreed on the key set and on <b>every value</b>, with no rounding difference, on
     /// all 13 ETFs cross-checked — SPY's and VOO's 12-element lists, QQQ's 11-element list, and the 1-element
     /// lists of GLD, SLV, TLT and BND. A caller holding this record does not need to call
-    /// <c>EtfAndFundsEndpoints.GetEtfSectorWeightingsAsync</c>.</para>
+    /// <see cref="Endpoints.EtfAndFundsEndpoints.GetEtfSectorWeightingsAsync"/>.</para>
     ///
     /// <para>The nested objects use <c>industry</c> and <c>exposure</c> where the path uses <c>sector</c> and
     /// <c>weightPercentage</c>, which is why <see cref="EtfInfoSector"/> exists rather than reusing

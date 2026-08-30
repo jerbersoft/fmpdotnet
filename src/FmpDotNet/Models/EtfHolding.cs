@@ -9,8 +9,8 @@ namespace FmpDotNet.Models;
 /// <para><b>There is no pagination and responses get large.</b> Measured 2026-08-30, <c>limit</c> and
 /// <c>page</c> are ignored exactly the way an unknown parameter is: <c>etf/holdings?symbol=BND</c> returned
 /// 17,252 rows and 4,949,598 bytes with and without either, byte-identical. VXUS returned 8,821 rows and
-/// 2.5 MB. There is no way to ask for less than everything, and <c>EtfInfo.HoldingsCount</c> cannot be used
-/// to pre-size the result — it disagreed with this path on 32 of 33 ETFs.</para>
+/// 2.5 MB. There is no way to ask for less than everything, and <see cref="EtfInfo.HoldingsCount"/> cannot be
+/// used to pre-size the result — it disagreed with this path on 32 of 33 ETFs.</para>
 ///
 /// <para><b>Half of a bond fund's rows have no ticker.</b> Measured 2026-08-30 over 35,185 rows,
 /// <see cref="Asset"/> was empty on 51.1% and <see cref="Isin"/> on 51.0% — unlisted debt and foreign lines.
@@ -78,13 +78,13 @@ public sealed record EtfHolding
     /// <c>10:51:13Z</c> — 46 minutes <b>after</b> the response that carried it, which a cache stamp cannot be.
     /// Read as UTC it is 3h14m old. Reproduced 18 seconds later against a fresh response. So this takes
     /// <see cref="NullableFmpInstantJsonConverter"/>, while the identical wire shape on
-    /// <c>FundDisclosure.AcceptedDate</c> takes <see cref="NullableEasternInstantJsonConverter"/>.</para>
+    /// <see cref="FundDisclosure.AcceptedDate"/> takes <see cref="NullableEasternInstantJsonConverter"/>.</para>
     ///
     /// <para><b>One value for the whole response, and it can be days old.</b> Measured 2026-08-30, 33 of 33
     /// responses carried exactly one distinct value across every row, and staleness ranged from <b>3.2
     /// hours</b> (SCHD, the response above) to <b>284 hours</b> (IJH, IJR) — <b>twelve days</b>. It says
     /// when FMP refreshed its copy — not when the fund held these positions. Do not use it as a portfolio
-    /// as-of date; <c>FundDisclosure.Date</c> is that.</para></summary>
+    /// as-of date; <see cref="FundDisclosure.Date"/> is that.</para></summary>
     [JsonPropertyName("updatedAt")]
     [JsonConverter(typeof(NullableFmpInstantJsonConverter))]
     public Instant? UpdatedAt { get; init; }

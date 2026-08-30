@@ -14,7 +14,7 @@ namespace FmpDotNet.Endpoints;
 ///     17,252-row, 4.9 MB <c>etf/holdings?symbol=BND</c>. There are therefore no walk helpers and no page
 ///     ceilings here, unlike three other facades on this client, and <b>no way to ask for less than
 ///     everything</b>. Two methods can return a great deal: <see cref="GetEtfHoldingsAsync"/> and
-///     <c>SearchFundsByNameAsync</c>, whose <c>name=Trust</c> query returned <b>66,065 rows and
+///     <see cref="SearchFundsByNameAsync"/>, whose <c>name=Trust</c> query returned <b>66,065 rows and
 ///     27.4 MB</b>.</description></item>
 ///   <item><description><b>Unknown input answers <c>[]</c> at HTTP 200, not an error.</b> An unknown symbol,
 ///     a stock symbol on an ETF-only path (AAPL returned <c>[]</c> on all four), a year outside a fund's
@@ -27,7 +27,7 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para><b>Method names carry <c>Etf</c> or <c>Fund</c> on purpose.</b> <c>GetHoldings</c> and
 /// <c>GetDisclosure</c> on one facade would read as two views of one thing. They point opposite ways:
-/// <see cref="GetEtfHoldingsAsync"/> is what a fund owns, <c>GetFundHoldersAsync</c> is who owns a
+/// <see cref="GetEtfHoldingsAsync"/> is what a fund owns, <see cref="GetFundHoldersAsync"/> is who owns a
 /// security.</para></summary>
 public sealed class EtfAndFundsEndpoints(FmpTransport transport)
 {
@@ -153,6 +153,131 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListEtfSectorWeighting, ct);
     }
 
+    /// <summary>A fund's filed portfolio for one quarter, from <c>stable/funds/disclosure</c> — the holding
+    /// lines of its SEC Form N-PORT.
+    ///
+    /// <para><b>This is the fund's own filing, not FMP's cached view.</b> Where
+    /// <see cref="GetEtfHoldingsAsync"/> answers "what does FMP think this ETF holds now", this answers "what
+    /// did the fund tell the SEC it held on this date", with a real as-of date and an EDGAR acceptance
+    /// timestamp.</para>
+    ///
+    /// <para><b>Find the periods first.</b> A quarter the fund never filed answers an empty list at HTTP 200,
+    /// and so does a quarter outside FMP's coverage — measured 2026-08-30, every quarter from 2024 Q1 to
+    /// 2026 Q2 answered while 2026 Q3 and Q4 were empty. <see cref="GetFundDisclosureDatesAsync"/> returns the
+    /// <c>year</c> and <c>quarter</c> pairs that exist, ready to pass here.</para>
+    ///
+    /// <para><b>Funds do not all file on calendar quarters.</b> <paramref name="quarter"/> is the
+    /// <b>calendar</b> quarter of the fund's fiscal period end, so FXAIX's 2026-05-31 period is Q2 — see
+    /// <see cref="FundDisclosureDate"/>.</para></summary>
+    /// <param name="symbol">The fund. One symbol; a comma-joined list is rejected.</param>
+    /// <param name="year">The calendar year, as <see cref="FundDisclosureDate.Year"/> reports it.
+    /// <b>Deliberately unbounded</b>: coverage differs per fund — measured 2026-08-30 it reached back to
+    /// 2019-09-30 for SPY, 2019-11-30 for FXAIX and 2020-04-30 for ARKK — and will move, so any bound written
+    /// here would be a fabricated fact. A year outside coverage answers an empty list.</param>
+    /// <param name="quarter">The calendar quarter, 1 to 4, as <see cref="FundDisclosureDate.Quarter"/> reports
+    /// it. Rejected outside that range: measured 2026-08-30, FMP answers <c>quarter=0</c> and
+    /// <c>quarter=5</c> with an empty list at HTTP 200 rather than an error.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every holding line in the filing, in FMP's own order. <b>No ordering was found</b> in the
+    /// responses measured 2026-08-30. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is blank or contains a comma.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="quarter"/> is not 1 to 4.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<FundDisclosure>> GetFundDisclosureAsync(
+        string symbol, int year, int quarter, CancellationToken ct = default)
+    {
+        ThrowIfNotOneSymbol(symbol);
+        ThrowIfQuarterOutOfRange(quarter);
+        return transport.GetListAsync(
+            new FmpRequest("stable/funds/disclosure")
+                .With("symbol", symbol).With("year", year).With("quarter", quarter),
+            FmpJsonContext.Default.ListFundDisclosure, ct);
+    }
+
+    /// <summary>Which reporting periods a fund has filed, from <c>stable/funds/disclosure-dates</c>.
+    ///
+    /// <para><b>This is the index for <see cref="GetFundDisclosureAsync"/>.</b> Each row carries the fiscal
+    /// period end together with the calendar <c>year</c> and <c>quarter</c> that select it, so a caller pairs
+    /// the two calls without doing the arithmetic — which matters because funds do not all file on calendar
+    /// quarters.</para></summary>
+    /// <param name="symbol">The fund. One symbol; a comma-joined list is rejected.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every filed period, in FMP's own order. Measured 2026-08-30 that order is <b>newest
+    /// first</b>. A symbol with no filings answers an empty list — AAPL did. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is blank or contains a comma.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<FundDisclosureDate>> GetFundDisclosureDatesAsync(
+        string symbol, CancellationToken ct = default)
+    {
+        ThrowIfNotOneSymbol(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/funds/disclosure-dates").With("symbol", symbol),
+            FmpJsonContext.Default.ListFundDisclosureDate, ct);
+    }
+
+    /// <summary>Which institutions hold a given security, from
+    /// <c>stable/funds/disclosure-holders-latest</c>.
+    ///
+    /// <para><b>The reverse of <see cref="GetFundDisclosureAsync"/>, and the argument need not be a fund</b> —
+    /// measured 2026-08-30, <c>AAPL</c> answered 3,209 rows.</para>
+    ///
+    /// <para><b>"Latest" is per holder, not per response.</b> One response mixes reporting dates by years:
+    /// SPY's 220 rows carried <b>19 distinct dates spanning 2019-09-30 to 2026-06-30</b>. Read
+    /// <see cref="FundHolder.DateReported"/> per row before summing or ranking anything — see
+    /// <see cref="FundHolder"/>, where the distribution is recorded.</para></summary>
+    /// <param name="symbol">The held security. One symbol; a comma-joined list is rejected.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every reported holder, in FMP's own order. <b>No ordering was found</b> in the responses
+    /// measured 2026-08-30, and the rows are <b>not a single as-of snapshot</b>. Never
+    /// <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="symbol"/> is blank or contains a comma.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<FundHolder>> GetFundHoldersAsync(string symbol, CancellationToken ct = default)
+    {
+        ThrowIfNotOneSymbol(symbol);
+        return transport.GetListAsync(
+            new FmpRequest("stable/funds/disclosure-holders-latest").With("symbol", symbol),
+            FmpJsonContext.Default.ListFundHolder, ct);
+    }
+
+    /// <summary>SEC-registered fund share classes whose registrant name matches a word, from
+    /// <c>stable/funds/disclosure-holders-search</c>.
+    ///
+    /// <para><b>Named for what it returns, not for the path.</b> The rows are not holders: they are
+    /// registrant, series and class identifiers plus a filer address — see
+    /// <see cref="FundShareClass"/>.</para>
+    ///
+    /// <para><b>Matching is case-insensitive, whole-word and single-word.</b> Measured 2026-08-30:
+    /// <c>Vanguard</c>, <c>vanguard</c> and <c>VANGUARD</c> each returned the same 548 rows; <c>Vangua</c>
+    /// returned <b>0</b>; <c>Fid</c> and <c>fidelit</c> returned 0; and <c>Vanguard Group</c> — a two-word
+    /// company name, the most likely thing a caller types — returned <b>0</b>. Pass one whole word:
+    /// <c>"Vanguard"</c>, <c>"Fidelity"</c>, <c>"Schwab"</c>. The exact tokenisation was not established and
+    /// this SDK does not assert one.</para>
+    ///
+    /// <para><b>This is the largest response in the group and it cannot be narrowed.</b> Measured 2026-08-30,
+    /// <c>name=Trust</c> returned <b>66,065 rows and 27.4 MB</b>, and <c>limit</c> and <c>page</c> changed it
+    /// by not one byte. A common word is a very expensive query.</para></summary>
+    /// <param name="name">One whole word from the registrant's name. Case does not matter; a prefix and a
+    /// two-word phrase both match nothing.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>Every matching share class, in FMP's own order. A word that matches nothing answers an empty
+    /// list at HTTP 200. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is blank.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<FundShareClass>> SearchFundsByNameAsync(
+        string name, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        return transport.GetListAsync(
+            new FmpRequest("stable/funds/disclosure-holders-search").With("name", name),
+            FmpJsonContext.Default.ListFundShareClass, ct);
+    }
+
     /// <summary>Rejects a symbol FMP would answer with silence.
     ///
     /// <para>Two failures, one guard. A blank <c>symbol=</c> is an HTTP 400 on every path in this group,
@@ -179,5 +304,21 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
                 + "array with HTTP 200 — a silent wrong answer, not an error. Call once per symbol.",
                 nameof(symbol));
         }
+    }
+
+    /// <summary>Rejects a quarter FMP would answer with an empty list rather than an error.
+    ///
+    /// <para>Measured 2026-08-30, <c>quarter=0</c> and <c>quarter=5</c> both return HTTP 200 with <c>[]</c>,
+    /// while <c>quarter=Q1</c> is a 400 — so a caller who sends 0 is told "no holdings", not "bad request".
+    /// The range is the calendar's and not a measured cap: there is no fifth quarter to measure. This follows
+    /// <see cref="InstitutionalOwnershipEndpoints"/>, which guards the same argument for the same
+    /// reason.</para>
+    ///
+    /// <para>The parameter is named <c>quarter</c> so that <c>[CallerArgumentExpression]</c> puts the caller's
+    /// own parameter name on <see cref="ArgumentException.ParamName"/>.</para></summary>
+    private static void ThrowIfQuarterOutOfRange(int quarter)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(quarter, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(quarter, 4);
     }
 }

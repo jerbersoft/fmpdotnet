@@ -18,7 +18,7 @@ namespace FmpDotNet.Models;
 /// <para><b>No ordering was found</b> in the responses measured 2026-08-30, and there is no pagination:
 /// <c>limit</c> and <c>page</c> were ignored. A quarter outside the fund's coverage answers <c>[]</c> at
 /// HTTP 200 — 2026 Q3 and Q4 both did on 2026-08-30 — as does a <c>quarter</c> of 0 or 5, which is why
-/// <c>EtfAndFundsEndpoints.GetFundDisclosureAsync</c> guards that argument.</para></summary>
+/// <see cref="Endpoints.EtfAndFundsEndpoints.GetFundDisclosureAsync"/> guards that argument.</para></summary>
 public sealed record FundDisclosure
 {
     /// <summary>The filing fund's SEC Central Index Key, zero-padded to ten characters — the padding is the
@@ -172,7 +172,7 @@ public sealed record FundDisclosure
     /// numeric identity the source does not have and gain nothing.</para>
     ///
     /// <para>No sentinel was ever measured on this field, so unlike its numeric-string cousin
-    /// <c>FundShareClass.EntityOrgType</c> it carries no converter.</para></summary>
+    /// <see cref="FundShareClass.EntityOrgType"/> it carries no converter.</para></summary>
     [JsonPropertyName("fairValLevel")] public string? FairValueLevel { get; init; }
 
     /// <summary>Whether the position is cash collateral for a loaned security. <c>N</c> ×3,855, <c>Y</c> ×6

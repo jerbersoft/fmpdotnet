@@ -7,8 +7,9 @@ namespace FmpDotNet.Models;
 /// <summary>One reporting period a fund has filed, from <c>stable/funds/disclosure-dates</c> — and the
 /// <c>year</c>/<c>quarter</c> pair that selects it.
 ///
-/// <para><b>This is the index for <c>EtfAndFundsEndpoints.GetFundDisclosureAsync</c>.</b> That method takes a
-/// year and a quarter, and answers <c>[]</c> at HTTP 200 for a period the fund never filed. This path is how a
+/// <para><b>This is the index for
+/// <see cref="Endpoints.EtfAndFundsEndpoints.GetFundDisclosureAsync"/>.</b> That method takes a year and a
+/// quarter, and answers <c>[]</c> at HTTP 200 for a period the fund never filed. This path is how a
 /// caller finds out which periods exist, and <see cref="Year"/> and <see cref="Quarter"/> are the arguments to
 /// pass, ready-made.</para>
 ///
@@ -31,11 +32,11 @@ public sealed record FundDisclosureDate
     public LocalDate? Date { get; init; }
 
     /// <summary>The calendar year of <see cref="Date"/>. Pass it to
-    /// <c>EtfAndFundsEndpoints.GetFundDisclosureAsync</c>.</summary>
+    /// <see cref="Endpoints.EtfAndFundsEndpoints.GetFundDisclosureAsync"/>.</summary>
     [JsonPropertyName("year")] public int? Year { get; init; }
 
     /// <summary>The calendar quarter of <see cref="Date"/> — 1 to 4. <b>Not the fund's own fiscal quarter
     /// number</b>: FXAIX's 2026-05-31 period end is reported here as <c>2</c>. Pass it to
-    /// <c>EtfAndFundsEndpoints.GetFundDisclosureAsync</c>.</summary>
+    /// <see cref="Endpoints.EtfAndFundsEndpoints.GetFundDisclosureAsync"/>.</summary>
     [JsonPropertyName("quarter")] public int? Quarter { get; init; }
 }

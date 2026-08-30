@@ -144,6 +144,6 @@ public sealed class FmpClient(
     /// <para><b>No path in this group paginates and none can be narrowed</b>, so two of the nine methods can
     /// return tens of thousands of rows. See <see cref="EtfAndFundsEndpoints"/> before calling
     /// <see cref="EtfAndFundsEndpoints.GetEtfHoldingsAsync"/> or
-    /// <c>EtfAndFundsEndpoints.SearchFundsByNameAsync</c> in a loop.</para></summary>
+    /// <see cref="EtfAndFundsEndpoints.SearchFundsByNameAsync"/> in a loop.</para></summary>
     public EtfAndFundsEndpoints EtfAndFunds { get; } = etfAndFunds;
 }

@@ -4,12 +4,12 @@ namespace FmpDotNet.Models;
 
 /// <summary>One sector's share of an ETF's holdings, from <c>stable/etf/sector-weightings</c>.
 ///
-/// <para><b>This data is also inside <c>EtfInfo</c>, under a different pair of key names.</b> Measured
+/// <para><b>This data is also inside <see cref="EtfInfo"/>, under a different pair of key names.</b> Measured
 /// 2026-08-30, <c>etf/info.sectorsList</c> and this path agreed on the key set and on <b>every value</b>, with
 /// no rounding difference, on all 13 ETFs cross-checked — including SPY's and VOO's 12-element lists, QQQ's
 /// 11-element list, and the 1-element lists of GLD, SLV, TLT and BND. The nested objects spell the same two
-/// facts <c>industry</c> and <c>exposure</c>; see <c>EtfInfoSector</c>. So a caller who already has an
-/// <c>EtfInfo</c> does not need this path, and the duplication in this SDK is deliberate rather than an
+/// facts <c>industry</c> and <c>exposure</c>; see <see cref="EtfInfoSector"/>. So a caller who already has an
+/// <see cref="EtfInfo"/> does not need this path, and the duplication in this SDK is deliberate rather than an
 /// oversight — the two wire shapes cannot share one record, because System.Text.Json binds one
 /// <see cref="JsonPropertyNameAttribute"/> per property.</para>
 ///
@@ -43,7 +43,7 @@ public sealed record EtfSectorWeighting
     /// Checked on .NET 10 rather than assumed: System.Text.Json <b>rounds it to 28 places and does not
     /// throw</b>, losing about 4e-31 of a percentage point on a value that is already numerical noise.
     /// Switching this slice to <see cref="double"/> to "fix" that would round every large figure in the group
-    /// far more damagingly — <c>EtfAssetExposure.MarketValue</c> reaches 7,434,183,997,921.512, which
+    /// far more damagingly — <see cref="EtfAssetExposure.MarketValue"/> reaches 7,434,183,997,921.512, which
     /// <see cref="double"/> cannot represent exactly: the nearest is
     /// 7,434,183,997,921.51171875.</para></summary>
     [JsonPropertyName("weightPercentage")] public decimal? WeightPercentage { get; init; }

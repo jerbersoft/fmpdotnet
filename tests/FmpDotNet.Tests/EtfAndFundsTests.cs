@@ -995,4 +995,169 @@ public class EtfAndFundsTests
 
         Assert.Empty(handler.Requests);
     }
+
+    [Theory]
+    [InlineData("disclosure", "/stable/funds/disclosure")]
+    [InlineData("dates", "/stable/funds/disclosure-dates")]
+    [InlineData("holders", "/stable/funds/disclosure-holders-latest")]
+    [InlineData("search", "/stable/funds/disclosure-holders-search")]
+    public async Task Each_fund_method_asks_its_own_path(string which, string expected)
+    {
+        var (endpoints, handler) = Build();
+
+        switch (which)
+        {
+            case "disclosure": await endpoints.GetFundDisclosureAsync("SPY", 2026, 1); break;
+            case "dates": await endpoints.GetFundDisclosureDatesAsync("SPY"); break;
+            case "holders": await endpoints.GetFundHoldersAsync("AAPL"); break;
+            default: await endpoints.SearchFundsByNameAsync("Schwab"); break;
+        }
+
+        Assert.Equal(expected, handler.Requests[0].AbsolutePath);
+    }
+
+    [Fact]
+    public async Task The_disclosure_call_sends_the_symbol_the_year_and_the_quarter()
+    {
+        // Asserted against the whole query string: `limit` and `page` are ignored by FMP on this path
+        // (measured 2026-08-30, `funds/disclosure?symbol=SPY&year=2026&quarter=1&limit=10` returned all 503
+        // rows), so offering either would let a caller believe a page happened.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetFundDisclosureAsync("SPY", 2026, 1);
+
+        Assert.Equal("?symbol=SPY&year=2026&quarter=1&apikey=k", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task The_search_call_sends_the_name_under_its_own_parameter()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.SearchFundsByNameAsync("Schwab");
+
+        Assert.Equal("?name=Schwab&apikey=k", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5)]
+    [InlineData(-1)]
+    public async Task A_quarter_outside_one_to_four_is_rejected_before_the_request_goes_out(int quarter)
+    {
+        // Measured 2026-08-30: quarter=0 and quarter=5 both return HTTP 200 with `[]`, while quarter=Q1 is a
+        // 400. So a caller who sends 0 is told "no holdings", not "bad request" — the same silent-empty
+        // failure the comma guard exists for. Four quarters is not a measurement; it is what a quarter is.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetFundDisclosureAsync("SPY", 2026, quarter));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData(1990)]
+    [InlineData(2030)]
+    public async Task The_year_is_deliberately_not_bounded(int year)
+    {
+        // Measured 2026-08-30: year=1990 and year=2030 both return HTTP 200 with `[]`, and year=abc is a 400.
+        // No bound is imposed here, and this test is what stops one being added: a lower bound would have to
+        // come from measured coverage extents, which differ per fund (2019-09-30 SPY, 2019-11-30 FXAIX,
+        // 2020-04-30 ARKK) and will move. Encoding one of them would be inventing a fact.
+        var (endpoints, handler) = Build();
+
+        var rows = await endpoints.GetFundDisclosureAsync("SPY", year, 1);
+
+        Assert.Empty(rows);
+        Assert.Single(handler.Requests);
+        Assert.Contains($"year={year}", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData("disclosure")]
+    [InlineData("dates")]
+    [InlineData("holders")]
+    public async Task A_comma_in_the_symbol_is_rejected_on_the_fund_paths_too(string which)
+    {
+        var (endpoints, handler) = Build();
+
+        Task Call() => which switch
+        {
+            "disclosure" => endpoints.GetFundDisclosureAsync("SPY,QQQ", 2026, 1),
+            "dates" => endpoints.GetFundDisclosureDatesAsync("SPY,QQQ"),
+            _ => endpoints.GetFundHoldersAsync("SPY,QQQ"),
+        };
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(Call);
+
+        Assert.Equal("symbol", error.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("disclosure")]
+    [InlineData("dates")]
+    [InlineData("holders")]
+    public async Task A_blank_symbol_is_rejected_on_the_fund_paths_too(string which)
+    {
+        var (endpoints, handler) = Build();
+
+        Task Call() => which switch
+        {
+            "disclosure" => endpoints.GetFundDisclosureAsync("  ", 2026, 1),
+            "dates" => endpoints.GetFundDisclosureDatesAsync("  "),
+            _ => endpoints.GetFundHoldersAsync("  "),
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(Call);
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_blank_name_is_rejected_before_the_request_goes_out()
+    {
+        // Measured 2026-08-30: a bare `name=` is an HTTP 400 on this path.
+        var (endpoints, handler) = Build();
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(
+            () => endpoints.SearchFundsByNameAsync("  "));
+
+        Assert.Equal("name", error.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task All_nine_paths_are_reachable_and_each_asks_a_different_one()
+    {
+        // The whole surface in one assertion. Nine methods, nine distinct paths, no duplicates and no typos —
+        // measured 2026-08-30, no two of the nine share a key tuple either, so a copy-paste that pointed two
+        // methods at one path would bind the wrong shape without failing anything else here.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetEtfAssetExposureAsync("QQQ");
+        await endpoints.GetEtfCountryWeightingsAsync("QQQ");
+        await endpoints.GetEtfHoldingsAsync("QQQ");
+        await endpoints.GetEtfInfoAsync("QQQ");
+        await endpoints.GetEtfSectorWeightingsAsync("QQQ");
+        await endpoints.GetFundDisclosureAsync("QQQ", 2025, 3);
+        await endpoints.GetFundDisclosureDatesAsync("QQQ");
+        await endpoints.GetFundHoldersAsync("QQQ");
+        await endpoints.SearchFundsByNameAsync("Schwab");
+
+        Assert.Equal(
+            [
+                "/stable/etf/asset-exposure",
+                "/stable/etf/country-weightings",
+                "/stable/etf/holdings",
+                "/stable/etf/info",
+                "/stable/etf/sector-weightings",
+                "/stable/funds/disclosure",
+                "/stable/funds/disclosure-dates",
+                "/stable/funds/disclosure-holders-latest",
+                "/stable/funds/disclosure-holders-search",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath).ToArray());
+    }
 }

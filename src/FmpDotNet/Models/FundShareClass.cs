@@ -7,8 +7,8 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b>These rows are not holders, despite the path's name.</b> Nothing in a row says who holds what:
 /// they are registrant, series and class identifiers plus a filer address. The SDK's method is named for what
-/// it returns — <c>EtfAndFundsEndpoints.SearchFundsByNameAsync</c> — and this doc carries the wire path, the
-/// same trade <see cref="MarketMover.ChangePercentage"/> makes for a property name.</para>
+/// it returns — <see cref="Endpoints.EtfAndFundsEndpoints.SearchFundsByNameAsync"/> — and this doc carries
+/// the wire path, the same trade <see cref="MarketMover.ChangePercentage"/> makes for a property name.</para>
 ///
 /// <para><b>Matching is case-insensitive, whole-word and single-word.</b> Measured 2026-08-30:
 /// <c>Vanguard</c>, <c>vanguard</c> and <c>VANGUARD</c> each returned the same 548 rows; <c>Vangua</c>
