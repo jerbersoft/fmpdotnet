@@ -26,8 +26,9 @@ namespace FmpDotNet.Endpoints;
 ///     method.</description></item>
 /// </list>
 ///
-/// <para>Market hours and exchange holidays are a separate facade — <c>MarketHoursEndpoints</c> — because
-/// the two groups share no path prefix, no parameter, no record and no concept.</para></summary>
+/// <para>Market hours and exchange holidays are a separate facade —
+/// <see cref="FmpDotNet.Endpoints.MarketHoursEndpoints"/> — because the two groups share no path prefix, no
+/// parameter, no record and no concept.</para></summary>
 public sealed class IndexesEndpoints(FmpTransport transport)
 {
     /// <summary>The Dow Jones Industrial Average's current members, from

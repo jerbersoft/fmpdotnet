@@ -1,5 +1,8 @@
 using System.Text.Json;
+using System.Web;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -282,5 +285,142 @@ public class MarketHoursTests
             """[{"adjOpenTime":"10:30"}]""", FmpJsonContext.Default.ListExchangeHoliday)![0];
 
         Assert.Equal(new LocalTime(10, 30), populated.AdjustedOpenTime);
+    }
+
+    private static (MarketHoursEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new MarketHoursEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Each_of_the_three_paths_is_asked_exactly_once()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetAllExchangesAsync();
+        await endpoints.GetExchangeAsync("NASDAQ");
+        await endpoints.GetHolidaysAsync("NASDAQ", new LocalDate(2024, 1, 1), new LocalDate(2026, 12, 31));
+
+        Assert.Equal(
+            [
+                "/stable/all-exchange-market-hours",
+                "/stable/exchange-market-hours",
+                "/stable/holidays-by-exchange",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath).ToArray());
+    }
+
+    [Fact]
+    public async Task The_whole_market_path_sends_no_exchange_and_the_single_one_does()
+    {
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetAllExchangesAsync();
+        await endpoints.GetExchangeAsync("NASDAQ");
+
+        Assert.Equal(
+            ["apikey"],
+            HttpUtility.ParseQueryString(handler.Requests[0].Query)
+                .AllKeys.Where(k => k is not null).Select(k => k!).ToArray());
+        Assert.Equal("NASDAQ", HttpUtility.ParseQueryString(handler.Requests[1].Query)["exchange"]);
+    }
+
+    [Fact]
+    public async Task The_holiday_range_is_sent_verbatim_and_never_widened()
+    {
+        // Measured 2026-08-30 against NASDAQ's 2026-07-03 holiday, the upstream window is HALF-OPEN —
+        // (from, to]: from=2026-07-03&to=2026-07-03 returns [], from=2026-07-03&to=2026-07-04 returns [],
+        // and from=2026-07-02&to=2026-07-03 returns the row. `to` is inclusive, `from` is not, and a
+        // single-day range therefore always answers [] no matter what falls on that day.
+        //
+        // The obvious "fix" is to send from.PlusDays(-1) so the signature behaves the way a caller expects
+        // a date range to behave. The design rejects it: the request this SDK sends would then not match
+        // the arguments the caller passed, which turns every debugging session into a puzzle. The behaviour
+        // is documented on the method instead, and this test is what stops the compensation being added —
+        // it fails the moment either bound is altered on the way out.
+        //
+        // A unit test cannot observe the upstream's half of this contract; that lives in the measurements
+        // file. What it CAN pin is this SDK's half, which is the half anybody would change.
+        var (endpoints, handler) = Build();
+        var day = new LocalDate(2026, 7, 3);
+
+        await endpoints.GetHolidaysAsync("NASDAQ", day, day);
+
+        var query = HttpUtility.ParseQueryString(handler.Requests.Single().Query);
+        Assert.Equal("2026-07-03", query["from"]);
+        Assert.Equal("2026-07-03", query["to"]);
+    }
+
+    [Fact]
+    public async Task The_single_exchange_call_returns_one_record_and_null_on_an_empty_array()
+    {
+        // Every measured response was a single-element array, so the method takes the first row — the
+        // CompanyEndpoints.GetProfileAsync shape. null was NEVER observed and probably cannot happen: an
+        // unknown exchange is HTTP 400 "Invalid Exchange Provided.", an exception rather than an empty
+        // list, so the empty array that would produce null has no measured cause. The nullable return is
+        // honesty about what the deserialiser can promise, not a hint that emptiness is expected.
+        var (found, _) = Build(Binding.Fixture("exchange-market-hours.NASDAQ.json"));
+        var row = await found.GetExchangeAsync("NASDAQ");
+
+        Assert.NotNull(row);
+        Assert.Equal("NASDAQ", row.Exchange);
+        Assert.True(row.IsClosedToday);
+
+        var (empty, _) = Build("[]");
+        Assert.Null(await empty.GetExchangeAsync("NASDAQ"));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("NASDAQ,NYSE")]
+    public async Task An_exchange_that_is_not_one_exchange_is_rejected_before_the_call(string exchange)
+    {
+        // Measured 2026-08-30, exchange=NASDAQ,NYSE is HTTP 400 "Invalid Exchange Provided." — so unlike
+        // the comma case on the ETF paths this is ALREADY an error and not a silent empty list. The guard
+        // is still worth having: it turns a wasted call against the key's quota into an ArgumentException
+        // that names the fix. The message must not claim the wire answers silently, because it does not.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetExchangeAsync(exchange));
+        await Assert.ThrowsAsync<ArgumentException>(() =>
+            endpoints.GetHolidaysAsync(exchange, new LocalDate(2024, 1, 1), new LocalDate(2026, 12, 31)));
+
+        Assert.Empty(handler.Requests);          // and nothing reached the network
+    }
+
+    [Fact]
+    public async Task A_backwards_holiday_range_is_rejected_before_the_call()
+    {
+        // Measured 2026-08-30, a reversed range answers [] with HTTP 200 — "no holidays in that window",
+        // indistinguishable from a genuinely quiet range. This is exactly the case DateRange was extracted
+        // for, and the shared guard is used rather than a fifth copy of the check.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            endpoints.GetHolidaysAsync("NASDAQ", new LocalDate(2026, 12, 31), new LocalDate(2024, 1, 1)));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task An_exchange_code_of_the_wrong_case_is_sent_as_given()
+    {
+        // Measured 2026-08-30, exchange=nasdaq returned a response BYTE-IDENTICAL to exchange=NASDAQ on
+        // both paths. There is nothing to normalise, and normalising would silently rewrite the caller's
+        // identifier — the same rule CompanyEndpoints.GetProfileByCikAsync follows for a padded CIK.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetExchangeAsync("nasdaq");
+
+        Assert.Equal("nasdaq", HttpUtility.ParseQueryString(handler.Requests.Single().Query)["exchange"]);
     }
 }
