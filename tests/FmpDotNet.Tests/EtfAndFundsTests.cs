@@ -1,5 +1,7 @@
 using System.Text.Json;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -862,5 +864,135 @@ public class EtfAndFundsTests
 
         Assert.Equal("30", rows[0].EntityOrgType);
         Assert.Null(rows[1].EntityOrgType);
+    }
+
+    private static (EtfAndFundsEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new EtfAndFundsEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Theory]
+    [InlineData("asset-exposure", "/stable/etf/asset-exposure")]
+    [InlineData("country-weightings", "/stable/etf/country-weightings")]
+    [InlineData("holdings", "/stable/etf/holdings")]
+    [InlineData("info", "/stable/etf/info")]
+    [InlineData("sector-weightings", "/stable/etf/sector-weightings")]
+    public async Task Each_etf_method_asks_its_own_path(string which, string expected)
+    {
+        var (endpoints, handler) = Build();
+
+        switch (which)
+        {
+            case "asset-exposure": await endpoints.GetEtfAssetExposureAsync("QQQ"); break;
+            case "country-weightings": await endpoints.GetEtfCountryWeightingsAsync("QQQ"); break;
+            case "holdings": await endpoints.GetEtfHoldingsAsync("QQQ"); break;
+            case "info": await endpoints.GetEtfInfoAsync("QQQ"); break;
+            default: await endpoints.GetEtfSectorWeightingsAsync("QQQ"); break;
+        }
+
+        Assert.Equal(expected, handler.Requests[0].AbsolutePath);
+    }
+
+    [Fact]
+    public async Task An_etf_method_sends_the_symbol_and_nothing_but_the_key_beside_it()
+    {
+        // Measured 2026-08-30: `limit` and `page` are ignored on all nine paths — byte-identical responses
+        // with and without them, including a 17,252-row, 4.9 MB etf/holdings?symbol=BND. Offering either
+        // would let a caller believe a page happened. Asserted against the WHOLE query string, not just those
+        // two, so any future parameter this method starts sending is caught as well.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetEtfHoldingsAsync("QQQ");
+
+        Assert.Equal("?symbol=QQQ&apikey=k", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task Get_etf_info_returns_the_single_row_rather_than_a_list()
+    {
+        // All 33 responses measured 2026-08-30 were single-element arrays, which is why this one method on
+        // the facade returns a record instead of a list — the CompanyEndpoints.GetProfileAsync precedent.
+        var (endpoints, _) = Build(Binding.Fixture("etf-info.SPY.json"));
+
+        var info = await endpoints.GetEtfInfoAsync("SPY");
+
+        Assert.NotNull(info);
+        Assert.Equal("SPY", info.Symbol);
+        Assert.Equal(12, info.SectorsList!.Count);
+    }
+
+    [Fact]
+    public async Task Get_etf_info_returns_null_when_the_array_is_empty()
+    {
+        // An unknown symbol answers `[]` at HTTP 200, not an error — measured 2026-08-30, and so does a
+        // perfectly valid stock ticker: AAPL returned `[]` on all four ETF-only paths.
+        var (endpoints, _) = Build();
+
+        Assert.Null(await endpoints.GetEtfInfoAsync("AAPL"));
+    }
+
+    [Theory]
+    [InlineData("asset-exposure")]
+    [InlineData("country-weightings")]
+    [InlineData("holdings")]
+    [InlineData("info")]
+    [InlineData("sector-weightings")]
+    public async Task A_comma_in_the_symbol_is_rejected_before_the_request_goes_out(string which)
+    {
+        // Measured 2026-08-30: `symbol=SPY,QQQ` returns `[]` with HTTP 200 on etf/info and
+        // etf/sector-weightings, while the plural `symbols=` is a 400. So the comma-joined form that works on
+        // QuoteEndpoints.Batch is not merely unsupported here — it is a SILENT WRONG ANSWER, indistinguishable
+        // from "this ETF has no data". This is the one place in the slice where a signature can prevent one.
+        //
+        // Deliberately narrow: it rejects the COMMA, not "not a known ETF". An unknown symbol legitimately
+        // answers [] and so does a stock; those are honest empties and stay documented rather than guarded.
+        var (endpoints, handler) = Build();
+
+        Task Call() => which switch
+        {
+            "asset-exposure" => endpoints.GetEtfAssetExposureAsync("SPY,QQQ"),
+            "country-weightings" => endpoints.GetEtfCountryWeightingsAsync("SPY,QQQ"),
+            "holdings" => endpoints.GetEtfHoldingsAsync("SPY,QQQ"),
+            "info" => endpoints.GetEtfInfoAsync("SPY,QQQ"),
+            _ => endpoints.GetEtfSectorWeightingsAsync("SPY,QQQ"),
+        };
+
+        var error = await Assert.ThrowsAsync<ArgumentException>(Call);
+
+        Assert.Equal("symbol", error.ParamName);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Theory]
+    [InlineData("asset-exposure")]
+    [InlineData("country-weightings")]
+    [InlineData("holdings")]
+    [InlineData("info")]
+    [InlineData("sector-weightings")]
+    public async Task A_blank_symbol_is_rejected_before_the_request_goes_out(string which)
+    {
+        // Measured 2026-08-30: a bare `symbol=` is an HTTP 400 from FMP on every one of these paths.
+        var (endpoints, handler) = Build();
+
+        Task Call() => which switch
+        {
+            "asset-exposure" => endpoints.GetEtfAssetExposureAsync("  "),
+            "country-weightings" => endpoints.GetEtfCountryWeightingsAsync("  "),
+            "holdings" => endpoints.GetEtfHoldingsAsync("  "),
+            "info" => endpoints.GetEtfInfoAsync("  "),
+            _ => endpoints.GetEtfSectorWeightingsAsync("  "),
+        };
+
+        await Assert.ThrowsAsync<ArgumentException>(Call);
+
+        Assert.Empty(handler.Requests);
     }
 }

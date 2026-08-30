@@ -13,7 +13,8 @@ public sealed class FmpClient(
     InstitutionalOwnershipEndpoints institutionalOwnership, InsiderTradesEndpoints insiderTrades,
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
-    TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance)
+    TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance,
+    EtfAndFundsEndpoints etfAndFunds)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -136,4 +137,13 @@ public sealed class FmpClient(
     /// <para>Every sector and industry method answers for <b>one exchange</b> and requires it. See
     /// <see cref="MarketPerformanceEndpoints"/>.</para></summary>
     public MarketPerformanceEndpoints MarketPerformance { get; } = marketPerformance;
+
+    /// <summary>ETFs and mutual funds — holdings, exposures, fund fact sheets, and the SEC N-PORT filings
+    /// behind them.
+    ///
+    /// <para><b>No path in this group paginates and none can be narrowed</b>, so two of the nine methods can
+    /// return tens of thousands of rows. See <see cref="EtfAndFundsEndpoints"/> before calling
+    /// <see cref="EtfAndFundsEndpoints.GetEtfHoldingsAsync"/> or
+    /// <c>EtfAndFundsEndpoints.SearchFundsByNameAsync</c> in a loop.</para></summary>
+    public EtfAndFundsEndpoints EtfAndFunds { get; } = etfAndFunds;
 }
