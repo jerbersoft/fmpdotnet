@@ -575,3 +575,53 @@ public sealed class ScalarAsStringJsonConverter : JsonConverter<string?>
     public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
         => writer.WriteStringValue(value);
 }
+
+/// <summary>Reads a percentage FMP sends as a string with a trailing <c>%</c> — <c>"97.52%"</c> — as a
+/// <see cref="decimal"/>.
+///
+/// <para><b>Written for <c>stable/etf/country-weightings</c>, which is the only path measured to do this.</b>
+/// Measured 2026-08-30, all 227 rows returned across 13 ETFs sent <c>weightPercentage</c> as a quoted string
+/// with a trailing <c>%</c> and a varying number of decimals — <c>"97.52%"</c>, <c>"0.1%"</c>, <c>"0%"</c>,
+/// <c>"100%"</c>. Its sibling <c>stable/etf/sector-weightings</c>, one letter apart in the URL, sends the
+/// identically-named field as a <b>bare JSON number</b>. One name, two wire types, two converters.</para>
+///
+/// <para><b>Why not <see cref="TolerantDecimalJsonConverter"/>.</b> That converter parses quoted numbers with
+/// <c>NumberStyles.Float</c>, and <c>decimal.TryParse("97.52%", NumberStyles.Float, …)</c> is
+/// <see langword="false"/> — so it would bind <see langword="null"/> on all 227 rows without failing anything.
+/// <c>NumberStyles.AllowTrailingSign</c> does not help either; <c>%</c> is not a sign.</para>
+///
+/// <para>A bare JSON number passes through unchanged, so a future normalisation of the field costs nothing.
+/// An unparseable value becomes <see langword="null"/> rather than throwing, following this file's standing
+/// convention that one bad value costs one field rather than the whole response.</para></summary>
+public sealed class PercentSuffixedDecimalJsonConverter : JsonConverter<decimal?>
+{
+    /// <inheritdoc/>
+    public override decimal? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null:
+                return null;
+            case JsonTokenType.Number:
+                return reader.TryGetDecimal(out var value) ? value : null;
+            case JsonTokenType.String:
+                var text = (reader.GetString() ?? "").AsSpan().Trim();
+                if (text.Length > 0 && text[^1] == '%') text = text[..^1];
+                return decimal.TryParse(
+                    text, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var parsed) ? parsed : null;
+            default:
+                return null;
+        }
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, decimal? value, JsonSerializerOptions options)
+    {
+        // The wire form, not a bare number: a caller who serialises a row and hands it back to something that
+        // expects FMP's own shape gets what FMP sent. Read accepts both, so this cannot round-trip lossily.
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(
+            value.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) + "%");
+    }
+}
