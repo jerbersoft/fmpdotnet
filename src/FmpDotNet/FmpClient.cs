@@ -161,6 +161,7 @@ public sealed class FmpClient(
     /// <para>Its own facade rather than a corner of <see cref="Indexes"/>: the two groups share no path
     /// prefix, no parameter, no record and no concept. Read
     /// <see cref="MarketHoursEndpoints.GetHolidaysAsync"/> before passing a date range — the window is
-    /// half-open and a single-day range always answers empty.</para></summary>
+    /// half-open, so <c>from</c> is exclusive and a range whose bounds are equal is rejected rather than
+    /// sent.</para></summary>
     public MarketHoursEndpoints MarketHours { get; } = marketHours;
 }

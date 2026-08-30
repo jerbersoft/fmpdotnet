@@ -318,7 +318,21 @@ public partial class EndpointCoverageTests
         // would reach FMP empty, and a rejected call requests nothing and so records no path.
         if (type == typeof(IEnumerable<string>)) return new[] { "AAPL", "MSFT" };
         if (type == typeof(bool)) return false;
-        if (type == typeof(LocalDate)) return new LocalDate(2026, 1, 2);
+        // Name-dispatched so a `from`/`to` pair comes out as a real range. One shared constant used to serve
+        // both ends, which every endpoint accepted until MarketHoursEndpoints.GetHolidaysAsync began
+        // rejecting an equal range: the holidays window is half-open, (from, to], so equal bounds span no
+        // days. An equal pair is now an ArgumentOutOfRangeException rather than a request, and the method
+        // would fail this harness outright — the noisier cousin of the silent vanishing the `quarter` and
+        // `periodLength` arms below exist to prevent. `date` and `earliest` are lone bounds with nothing to
+        // order against, so they keep the original constant.
+        if (type == typeof(LocalDate))
+        {
+            return parameter.Name switch
+            {
+                "to" => new LocalDate(2026, 3, 4),
+                _ => new LocalDate(2026, 1, 2), // from, date, earliest
+            };
+        }
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria();
         if (type.IsEnum) return Enum.GetValues(type).GetValue(0)!;
         if (type == typeof(int))

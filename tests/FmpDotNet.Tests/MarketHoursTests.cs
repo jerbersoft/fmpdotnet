@@ -339,7 +339,10 @@ public class MarketHoursTests
         // Measured 2026-08-30 against NASDAQ's 2026-07-03 holiday, the upstream window is HALF-OPEN —
         // (from, to]: from=2026-07-03&to=2026-07-03 returns [], from=2026-07-03&to=2026-07-04 returns [],
         // and from=2026-07-02&to=2026-07-03 returns the row. `to` is inclusive, `from` is not, and a
-        // single-day range therefore always answers [] no matter what falls on that day.
+        // range whose bounds are equal therefore always answers [] no matter what falls on that day —
+        // which is why the SDK now rejects that one outright, pinned separately by
+        // A_holiday_range_whose_bounds_are_equal_is_rejected_before_the_call. This test drives the measured
+        // range that DOES return the row, so it exercises the wire rather than the guard.
         //
         // The obvious "fix" is to send from.PlusDays(-1) so the signature behaves the way a caller expects
         // a date range to behave. The design rejects it: the request this SDK sends would then not match
@@ -350,12 +353,11 @@ public class MarketHoursTests
         // A unit test cannot observe the upstream's half of this contract; that lives in the measurements
         // file. What it CAN pin is this SDK's half, which is the half anybody would change.
         var (endpoints, handler) = Build();
-        var day = new LocalDate(2026, 7, 3);
 
-        await endpoints.GetHolidaysAsync("NASDAQ", day, day);
+        await endpoints.GetHolidaysAsync("NASDAQ", new LocalDate(2026, 7, 2), new LocalDate(2026, 7, 3));
 
         var query = HttpUtility.ParseQueryString(handler.Requests.Single().Query);
-        Assert.Equal("2026-07-03", query["from"]);
+        Assert.Equal("2026-07-02", query["from"]);   // NOT 2026-07-01 — no PlusDays(-1) on the way out
         Assert.Equal("2026-07-03", query["to"]);
     }
 
@@ -409,6 +411,23 @@ public class MarketHoursTests
             endpoints.GetHolidaysAsync("NASDAQ", new LocalDate(2026, 12, 31), new LocalDate(2024, 1, 1)));
 
         Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_holiday_range_whose_bounds_are_equal_is_rejected_before_the_call()
+    {
+        // The window is (from, to]: `from` is EXCLUSIVE, so from == to spans no days at all and answers []
+        // at HTTP 200 no matter what falls on that day. Measured 2026-08-30, from=2026-07-03&to=2026-07-03
+        // returns [] though NASDAQ's Independence Day sits on exactly that date. That is the same defect
+        // DateRange guards the transposed range for -- a wrong answer, paid for out of the key's quota,
+        // wearing the shape of a right one -- so it is rejected here rather than merely documented.
+        var (endpoints, handler) = Build();
+
+        var ex = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() =>
+            endpoints.GetHolidaysAsync("NASDAQ", new LocalDate(2026, 7, 3), new LocalDate(2026, 7, 3)));
+
+        Assert.Equal("from", ex.ParamName);   // the bound the caller has to move, not `to`
+        Assert.Empty(handler.Requests);       // and nothing reached the network
     }
 
     [Fact]

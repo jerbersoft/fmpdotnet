@@ -93,8 +93,11 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     /// Measured 2026-08-30 against NASDAQ's 2026-07-03 holiday: <c>from=2026-07-03&amp;to=2026-07-03</c>
     /// returns <c>[]</c>, <c>from=2026-07-03&amp;to=2026-07-04</c> returns <c>[]</c>, and
     /// <c>from=2026-07-02&amp;to=2026-07-03</c> returns the row. <c>to</c> is inclusive, <c>from</c> is not,
-    /// and <b>a single-day range therefore always answers an empty list</b> no matter what falls on that
-    /// day. Pass a <paramref name="from"/> one day before the earliest date you care about.</para>
+    /// and <b>a range whose bounds are equal therefore spans no days at all</b> — it answers <c>[]</c> no
+    /// matter what falls on that day. Pass a <paramref name="from"/> one day before the earliest date you
+    /// care about. <b>That degenerate range is rejected here rather than sent</b>, for the reason
+    /// <c>DateRange</c> rejects a transposed one: it is a wrong answer arriving at HTTP 200 in the shape of
+    /// a right one, paid for out of the key's quota.</para>
     ///
     /// <para>Sending <c>from.PlusDays(-1)</c> upstream on the caller's behalf would make this signature
     /// behave the way a date range is expected to, and is deliberately <b>not</b> done: the request would
@@ -109,11 +112,13 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     /// <param name="to">The latest date wanted; this bound is inclusive.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every holiday in the window, in FMP's own order. Never <see langword="null"/>; an empty list
-    /// means either no holidays or a range one day wide.</returns>
+    /// means no holidays fell in the window, the degenerate range having been rejected before the
+    /// call.</returns>
     /// <exception cref="ArgumentException"><paramref name="exchange"/> is blank or contains a comma.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
-    /// <paramref name="from"/>. FMP answers a reversed range with an empty list at HTTP 200, which reads as
-    /// "no holidays".</exception>
+    /// <paramref name="from"/>, or equal to it. FMP answers both with an empty list at HTTP 200, which
+    /// reads as "no holidays" — the reversed range because it is transposed, the equal one because
+    /// <paramref name="from"/> is exclusive.</exception>
     /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<ExchangeHoliday>> GetHolidaysAsync(
@@ -121,10 +126,36 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     {
         ThrowIfNotOneExchange(exchange);
         DateRange.ThrowIfBackwards(from, to);
+        ThrowIfRangeIsEmptyByConstruction(from, to);
         return transport.GetListAsync(
             new FmpRequest("stable/holidays-by-exchange")
                 .With("exchange", exchange).With("from", from).With("to", to),
             FmpJsonContext.Default.ListExchangeHoliday, ct);
+    }
+
+    /// <summary>Rejects a date range that spans no days, and so can only answer <c>[]</c>.
+    ///
+    /// <para><b>Private to this group rather than beside <c>DateRange.ThrowIfBackwards</c>, because the rule
+    /// is measured for this path and only this path.</b> The half-open <c>(from, to]</c> window was measured
+    /// 2026-08-30 on <c>holidays-by-exchange</c>; no other endpoint's <c>from</c> bound has ever been
+    /// measured for inclusivity. On the twenty-two other <c>ThrowIfBackwards</c> call sites an equal range
+    /// is an ordinary single-day request, so a shared helper would be an invitation to apply this rule
+    /// where it is wrong.</para>
+    ///
+    /// <para>It names <c>from</c> rather than <c>to</c> because <c>from</c> is the bound the caller has to
+    /// move: the fix is <c>from.PlusDays(-1)</c>, not a later <c>to</c>.</para></summary>
+    private static void ThrowIfRangeIsEmptyByConstruction(LocalDate from, LocalDate to)
+    {
+        if (from == to)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(from),
+                from,
+                "'from' is exclusive upstream. Measured 2026-08-30, the window is (from, to], so a range "
+                + "whose bounds are equal spans no days and answers [] regardless of what falls on that "
+                + "day — a wasted call against the key's quota that reads as 'no holidays'. Pass the day "
+                + "BEFORE the earliest date wanted.");
+        }
     }
 
     /// <summary>Rejects an exchange argument FMP would answer with a 400.

@@ -4,6 +4,9 @@ obj/
 [Dd]ebug/
 [Rr]elease/
 artifacts/
+# `dotnet pack -o dist` output. Unignored, it is 1.3 MB of binaries one `git add -A` away from
+# the history — which is exactly how it got there once, on 2026-08-30.
+dist/
 TestResults/
 *.trx
 
