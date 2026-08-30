@@ -336,8 +336,11 @@ Each `<returns>` says "in FMP's own order" and records what that order was on 20
 
 ### `GetFundHoldersAsync` is per-holder latest, not an as-of snapshot
 
-One response mixes reporting dates — SPY's 220 rows carried four (`2026-06-30` ×124, `2026-04-30` ×44,
-`2026-05-31` ×30, `2026-03-31` ×2). So rows in one response are **not comparable as of one date**, and
+One response mixes reporting dates, and by years rather than by quarters: SPY's 220 rows carry **19
+distinct dates spanning 2019-09-30 to 2026-06-30**, and AAPL's 3,209 rows carry **66**. Four recent dates
+dominate — SPY `2026-06-30` ×124, `2026-04-30` ×44, `2026-05-31` ×30, `2026-03-31` ×2 — but 18 of SPY's rows
+and 292 of AAPL's report a date before 2026 at all. A holder that stopped filing in 2019 is still in the
+response with its 2019 position. So rows in one response are **not comparable as of one date**, and
 `DateReported` must be read per row.
 
 `SecurityCusip` is also not constant per response: AAPL's mixes the common stock `037833100` with the bonds

@@ -346,9 +346,16 @@ Symbols with no N-PORT filings return `[]` rather than an error: `GLD`, `BND` an
 
 ## `funds/disclosure-holders-latest` is per-holder latest, not a single as-of date
 
-One response mixes reporting dates. For SPY's 220 rows: `2026-06-30` ×124, `2026-04-30` ×44, `2026-05-31`
-×30, `2026-03-31` ×2. AAPL's 3,209 rows spread the same four dates. So "latest" is each holder's own most
-recent filing, and rows in one response are **not** comparable as of one date.
+One response mixes reporting dates, and mixes far more of them than four. SPY's 220 rows carry **19
+distinct dates spanning 2019-09-30 to 2026-06-30**; AAPL's 3,209 rows carry **66, spanning 2019-09-30 to
+2026-07-31**. Four dates dominate both — SPY `2026-06-30` ×124, `2026-04-30` ×44, `2026-05-31` ×30,
+`2026-03-31` ×2, and AAPL the same four at ×1,644 / ×755 / ×451 / ×52 — but they account for 200 of SPY's 220
+rows and 2,902 of AAPL's 3,209. The tail is old: **18 of SPY's rows and 292 of AAPL's report a date before
+2026 at all**, the oldest being 2019-09-30 in both.
+
+So "latest" is each holder's own most recent filing, and a holder that stopped filing seven years ago is still
+in the response with its 2019 position. Rows in one response are **not** comparable as of one date, and the
+spread is years wide rather than one quarter wide.
 
 `securityCusip` is also not constant per response. AAPL's response mixes `037833100` (the common stock, 867
 rows) with `037833EF3` and `037833DZ0` — Apple's bonds — and SPY's mixes `78462F103` with `000000000` and
@@ -440,7 +447,7 @@ Echo fields **are** reliable: `etf/holdings.symbol` was constant across every ro
 - `funds/disclosure-dates`: back to **2019-09-30** (SPY), **2019-11-30** (FXAIX), **2020-04-30** (ARKK).
 - `funds/disclosure`: answered for every quarter 2024 Q1 – 2026 Q2 tried; 2026 Q3 and Q4 return `[]`.
 - `etf/holdings` staleness on 2026-08-30 ranged from **3.2 hours** (ARKK) to **284 hours** (IJH, IJR).
-- `funds/disclosure-holders-latest` reporting dates in one response spanned **2026-03-31 to 2026-06-30**.
+- `funds/disclosure-holders-latest` reporting dates in one response spanned **2019-09-30 to 2026-07-31**.
 
 ## What the design has to decide
 
