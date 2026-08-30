@@ -155,6 +155,22 @@ behave, and it is deliberately **not** done: it would mean the request this SDK 
 arguments the caller passed, which turns every debugging session into a puzzle. The behaviour is documented on
 the method instead, in the terms above, and pinned by a test.
 
+> **Amended 2026-08-30, after the whole-branch review (finding 9).** The paragraph above settled *documented
+> rather than compensated for*, and that still holds — no bound is rewritten on the way out. What it did not
+> settle is the **degenerate** range, `from == to`, which spans no days and so can only answer `[]`. That is
+> the same defect `DateRange.ThrowIfBackwards` exists to prevent — a wrong answer arriving at HTTP 200 in the
+> shape of a right one, paid for out of the key's quota — so `GetHolidaysAsync` now rejects it with an
+> `ArgumentOutOfRangeException` naming `from`, the bound the caller has to move. Pinned by
+> `A_holiday_range_whose_bounds_are_equal_is_rejected_before_the_call`.
+>
+> The guard is **private to `MarketHoursEndpoints`, not added to `DateRange`.** The half-open window was
+> measured on `holidays-by-exchange` and nowhere else; no other endpoint's `from` bound has ever been measured
+> for inclusivity, and on the twenty-two other `ThrowIfBackwards` call sites an equal range is an ordinary
+> single-day request. Two live probes prove it concretely: `Probe.Argument` hands both
+> `CalendarEndpoints.GetEarningsCalendarAsync` and `EconomicsEndpoints.GetEconomicCalendarAsync` a
+> `from` and `to` of `LiveApi.SettledWeekday` — equal on purpose, each narrowed to a day by an earlier
+> slice's measurement. A shared guard would have thrown on both.
+
 ## The models
 
 Four records, in `src/FmpDotNet/Models/`, one file each.

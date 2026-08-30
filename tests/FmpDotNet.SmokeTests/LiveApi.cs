@@ -159,8 +159,10 @@ internal static class LiveApi
     /// early-close shape, so the baseline records both of the record's two states rather than one.</para>
     ///
     /// <para><b>The <c>from</c> bound is EXCLUSIVE upstream</b> — measured 2026-08-30, the window is
-    /// <c>(from, to]</c> and a single-day range always answers an empty array. A relative range narrowed to
-    /// a day here would be empty by construction, not by drift.</para></summary>
+    /// <c>(from, to]</c>, so a range whose bounds are equal spans no days. A relative range narrowed to a
+    /// day here would not merely be empty by construction rather than by drift — since the equal-bounds
+    /// guard landed it would throw before the request, failing the sweep on its own arithmetic rather than
+    /// on anything FMP did.</para></summary>
     public static readonly LocalDate HolidayRangeStart = new(2024, 1, 1);
 
     /// <summary>The end of <see cref="HolidayRangeStart"/>'s window. Inclusive upstream.</summary>
