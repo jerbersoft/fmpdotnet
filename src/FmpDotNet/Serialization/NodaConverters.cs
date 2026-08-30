@@ -687,3 +687,43 @@ public sealed class SentinelStringJsonConverter : JsonConverter<string?>
     public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
         => writer.WriteStringValue(value);
 }
+
+/// <summary>Reads an ISO-8601 timestamp that carries its own <c>Z</c> — <c>"2026-08-29T23:12:50.006Z"</c> — as
+/// an <see cref="Instant"/>.
+///
+/// <para><b>The fourth converter in this file for a timestamp, and the only one that needs no zone
+/// measurement.</b> <see cref="NullableFmpInstantJsonConverter"/> and
+/// <see cref="NullableEasternInstantJsonConverter"/> both read <c>"uuuu-MM-dd HH:mm:ss"</c>, which carries no
+/// offset, and each had to establish its zone by measuring a DST shift.
+/// <see cref="NullableLocalDateTimeJsonConverter"/> declines to guess where nobody measured. This form states
+/// its offset, so there is nothing to establish.</para>
+///
+/// <para><b>Written for <c>stable/etf/info.updatedAt</c></b>, which sent
+/// <c>uuuu-MM-dd'T'HH:mm:ss.fff'Z'</c> on 33 of 33 rows measured 2026-08-30 — while its sibling
+/// <c>stable/etf/holdings</c> sends the space-separated form for the same concept. One name, two formats, on
+/// two paths one word apart in the URL. Substituting
+/// <see cref="NullableFmpInstantJsonConverter"/> here binds <see langword="null"/> on every row: its pattern
+/// expects a space separator and no <c>Z</c>.</para>
+///
+/// <para>Uses NodaTime's <see cref="InstantPattern.ExtendedIso"/>, which reads the fractional seconds and the
+/// <c>Z</c> and tolerates a value with no fractional part. Null on an unparseable value, like the rest of this
+/// file.</para></summary>
+public sealed class NullableIsoInstantJsonConverter : JsonConverter<Instant?>
+{
+    private static readonly InstantPattern Pattern = InstantPattern.ExtendedIso;
+
+    /// <inheritdoc/>
+    public override Instant? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, Instant? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}

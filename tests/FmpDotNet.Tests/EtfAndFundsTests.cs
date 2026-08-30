@@ -349,4 +349,117 @@ public class EtfAndFundsTests
 
         Assert.Equal(7434183997921.512m, row.MarketValue);
     }
+
+    [Fact]
+    public void An_etf_info_row_binds_all_nineteen_of_its_fields()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("etf-info.SPY.json"), FmpJsonContext.Default.ListEtfInfo)!;
+
+        Assert.Single(rows);
+        Assert.Empty(Binding.Unbound(rows[0]));
+        Assert.Equal("SPY", rows[0].Symbol);
+        Assert.Equal("State Street SPDR S&P 500 ETF", rows[0].Name);
+        Assert.StartsWith("SPY is the best-recognized", rows[0].Description);
+        Assert.Equal("US78462F1030", rows[0].Isin);
+        Assert.Equal("Equity", rows[0].AssetClass);
+        Assert.Equal("78462F103", rows[0].SecurityCusip);
+        Assert.Equal("US", rows[0].Domicile);
+        Assert.StartsWith("https://www.ssga.com/", rows[0].Website);
+        Assert.Equal("SPDR", rows[0].EtfCompany);
+        Assert.Equal(0.09m, rows[0].ExpenseRatio);
+        Assert.Equal(816147480000m, rows[0].AssetsUnderManagement);
+        Assert.Equal(49440271m, rows[0].AvgVolume);
+        Assert.Equal(new LocalDate(1993, 1, 22), rows[0].InceptionDate);
+        Assert.Equal(771.27m, rows[0].Nav);
+        Assert.Equal("USD", rows[0].NavCurrency);
+        Assert.Equal(504, rows[0].HoldingsCount);
+        Assert.True(rows[0].IsActivelyTrading);
+        Assert.Equal(Instant.FromUtc(2026, 8, 29, 23, 12, 50) + Duration.FromMilliseconds(6),
+            rows[0].UpdatedAt);
+        Assert.Equal(12, rows[0].SectorsList!.Count);
+    }
+
+    [Fact]
+    public void The_info_timestamp_reads_the_iso_form_and_keeps_its_milliseconds()
+    {
+        // The SECOND `updatedAt` format in this group. `etf/holdings` sends `2026-08-30 06:51:13` — space
+        // separated, no zone marker, and measured UTC by falsification. `etf/info` sends
+        // `2026-08-29T23:12:50.006Z`, 33 of 33 rows measured 2026-08-30: ISO-8601 with milliseconds and an
+        // explicit Z, so it needs no zone measurement — it is UTC because it says so.
+        //
+        // NullableFmpInstantJsonConverter cannot read this shape: its pattern expects a space separator and
+        // no Z, so it would bind null on every row. This test fails if it is ever substituted here.
+        var row = JsonSerializer.Deserialize(
+            """[{"updatedAt":"2026-08-29T23:12:50.006Z"}]""", FmpJsonContext.Default.ListEtfInfo)![0];
+
+        Assert.Equal(Instant.FromUtc(2026, 8, 29, 23, 12, 50) + Duration.FromMilliseconds(6), row.UpdatedAt);
+    }
+
+    [Fact]
+    public void A_nested_sector_binds_industry_and_exposure_and_not_the_sibling_paths_key_names()
+    {
+        // The nested objects spell the same two facts with DIFFERENT keys from stable/etf/sector-weightings:
+        // `industry` where the path says `sector`, `exposure` where it says `weightPercentage`. And the
+        // `industry` key holds SECTOR names — "Basic Materials", "Cash & Others" — not industries.
+        //
+        // The property is Sector and the attribute is [JsonPropertyName("industry")], under the same rule that
+        // binds `senateID` to SenateId. DO NOT "fix" the attribute: the property would then bind nothing,
+        // silently, and this test is the only thing that would notice.
+        var row = JsonSerializer.Deserialize(
+            """[{"sectorsList":[{"industry":"Technology","exposure":37.4}]}]""",
+            FmpJsonContext.Default.ListEtfInfo)![0];
+
+        Assert.Equal("Technology", row.SectorsList![0].Sector);
+        Assert.Equal(37.4m, row.SectorsList[0].Exposure);
+    }
+
+    [Fact]
+    public void The_nested_sectors_are_the_sector_weightings_path_value_for_value()
+    {
+        // Measured 2026-08-30: all 13 ETFs cross-checked agreed on the key set AND on every value, with no
+        // rounding difference. One of the nine paths is fully contained in another. That is why the SDK ships
+        // two records for one fact and says so in both docs — a maintainer who finds the duplication should
+        // find this test before deleting either one.
+        var info = JsonSerializer.Deserialize(
+            Binding.Fixture("etf-info.SPY.json"), FmpJsonContext.Default.ListEtfInfo)![0];
+        var weightings = JsonSerializer.Deserialize(
+            Binding.Fixture("etf-sector-weightings.SPY.json"),
+            FmpJsonContext.Default.ListEtfSectorWeighting)!;
+
+        Assert.Equal(
+            weightings.Select(w => (w.Sector, w.WeightPercentage)),
+            info.SectorsList!.Select(s => (s.Sector, s.Exposure)));
+    }
+
+    [Fact]
+    public void The_holdings_count_binds_as_a_count_and_zero_is_a_value_not_an_absence()
+    {
+        // `holdingsCount` is NOT the number of holdings. Cross-checked on 33 ETFs against the row count
+        // stable/etf/holdings returned for the same symbol on the same day, they agreed on ONE: BND reports
+        // 346 and returns 17,252; ARKK reports 10 and returns 47; GLD and SLV report 0 and return 1. It
+        // cannot pre-size a buffer, cannot page (there is none), and cannot decide whether calling the
+        // holdings path is worthwhile.
+        //
+        // Zero is therefore a real measured value on this field, not a missing one, which is what this test
+        // pins: it fails if the property is ever narrowed to a non-nullable int with 0 as its "absent".
+        var rows = JsonSerializer.Deserialize(
+            """[{"symbol":"GLD","holdingsCount":0},{"symbol":"BND","holdingsCount":346}]""",
+            FmpJsonContext.Default.ListEtfInfo)!;
+
+        Assert.Equal(0, rows[0].HoldingsCount);
+        Assert.Equal(346, rows[1].HoldingsCount);
+    }
+
+    [Fact]
+    public void Is_actively_trading_is_a_real_json_boolean_and_takes_no_converter()
+    {
+        // The only genuine JSON boolean in the whole slice — true on all 33 rows measured 2026-08-30. The
+        // four `is*` fields on funds/disclosure are `Y`/`N` STRINGS and need YesNoBooleanJsonConverter; this
+        // one does not, and giving it that converter would bind null on every row.
+        var row = JsonSerializer.Deserialize(
+            """[{"isActivelyTrading":false}]""", FmpJsonContext.Default.ListEtfInfo)![0];
+
+        Assert.False(row.IsActivelyTrading);
+    }
 }
