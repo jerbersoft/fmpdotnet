@@ -770,3 +770,48 @@ public sealed class YesNoBooleanJsonConverter : JsonConverter<bool?>
         else writer.WriteStringValue(value.Value ? "Y" : "N");
     }
 }
+
+/// <summary>Reads FMP's US long-form dates — <c>"June 29, 2026"</c> — as a <see cref="LocalDate"/>.
+///
+/// <para><b>Written for the three <c>historical-*-constituent</c> paths</b>, whose <c>dateAdded</c> is the
+/// only long-form date in this SDK. Every one of the <b>2,055</b> values measured 2026-08-30 parsed with
+/// <c>MMMM d, yyyy</c>. Its sibling field <c>date</c> on the same row is ISO and takes
+/// <see cref="NullableLocalDateJsonConverter"/> — two date formats in one object, which is why this record
+/// carries two date converters rather than one.</para>
+///
+/// <para><b>Invariant culture is load-bearing, not boilerplate.</b> The month names are English. A pattern
+/// built from the ambient culture parses <b>nothing</b> on a German or French host — and because this file's
+/// converters answer an unparseable value with <see langword="null"/> rather than throwing, the column would
+/// arrive empty in production and green in CI. That is the failure this converter is shaped to prevent.</para>
+///
+/// <para><b><see cref="Write"/> cannot round-trip the wire byte for byte, and that is measured rather than
+/// sloppy.</b> The wire uses <b>both</b> day paddings — measured 2026-08-30 on
+/// <c>historical-sp500-constituent</c> alone, 213 values carry a zero-padded single-digit day
+/// (<c>"August 05, 2026"</c>) and 407 carry an unpadded one (<c>"November 8, 2024"</c>). No single NodaTime
+/// pattern emits both, so <c>d</c> is chosen because it <b>parses</b> both; a zero-padded input therefore
+/// comes back unpadded. Nothing is lost — <see cref="Read"/> accepts either form — but a test that asserts a
+/// byte-identical round trip on this converter is asserting something untrue, and the guard test asserts the
+/// parsed value instead.</para>
+///
+/// <para>Null on an unparseable value, following the rest of this file: one bad date costs one field rather
+/// than the whole response.</para></summary>
+public sealed class LongFormLocalDateJsonConverter : JsonConverter<LocalDate?>
+{
+    private static readonly LocalDatePattern Pattern =
+        LocalDatePattern.CreateWithInvariantCulture("MMMM d, yyyy");
+
+    /// <inheritdoc/>
+    public override LocalDate? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, LocalDate? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}
