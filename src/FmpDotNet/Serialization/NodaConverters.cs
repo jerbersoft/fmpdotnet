@@ -775,7 +775,7 @@ public sealed class YesNoBooleanJsonConverter : JsonConverter<bool?>
 ///
 /// <para><b>Written for the three <c>historical-*-constituent</c> paths</b>, whose <c>dateAdded</c> is the
 /// only long-form date in this SDK. Every one of the <b>2,055</b> values measured 2026-08-30 parsed with
-/// <c>MMMM d, yyyy</c>. Its sibling field <c>date</c> on the same row is ISO and takes
+/// <c>MMMM d, uuuu</c>. Its sibling field <c>date</c> on the same row is ISO and takes
 /// <see cref="NullableLocalDateJsonConverter"/> — two date formats in one object, which is why this record
 /// carries two date converters rather than one.</para>
 ///
@@ -798,7 +798,7 @@ public sealed class YesNoBooleanJsonConverter : JsonConverter<bool?>
 public sealed class LongFormLocalDateJsonConverter : JsonConverter<LocalDate?>
 {
     private static readonly LocalDatePattern Pattern =
-        LocalDatePattern.CreateWithInvariantCulture("MMMM d, yyyy");
+        LocalDatePattern.CreateWithInvariantCulture("MMMM d, uuuu");
 
     /// <inheritdoc/>
     public override LocalDate? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -824,7 +824,7 @@ public sealed class LongFormLocalDateJsonConverter : JsonConverter<LocalDate?>
 ///
 /// <para><b>The value carries no offset and the response carries no zone.</b> <c>holidays-by-exchange</c> has
 /// no <c>timezone</c> key at all — verified absent on all 446 rows — so a caller who needs an instant must
-/// take the zone from the matching <c>ExchangeMarketHours.Timezone</c>, fetched from
+/// take the zone from the matching <see cref="Models.ExchangeMarketHours.Timezone"/>, fetched from
 /// <c>stable/exchange-market-hours</c>. This converter does not guess one, and could not: the same wire
 /// format on <c>all-exchange-market-hours</c> is spelled <c>"09:30 AM +09:00"</c> instead, which is the
 /// sharper half of this group's two-spellings-of-a-time problem.</para>

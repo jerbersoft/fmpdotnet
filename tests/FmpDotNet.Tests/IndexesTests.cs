@@ -69,7 +69,7 @@ public class IndexesTests
     {
         // Measured 2026-08-30 over historical-sp500-constituent alone: 213 rows carry a zero-padded
         // single-digit day and 407 carry an unpadded one. A pattern of "MMMM dd, yyyy" parses only the first
-        // group and a pattern of "MMMM d, yyyy" parses BOTH, which is why the converter uses the latter.
+        // group and a pattern of "MMMM d, uuuu" parses BOTH, which is why the converter uses the latter.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("historical-sp500-constituent.dates.json"),
             FmpJsonContext.Default.ListIndexConstituentChange)!;
@@ -228,7 +228,7 @@ public class IndexesTests
     }
 
     [Fact]
-    public void DateFirstAdded_is_a_real_date_and_is_null_on_seven_nasdaq_rows()
+    public void DateFirstAdded_is_a_real_date_and_is_null_on_some_nasdaq_rows()
     {
         // The other date-shaped field on this record IS a date — ISO on all 628 non-null values measured
         // 2026-08-30, with no second pattern anywhere. It is null on exactly 7 of 102 Nasdaq rows and never

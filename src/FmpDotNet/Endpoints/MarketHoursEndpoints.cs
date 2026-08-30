@@ -108,9 +108,8 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     /// upstream.</param>
     /// <param name="to">The latest date wanted; this bound is inclusive.</param>
     /// <param name="ct">Cancels the request.</param>
-    /// <returns>Every holiday in the window, in FMP's own order. Measured 2026-08-30 that order is <b>by
-    /// date, descending</b>. Never <see langword="null"/>; an empty list means either no holidays or a range
-    /// one day wide.</returns>
+    /// <returns>Every holiday in the window, in FMP's own order. Never <see langword="null"/>; an empty list
+    /// means either no holidays or a range one day wide.</returns>
     /// <exception cref="ArgumentException"><paramref name="exchange"/> is blank or contains a comma.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
     /// <paramref name="from"/>. FMP answers a reversed range with an empty list at HTTP 200, which reads as

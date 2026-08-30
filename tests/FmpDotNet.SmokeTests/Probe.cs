@@ -269,17 +269,23 @@ internal static class Probe
     ///
     /// <para><b>The one blind spot, counted rather than assumed.</b> A non-nullable value-typed property reads as
     /// populated whatever arrives, because its default is a legal value — so a field behind one could stop coming
-    /// and this would not see it. Every public property across the models was re-classified on 2026-08-29 to find
-    /// out how much of the surface that is: 1637 are nullable, 23 are <c>string</c> defaulting to <c>""</c> and 4
-    /// are collection-typed defaulting to empty, all of which this reads correctly. Exactly <b>eight</b> are
-    /// non-nullable value types. Three are on <see cref="Models.CalendarResult{T}"/> — <c>RowsReturned</c>,
-    /// <c>RequestedFrom</c>, <c>RequestedTo</c> — and the same three names again on
-    /// <see cref="Models.EarningsCalendarResult"/>; both are list wrappers rather than a row and neither is ever
-    /// inspected here. <see cref="Models.AnalystEstimate.Period"/> carries <c>[JsonIgnore]</c> — the SDK sets it
-    /// from the request, so it is not a field FMP sends and there is nothing for FMP to stop sending. The eighth
-    /// is <see cref="Models.TechnicalIndicatorBar.Indicator"/>: its column-resolving converter guarantees the
-    /// column is present, since an absent one fails to parse the row rather than leaving this at a default. The
-    /// check therefore has no blind spot on any wire field the SDK models.</para></summary>
+    /// and this would not see it. Every public property across the models was re-classified on 2026-08-30,
+    /// superseding a 2026-08-29 count that other slices of this branch had already outgrown: 1757 are nullable,
+    /// 26 are <c>string</c> defaulting to <c>""</c> and 4 are collection-typed defaulting to empty,
+    /// all of which this reads correctly. <b>Nineteen</b> are non-nullable value types. Eight are on
+    /// <see cref="Models.CalendarResult{T}"/> — <c>AtRowCap</c>, <c>Count</c>, <c>ExceedsLookbackLimit</c>,
+    /// <c>LikelyTruncated</c>, <c>MissesStartOfRange</c>, <c>RequestedFrom</c>, <c>RequestedTo</c>,
+    /// <c>RowsReturned</c> — and seven of those same names on <see cref="Models.EarningsCalendarResult"/>, which
+    /// has no <c>ExceedsLookbackLimit</c>; both are list wrappers built by an internal constructor rather than
+    /// deserialised, and neither is ever inspected here. <see cref="Models.AnalystEstimate.Period"/> carries
+    /// <c>[JsonIgnore]</c> — the SDK sets it from the request, so it is not a field FMP sends and there is
+    /// nothing for FMP to stop sending. <see cref="Models.TechnicalIndicatorBar.Indicator"/>'s column-resolving
+    /// converter guarantees the column is present, since an absent one fails to parse the row rather than leaving
+    /// this at a default. The last two are <see cref="Models.ExchangeMarketHours.IsClosedToday"/> and
+    /// <see cref="Models.ExchangeHoliday.ClosesEarly"/>: each carries <c>[JsonIgnore]</c> and is computed from a
+    /// bound nullable field — <c>OpeningHourText</c> and <c>AdjustedCloseTime</c> respectively — that this sweep
+    /// records separately, so a field behind either one stopping would still show up there. The check therefore
+    /// has no blind spot on any wire field the SDK models.</para></summary>
     private static bool Populated(object? value) => value switch
     {
         null => false,

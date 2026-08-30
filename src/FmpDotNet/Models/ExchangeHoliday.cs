@@ -30,7 +30,8 @@ namespace FmpDotNet.Models;
 /// <see cref="ExchangeMarketHours.Timezone"/> on the matching exchange.</para></summary>
 public sealed record ExchangeHoliday
 {
-    /// <summary>The exchange code the row belongs to, echoed from the request.</summary>
+    /// <summary>The exchange code the row belongs to, echoed from the request. Populated on all 446 rows
+    /// measured 2026-08-30.</summary>
     [JsonPropertyName("exchange")] public string? Exchange { get; init; }
 
     /// <summary>The date of the holiday, ISO on the wire. Populated on all 446 rows measured
@@ -40,7 +41,8 @@ public sealed record ExchangeHoliday
     public LocalDate? Date { get; init; }
 
     /// <summary>The holiday's name — <c>"Independence Day"</c>, <c>"Christmas"</c>. Not unique within an
-    /// exchange: the name repeats once a year, and NASDAQ's 446 rows reach 2032-12-31.</summary>
+    /// exchange: the name repeats once a year, and NASDAQ's 446 rows reach 2032-12-31. Populated on all 446
+    /// rows measured 2026-08-30.</summary>
     [JsonPropertyName("name")] public string? Name { get; init; }
 
     /// <summary>Whether the exchange was fully shut — <b><see langword="true"/> or

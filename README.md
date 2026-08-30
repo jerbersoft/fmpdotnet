@@ -809,11 +809,12 @@ set NetIncome
 Measured 2026-08-29: **178 ordinary endpoints, 2,269 properties recorded as populated**, and 21 recorded
 empty — among them `Source` on the first page of `shares-float-all`, which is all Shenzhen listings and carries no
 EDGAR filing URL, plus `MarketCap` on the commodity and forex quote batches, where a market capitalisation is not a
-meaningful thing to ask for. There is no blind spot on any wire field the SDK models. Measured 2026-08-29: of the
-models' public properties 1637 are nullable, 23 are strings defaulting to `""` and 4 are collections defaulting to
-empty, all of which read correctly, and the only eight non-nullable value types are six on two list wrappers that
-are never inspected, one `[JsonIgnore]` property the SDK sets from the request rather than from the response, and
-one whose column-resolving converter guarantees it is present or the row fails to parse.
+meaningful thing to ask for. There is no blind spot on any wire field the SDK models. Measured 2026-08-30: of the
+models' public properties 1757 are nullable, 26 are strings defaulting to `""` and 4 are collections defaulting to
+empty, all of which read correctly, and the only nineteen non-nullable value types are fifteen on two list
+wrappers that are never inspected, one `[JsonIgnore]` property the SDK sets from the request rather than from the
+response, one whose column-resolving converter guarantees it is present or the row fails to parse, and two more
+`[JsonIgnore]` properties computed from a bound nullable field the sweep already records separately.
 
 Two assertions run against each record, with deliberately different meanings. One fails when something the record
 showed arriving has stopped — that is a defect in shipped code, and it is the one worth waking up for. The other

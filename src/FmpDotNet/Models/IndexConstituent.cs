@@ -21,11 +21,11 @@ namespace FmpDotNet.Models;
 /// membership at a past date.</para></summary>
 public sealed record IndexConstituent
 {
-    /// <summary>The ticker.</summary>
+    /// <summary>The ticker. Populated on all 635 rows measured 2026-08-30.</summary>
     [JsonPropertyName("symbol")] public string? Symbol { get; init; }
 
-    /// <summary>The company name. Distinct on all 635 rows measured 2026-08-30, which is not the same as
-    /// unique per company — see the note on this record about FOX/FOXA.</summary>
+    /// <summary>The company name. Distinct within each path on all 635 rows measured 2026-08-30, which is not
+    /// the same as unique per company — see the note on this record about FOX/FOXA.</summary>
     [JsonPropertyName("name")] public string? Name { get; init; }
 
     /// <summary>FMP's sector label — <c>"Technology"</c>, <c>"Industrials"</c>.
@@ -43,7 +43,8 @@ public sealed record IndexConstituent
     [JsonPropertyName("subSector")] public string? SubSector { get; init; }
 
     /// <summary>Where the company is based, as free text — <c>"Mountain View, California"</c>,
-    /// <c>"Starbase, TX"</c>. The wire spells this key <c>headQuarter</c>, singular.</summary>
+    /// <c>"Starbase, TX"</c>. The wire spells this key <c>headQuarter</c>, singular. Populated on all 635
+    /// rows measured 2026-08-30.</summary>
     [JsonPropertyName("headQuarter")] public string? Headquarters { get; init; }
 
     /// <summary>When the company joined the index.
