@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**207 of FMP's 243 endpoint paths are modelled.**
+**216 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -279,6 +279,17 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/funds/disclosure-holders-latest` | `GetFundHoldersAsync` |
 | `stable/funds/disclosure-holders-search` | `SearchFundsByNameAsync` |
 
+`fmp.Indexes`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/dowjones-constituent` | `GetDowJonesConstituentsAsync` |
+| `stable/historical-dowjones-constituent` | `GetDowJonesConstituentChangesAsync` |
+| `stable/historical-nasdaq-constituent` | `GetNasdaqConstituentChangesAsync` |
+| `stable/historical-sp500-constituent` | `GetSp500ConstituentChangesAsync` |
+| `stable/nasdaq-constituent` | `GetNasdaqConstituentsAsync` |
+| `stable/sp500-constituent` | `GetSp500ConstituentsAsync` |
+
 `fmp.InsiderTrades`
 
 | FMP endpoint | Method |
@@ -302,6 +313,14 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/institutional-ownership/industry-summary` | `GetIndustrySummaryAsync` |
 | `stable/institutional-ownership/latest` | `GetLatestFilingsAsync` |
 | `stable/institutional-ownership/symbol-positions-summary` | `GetSymbolPositionsAsync` |
+
+`fmp.MarketHours`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/all-exchange-market-hours` | `GetAllExchangesAsync` |
+| `stable/exchange-market-hours` | `GetExchangeAsync` |
+| `stable/holidays-by-exchange` | `GetHolidaysAsync` |
 
 `fmp.MarketPerformance`
 
@@ -425,11 +444,11 @@ without a table entry fails the build rather than leaving a page that reads as c
 
 ### Reaching an endpoint that is not modelled
 
-The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **36 paths
-remain**, of which **29 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
+The rest is unbuilt rather than blocked: `trader`, the consumer driving this SDK, does not call it. **27 paths
+remain**, of which **20 are actionable** — the seven `tipranks-*` paths need a separately-purchased add-on and
 return 402 even on FMP's top tier, so they cannot be built or tested by buying a bigger plan. The remainder is not
-spread the way FMP's own section headings suggest: the largest groups are News (10) and Fundraisers & DCF (10),
-and Indexes & Market Hours carries 9.
+spread the way FMP's own section headings suggest: the two largest groups are News (10) and Fundraisers & DCF
+(10), which between them are three quarters of what is left.
 
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
@@ -437,12 +456,12 @@ and crypto alike, so the asset-class breadth came free while the equity depth ne
 [endpoint inventory](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
 section and marks which side of that line each falls on.
 
-That remainder is tracked as four issues under the epic, three of them actionable, each 7 to 10 paths and each
+That remainder is tracked as three issues under the epic, two of them actionable, each 7 to 10 paths and each
 carrying the measured path list for its group. The counts above are the sum of those issues and reconcile exactly
-against the 243-path inventory: 207 modelled plus 36 remaining, with no path counted twice and none missing.
+against the 243-path inventory: 216 modelled plus 27 remaining, with no path counted twice and none missing.
 
 Commodity, Forex and Crypto contribute **one path each** to that remainder — their symbol lists, and
-`fmp.Directory` now covers all three. Everything else under those headings, and most of what is under Indexes, is
+`fmp.Directory` now covers all three. Everything else under those headings is
 `stable/quote` and `stable/historical-price-eod` re-documented, which `fmp.Quote` and `fmp.Chart` already reach.
 `GetQuoteAsync("BTCUSD")`, `GetQuoteAsync("EURUSD")`, `GetQuoteAsync("^GSPC")` and `GetQuoteAsync("GCUSD")` were
 each measured returning the ordinary seventeen-field quote. That re-documentation is why the denominator here is
