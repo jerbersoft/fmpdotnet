@@ -14,7 +14,8 @@ public sealed class FmpClient(
     CongressEndpoints congress, TranscriptsEndpoints transcripts, EsgEndpoints esg, CotEndpoints cot,
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
     TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance,
-    EtfAndFundsEndpoints etfAndFunds, IndexesEndpoints indexes, MarketHoursEndpoints marketHours)
+    EtfAndFundsEndpoints etfAndFunds, IndexesEndpoints indexes, MarketHoursEndpoints marketHours,
+    NewsEndpoints news)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -164,4 +165,14 @@ public sealed class FmpClient(
     /// half-open, so <c>from</c> is exclusive and a range whose bounds are equal is rejected rather than
     /// sent.</para></summary>
     public MarketHoursEndpoints MarketHours { get; } = marketHours;
+
+    /// <summary>News — five whole-market feeds, four symbol-filtered searches, and FMP's own articles.
+    ///
+    /// <para><b>The <c>-latest</c> feeds cannot be filtered and the searches cannot be unfiltered</b>, which
+    /// is why they are separate method families rather than one with an optional symbol: measured
+    /// 2026-08-29, <c>symbols</c> is accepted and silently ignored on all five feeds, and omitting it on a
+    /// search substitutes a hard-coded ticker rather than answering broadly. Read
+    /// <see cref="NewsEndpoints.GetArticlesAsync"/> before paging that path — it has no page ceiling and
+    /// repeats its last page for ever.</para></summary>
+    public NewsEndpoints News { get; } = news;
 }

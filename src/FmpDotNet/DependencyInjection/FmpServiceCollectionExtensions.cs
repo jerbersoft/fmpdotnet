@@ -141,6 +141,7 @@ public static class FmpServiceCollectionExtensions
         services.TryAddTransient<EtfAndFundsEndpoints>();
         services.TryAddTransient<IndexesEndpoints>();
         services.TryAddTransient<MarketHoursEndpoints>();
+        services.TryAddTransient<NewsEndpoints>();
         services.TryAddTransient<FmpClient>();
 
         return services;
