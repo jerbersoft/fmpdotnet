@@ -3,7 +3,7 @@
 # The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
 # them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
 #
-# Measured 2026-08-30. Regenerate — after checking the diff is drift and not
+# Measured 2026-08-31. Regenerate — after checking the diff is drift and not
 # a break — with:
 #
 #     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \
@@ -1498,19 +1498,19 @@ set Timezone
 
 [MarketHours.GetExchangeAsync]
 outcome rows
+set ClosingHour
 set ClosingHourText
 set Exchange
 set IsClosedToday
 set IsMarketOpen
 set Name
+set OpeningHour
 set OpeningHourText
 set Timezone
 null ClosingAdditional
 null ClosingAdditionalText
-null ClosingHour
 null OpeningAdditional
 null OpeningAdditionalText
-null OpeningHour
 
 [MarketHours.GetHolidaysAsync]
 outcome rows
@@ -1606,6 +1606,118 @@ set Date
 set Exchange
 set Sector
 
+[News.GetArticlesAsync]
+outcome rows
+set Author
+set Content
+set Date
+set Exchange
+set Image
+set Link
+set Site
+set Symbol
+set Tickers
+set Title
+
+[News.GetCryptoLatestAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.GetForexLatestAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.GetGeneralLatestAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Text
+set Title
+set Url
+null Symbol
+
+[News.GetPressReleasesLatestAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.GetStockLatestAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.SearchCryptoAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.SearchForexAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.SearchPressReleasesAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
+[News.SearchStockAsync]
+outcome rows
+set Image
+set PublishedDate
+set Publisher
+set Site
+set Symbol
+set Text
+set Title
+set Url
+
 [Quote.GetAftermarketQuoteAsync]
 outcome rows
 set AskPrice
@@ -1631,14 +1743,14 @@ outcome rows
 set Price
 set Symbol
 set Timestamp
-null TradeSize
+set TradeSize
 
 [Quote.GetAftermarketTradesAsync]
 outcome rows
 set Price
 set Symbol
 set Timestamp
-null TradeSize
+set TradeSize
 
 [Quote.GetCommodityQuotesAsync]
 outcome rows
