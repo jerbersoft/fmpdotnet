@@ -40,7 +40,7 @@ public sealed record CustomDcfProjection
     [JsonPropertyName("revenue")] public decimal? Revenue { get; init; }
 
     /// <summary>Revenue growth for the year, as a percentage. Overridden by
-    /// <c>CustomDcfAssumptions.RevenueGrowthPct</c>. <b>Jitters through 2024 and smooths from
+    /// <see cref="CustomDcfAssumptions.RevenueGrowthPct"/>. <b>Jitters through 2024 and smooths from
     /// 2025</b>, measured 2026-08-31 — one of the two fields that hint at where history ends.</summary>
     [JsonPropertyName("revenuePercentage")] public decimal? RevenuePercentage { get; init; }
 
@@ -48,56 +48,56 @@ public sealed record CustomDcfProjection
     [JsonPropertyName("ebitda")] public decimal? Ebitda { get; init; }
 
     /// <summary>EBITDA as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.EbitdaPct</c> — <b>which the levered path silently ignores</b>.</summary>
+    /// <see cref="CustomDcfAssumptions.EbitdaPct"/> — <b>which the levered path silently ignores</b>.</summary>
     [JsonPropertyName("ebitdaPercentage")] public decimal? EbitdaPercentage { get; init; }
 
     /// <summary>Projected EBIT.</summary>
     [JsonPropertyName("ebit")] public decimal? Ebit { get; init; }
 
     /// <summary>EBIT as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.EbitPct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.EbitPct"/>.</summary>
     [JsonPropertyName("ebitPercentage")] public decimal? EbitPercentage { get; init; }
 
     /// <summary>Projected depreciation and amortisation.</summary>
     [JsonPropertyName("depreciation")] public decimal? Depreciation { get; init; }
 
     /// <summary>Depreciation as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.DepreciationAndAmortizationPct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.DepreciationAndAmortizationPct"/>.</summary>
     [JsonPropertyName("depreciationPercentage")] public decimal? DepreciationPercentage { get; init; }
 
     /// <summary>Projected cash and short-term investments.</summary>
     [JsonPropertyName("totalCash")] public decimal? TotalCash { get; init; }
 
     /// <summary>Cash as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.CashAndShortTermInvestmentsPct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.CashAndShortTermInvestmentsPct"/>.</summary>
     [JsonPropertyName("totalCashPercentage")] public decimal? TotalCashPercentage { get; init; }
 
     /// <summary>Projected receivables.</summary>
     [JsonPropertyName("receivables")] public decimal? Receivables { get; init; }
 
     /// <summary>Receivables as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.ReceivablesPct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.ReceivablesPct"/>.</summary>
     [JsonPropertyName("receivablesPercentage")] public decimal? ReceivablesPercentage { get; init; }
 
     /// <summary>Projected inventories.</summary>
     [JsonPropertyName("inventories")] public decimal? Inventories { get; init; }
 
     /// <summary>Inventories as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.InventoriesPct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.InventoriesPct"/>.</summary>
     [JsonPropertyName("inventoriesPercentage")] public decimal? InventoriesPercentage { get; init; }
 
     /// <summary>Projected payables.</summary>
     [JsonPropertyName("payable")] public decimal? Payable { get; init; }
 
     /// <summary>Payables as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.PayablePct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.PayablePct"/>.</summary>
     [JsonPropertyName("payablePercentage")] public decimal? PayablePercentage { get; init; }
 
     /// <summary>Projected capital expenditure. <b>Negative</b> on measured rows.</summary>
     [JsonPropertyName("capitalExpenditure")] public decimal? CapitalExpenditure { get; init; }
 
     /// <summary>Capital expenditure as a percentage of revenue. Overridden by
-    /// <c>CustomDcfAssumptions.CapitalExpenditurePct</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.CapitalExpenditurePct"/>.</summary>
     [JsonPropertyName("capitalExpenditurePercentage")]
     public decimal? CapitalExpenditurePercentage { get; init; }
 
@@ -105,7 +105,7 @@ public sealed record CustomDcfProjection
     /// 314.74 → 314.85 → 314.87 for AAPL across captures minutes apart on 2026-08-31.</summary>
     [JsonPropertyName("price")] public decimal? Price { get; init; }
 
-    /// <summary>The beta used. Overridden by <c>CustomDcfAssumptions.Beta</c>.</summary>
+    /// <summary>The beta used. Overridden by <see cref="CustomDcfAssumptions.Beta"/>.</summary>
     [JsonPropertyName("beta")] public decimal? Beta { get; init; }
 
     /// <summary>Diluted shares outstanding. 2,793,700,000 to 15,004,697,000 measured 2026-08-31 — above
@@ -119,29 +119,29 @@ public sealed record CustomDcfProjection
     /// type. Note <see cref="CostOfEquity"/> sitting beside it <i>is</i> camelCase: only one of the pair is
     /// misspelled, which is exactly the shape a copy-paste gets wrong. A test pins it.</para>
     ///
-    /// <para>Overridden by <c>CustomDcfAssumptions.CostOfDebt</c>, whose query parameter <b>is</b>
+    /// <para>Overridden by <see cref="CustomDcfAssumptions.CostOfDebt"/>, whose query parameter <b>is</b>
     /// spelled <c>costOfDebt</c>. The wire is inconsistent between request and response; the SDK reproduces
     /// each side as it is.</para></summary>
     [JsonPropertyName("costofDebt")] public decimal? CostOfDebt { get; init; }
 
     /// <summary>The tax rate as a percentage — 15.61 to 30.11 measured 2026-08-31. <b>Not to be confused
     /// with <see cref="TaxRateCash"/></b>, which is an amount. Overridden by
-    /// <c>CustomDcfAssumptions.TaxRate</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.TaxRate"/>.</summary>
     [JsonPropertyName("taxRate")] public decimal? TaxRate { get; init; }
 
     /// <summary>Cost of debt after tax, as a percentage.</summary>
     [JsonPropertyName("afterTaxCostOfDebt")] public decimal? AfterTaxCostOfDebt { get; init; }
 
     /// <summary>The risk-free rate as a percentage. Overridden by
-    /// <c>CustomDcfAssumptions.RiskFreeRate</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.RiskFreeRate"/>.</summary>
     [JsonPropertyName("riskFreeRate")] public decimal? RiskFreeRate { get; init; }
 
     /// <summary>The equity risk premium as a percentage. Overridden by
-    /// <c>CustomDcfAssumptions.MarketRiskPremium</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.MarketRiskPremium"/>.</summary>
     [JsonPropertyName("marketRiskPremium")] public decimal? MarketRiskPremium { get; init; }
 
     /// <summary>Cost of equity as a percentage. Overridden by
-    /// <c>CustomDcfAssumptions.CostOfEquity</c> — <b>the eighteenth override, found by reading the
+    /// <see cref="CustomDcfAssumptions.CostOfEquity"/> — <b>the eighteenth override, found by reading the
     /// Python <c>fmpsdk</c> rather than by probing</b>, and honoured on both custom paths.</summary>
     [JsonPropertyName("costOfEquity")] public decimal? CostOfEquity { get; init; }
 
@@ -163,7 +163,7 @@ public sealed record CustomDcfProjection
     /// <summary>The weighted average cost of capital, as a percentage — 5.28 to 45.96 measured 2026-08-31.
     /// <b>A <see cref="LongTermGrowthRate"/> at or above this inverts the terminal-value denominator</b> and
     /// FMP returns the negative result rather than rejecting the input; see
-    /// <c>CustomDcfAssumptions.LongTermGrowthRate</c>.</summary>
+    /// <see cref="CustomDcfAssumptions.LongTermGrowthRate"/>.</summary>
     [JsonPropertyName("wacc")] public decimal? Wacc { get; init; }
 
     /// <summary><b>A cash tax <i>amount</i> in dollars, not a rate</b> — 13,113,384 to 24,100,000 for AAPL
@@ -181,11 +181,11 @@ public sealed record CustomDcfProjection
     [JsonPropertyName("ufcf")] public decimal? Ufcf { get; init; }
 
     /// <summary>The sum of present-valued unlevered free cash flows. Moves when
-    /// <c>CustomDcfAssumptions.CostOfEquity</c> is supplied.</summary>
+    /// <see cref="CustomDcfAssumptions.CostOfEquity"/> is supplied.</summary>
     [JsonPropertyName("sumPvUfcf")] public decimal? SumPvUfcf { get; init; }
 
     /// <summary>The terminal growth rate as a percentage. Overridden by
-    /// <c>CustomDcfAssumptions.LongTermGrowthRate</c>; -3.7 to 10 measured 2026-08-31.</summary>
+    /// <see cref="CustomDcfAssumptions.LongTermGrowthRate"/>; -3.7 to 10 measured 2026-08-31.</summary>
     [JsonPropertyName("longTermGrowthRate")] public decimal? LongTermGrowthRate { get; init; }
 
     /// <summary>The terminal value.</summary>
@@ -221,7 +221,7 @@ public sealed record CustomDcfProjection
 /// path the caller happened to use, on a type that gives no hint which half is live.</para>
 ///
 /// <para><b>And the split is not cosmetic — it is what makes the assumption vocabularies checkable.</b> This
-/// path honours <c>CustomLeveredDcfAssumptions.OperatingCashFlowPct</c> and <b>silently ignores</b>
+/// path honours <see cref="CustomLeveredDcfAssumptions.OperatingCashFlowPct"/> and <b>silently ignores</b>
 /// seven overrides its unlevered sibling honours. The independent Python <c>fmpsdk</c> assembles both calls
 /// through one shared 18-parameter helper, which means eight of its eighteen levered parameters do nothing.
 /// Two records make that a compile error.</para>
@@ -242,21 +242,21 @@ public sealed record CustomLeveredDcfProjection
     [JsonPropertyName("revenue")] public decimal? Revenue { get; init; }
 
     /// <summary>Revenue growth for the year, as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.RevenueGrowthPct</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.RevenueGrowthPct"/>.</summary>
     [JsonPropertyName("revenuePercentage")] public decimal? RevenuePercentage { get; init; }
 
     /// <summary>Projected capital expenditure.</summary>
     [JsonPropertyName("capitalExpenditure")] public decimal? CapitalExpenditure { get; init; }
 
     /// <summary>Capital expenditure as a percentage of revenue. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.CapitalExpenditurePct</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.CapitalExpenditurePct"/>.</summary>
     [JsonPropertyName("capitalExpenditurePercentage")]
     public decimal? CapitalExpenditurePercentage { get; init; }
 
     /// <summary>The share price the model is running against. Live, and it moves between calls.</summary>
     [JsonPropertyName("price")] public decimal? Price { get; init; }
 
-    /// <summary>The beta used. Overridden by <c>CustomLeveredDcfAssumptions.Beta</c>.</summary>
+    /// <summary>The beta used. Overridden by <see cref="CustomLeveredDcfAssumptions.Beta"/>.</summary>
     [JsonPropertyName("beta")] public decimal? Beta { get; init; }
 
     /// <summary>Diluted shares outstanding.</summary>
@@ -264,26 +264,26 @@ public sealed record CustomLeveredDcfProjection
 
     /// <summary>Cost of debt, as a percentage. <b>Wire name <c>costofDebt</c>, with a lowercase
     /// <c>o</c></b> — see <see cref="CustomDcfProjection.CostOfDebt"/>. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.CostOfDebt</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.CostOfDebt"/>.</summary>
     [JsonPropertyName("costofDebt")] public decimal? CostOfDebt { get; init; }
 
     /// <summary>The tax rate as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.TaxRate</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.TaxRate"/>.</summary>
     [JsonPropertyName("taxRate")] public decimal? TaxRate { get; init; }
 
     /// <summary>Cost of debt after tax, as a percentage.</summary>
     [JsonPropertyName("afterTaxCostOfDebt")] public decimal? AfterTaxCostOfDebt { get; init; }
 
     /// <summary>The risk-free rate as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.RiskFreeRate</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.RiskFreeRate"/>.</summary>
     [JsonPropertyName("riskFreeRate")] public decimal? RiskFreeRate { get; init; }
 
     /// <summary>The equity risk premium as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.MarketRiskPremium</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.MarketRiskPremium"/>.</summary>
     [JsonPropertyName("marketRiskPremium")] public decimal? MarketRiskPremium { get; init; }
 
     /// <summary>Cost of equity as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.CostOfEquity</c>, which moves this,
+    /// <see cref="CustomLeveredDcfAssumptions.CostOfEquity"/>, which moves this,
     /// <see cref="Wacc"/>, <see cref="TerminalValue"/>, <see cref="PresentTerminalValue"/>,
     /// <see cref="PvLfcf"/> and <see cref="SumPvLfcf"/> — measured 2026-08-31.</summary>
     [JsonPropertyName("costOfEquity")] public decimal? CostOfEquity { get; init; }
@@ -307,7 +307,7 @@ public sealed record CustomLeveredDcfProjection
     [JsonPropertyName("wacc")] public decimal? Wacc { get; init; }
 
     /// <summary>Projected operating cash flow. <b>Levered-only</b> — the unlevered shape has no counterpart.
-    /// Overridden by <c>CustomLeveredDcfAssumptions.OperatingCashFlowPct</c>, which is the one
+    /// Overridden by <see cref="CustomLeveredDcfAssumptions.OperatingCashFlowPct"/>, which is the one
     /// override the <i>unlevered</i> path silently ignores.</summary>
     [JsonPropertyName("operatingCashFlow")] public decimal? OperatingCashFlow { get; init; }
 
@@ -318,7 +318,7 @@ public sealed record CustomLeveredDcfProjection
     [JsonPropertyName("sumPvLfcf")] public decimal? SumPvLfcf { get; init; }
 
     /// <summary>The terminal growth rate as a percentage. Overridden by
-    /// <c>CustomLeveredDcfAssumptions.LongTermGrowthRate</c>.</summary>
+    /// <see cref="CustomLeveredDcfAssumptions.LongTermGrowthRate"/>.</summary>
     [JsonPropertyName("longTermGrowthRate")] public decimal? LongTermGrowthRate { get; init; }
 
     /// <summary>Free cash flow for the year. <b>Levered-only</b>; the unlevered shape carries

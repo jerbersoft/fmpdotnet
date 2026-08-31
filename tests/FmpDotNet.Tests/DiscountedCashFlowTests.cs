@@ -1,8 +1,12 @@
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -157,5 +161,235 @@ public class DiscountedCashFlowTests
         Assert.Equal(
             ["freeCashFlow", "operatingCashFlow", "operatingCashFlowPercentage", "pvLfcf", "sumPvLfcf"],
             levered.Except(unlevered, StringComparer.Ordinal).OrderBy(n => n, StringComparer.Ordinal));
+    }
+
+    private static (DiscountedCashFlowEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new DiscountedCashFlowEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Each_of_the_four_paths_is_asked_exactly_once()
+    {
+        var (dcf, handler) = Build();
+
+        await dcf.GetValuationAsync("AAPL");
+        await dcf.GetLeveredValuationAsync("AAPL");
+        await dcf.GetCustomValuationAsync("AAPL");
+        await dcf.GetCustomLeveredValuationAsync("AAPL");
+
+        Assert.Equal(
+            [
+                "/stable/discounted-cash-flow",
+                "/stable/levered-discounted-cash-flow",
+                "/stable/custom-discounted-cash-flow",
+                "/stable/custom-levered-discounted-cash-flow",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath));
+
+        // No limit and no page on any of the four. Measured 2026-08-31,
+        // custom-discounted-cash-flow?symbol=AAPL&limit=3 returned the full 10 rows — the parameter is
+        // ignored, so offering it would be worse than not offering it.
+        Assert.All(handler.Requests, u =>
+        {
+            Assert.DoesNotContain("limit=", u.Query, StringComparison.Ordinal);
+            Assert.DoesNotContain("page=", u.Query, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task Omitting_the_assumptions_sends_nothing_but_the_symbol()
+    {
+        // An absent assumptions object and an empty one are the same request, deliberately: every property
+        // is nullable and FmpRequest.With drops nulls, so "use FMP's default for that assumption" has one
+        // spelling. The smoke sweep depends on this — it probes both custom paths with an empty record and
+        // baselines FMP's own default valuation rather than an arbitrary set of overrides.
+        var (dcf, handler) = Build();
+
+        await dcf.GetCustomValuationAsync("AAPL");
+        await dcf.GetCustomValuationAsync("AAPL", new CustomDcfAssumptions());
+        await dcf.GetCustomLeveredValuationAsync("AAPL");
+        await dcf.GetCustomLeveredValuationAsync("AAPL", new CustomLeveredDcfAssumptions());
+
+        Assert.All(handler.Requests, u =>
+            Assert.Equal(["symbol", "apikey"], HttpUtility.ParseQueryString(u.Query)
+                .AllKeys.Where(k => k is not null).Select(k => k!).ToArray()));
+        Assert.Equal(handler.Requests[0].Query, handler.Requests[1].Query);
+        Assert.Equal(handler.Requests[2].Query, handler.Requests[3].Query);
+    }
+
+    [Fact]
+    public async Task Every_set_assumption_reaches_the_query_under_its_own_wire_name()
+    {
+        var (dcf, handler) = Build();
+
+        await dcf.GetCustomValuationAsync("AAPL", new CustomDcfAssumptions
+        {
+            RevenueGrowthPct = 12.5m,
+            EbitdaPct = 30m,
+            DepreciationAndAmortizationPct = 3m,
+            CashAndShortTermInvestmentsPct = 20m,
+            ReceivablesPct = 15m,
+            InventoriesPct = 2m,
+            PayablePct = 18m,
+            EbitPct = 28m,
+            CapitalExpenditurePct = -3m,
+            TaxRate = 16m,
+            LongTermGrowthRate = 3m,
+            CostOfDebt = 4.5m,
+            CostOfEquity = 8.31m,
+            MarketRiskPremium = 4.72m,
+            Beta = 1.1m,
+            RiskFreeRate = 4.48m,
+        });
+
+        var query = HttpUtility.ParseQueryString(handler.Requests[0].Query);
+
+        Assert.Equal("AAPL", query["symbol"]);
+        Assert.Equal("12.5", query["revenueGrowthPct"]);
+        Assert.Equal("30", query["ebitdaPct"]);
+        Assert.Equal("3", query["depreciationAndAmortizationPct"]);
+        Assert.Equal("20", query["cashAndShortTermInvestmentsPct"]);
+        Assert.Equal("15", query["receivablesPct"]);
+        Assert.Equal("2", query["inventoriesPct"]);
+        Assert.Equal("18", query["payablePct"]);
+        Assert.Equal("28", query["ebitPct"]);
+        Assert.Equal("-3", query["capitalExpenditurePct"]);
+        Assert.Equal("16", query["taxRate"]);
+        Assert.Equal("3", query["longTermGrowthRate"]);
+        Assert.Equal("4.5", query["costOfDebt"]);
+        Assert.Equal("8.31", query["costOfEquity"]);
+        Assert.Equal("4.72", query["marketRiskPremium"]);
+        Assert.Equal("1.1", query["beta"]);
+        Assert.Equal("4.48", query["riskFreeRate"]);
+
+        // 16 overrides plus symbol plus the key.
+        Assert.Equal(18, query.AllKeys.Length);
+
+        // The response-side misspelling does NOT appear on the request side: the wire wants `costOfDebt`
+        // here and sends `costofDebt` back. Both spellings are reproduced as they are.
+        Assert.DoesNotContain("costofDebt", handler.Requests[0].Query, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task An_assumption_is_formatted_invariantly_whatever_the_ambient_culture_is()
+    {
+        // The culture is load-bearing, for exactly the reason ScreenerCriteria records: a value formatted
+        // under a comma-decimal culture becomes `beta=1,1` in the query string and FMP does not reject it.
+        // Measured 2026-08-31, custom-discounted-cash-flow?symbol=AAPL&notARealParam=99 returned HTTP 200
+        // with longTermGrowthRate, beta and equityValuePerShare identical to the baseline — an unparseable
+        // value is treated like an unrecognised one, so a German or French host would silently receive FMP's
+        // DEFAULT valuation while believing it applied the caller's assumptions.
+        var original = System.Threading.Thread.CurrentThread.CurrentCulture;
+        try
+        {
+            System.Threading.Thread.CurrentThread.CurrentCulture = new CultureInfo("de-DE");
+
+            var (dcf, handler) = Build();
+            await dcf.GetCustomValuationAsync("AAPL", new CustomDcfAssumptions { Beta = 1.1m });
+            await dcf.GetCustomLeveredValuationAsync(
+                "AAPL", new CustomLeveredDcfAssumptions { Beta = 1.1m });
+
+            Assert.All(handler.Requests, u =>
+                Assert.Equal("1.1", HttpUtility.ParseQueryString(u.Query)["beta"]));
+        }
+        finally
+        {
+            System.Threading.Thread.CurrentThread.CurrentCulture = original;
+        }
+    }
+
+    [Fact]
+    public void The_two_assumption_vocabularies_are_pinned_and_neither_carries_the_dead_parameter()
+    {
+        // The reason there are two records rather than one. An unrecognised or wrong-path parameter is
+        // SILENT: measured 2026-08-31, a wrong-path override returns HTTP 200 with a valuation identical to
+        // the baseline, so a caller who hands ebitdaPct to the levered endpoint gets a number that ignored
+        // their assumption. Two records make that a compile error.
+        //
+        // This is not hypothetical. The independent Python fmpsdk assembles BOTH custom calls through one
+        // shared 18-parameter helper, which means eight of its eighteen levered parameters do nothing and two
+        // of its eighteen unlevered ones do nothing.
+        static HashSet<string> Names(Type t) =>
+            [.. t.GetProperties(BindingFlags.Public | BindingFlags.Instance).Select(p => p.Name)];
+
+        var unlevered = Names(typeof(CustomDcfAssumptions));
+        var levered = Names(typeof(CustomLeveredDcfAssumptions));
+
+        Assert.Equal(
+            ["Beta", "CapitalExpenditurePct", "CashAndShortTermInvestmentsPct", "CostOfDebt", "CostOfEquity",
+             "DepreciationAndAmortizationPct", "EbitPct", "EbitdaPct", "InventoriesPct", "LongTermGrowthRate",
+             "MarketRiskPremium", "PayablePct", "ReceivablesPct", "RevenueGrowthPct", "RiskFreeRate",
+             "TaxRate"],
+            unlevered.OrderBy(n => n, StringComparer.Ordinal));
+
+        Assert.Equal(
+            ["Beta", "CapitalExpenditurePct", "CostOfDebt", "CostOfEquity", "LongTermGrowthRate",
+             "MarketRiskPremium", "OperatingCashFlowPct", "RevenueGrowthPct", "RiskFreeRate", "TaxRate"],
+            levered.OrderBy(n => n, StringComparer.Ordinal));
+
+        Assert.Equal(9, unlevered.Intersect(levered, StringComparer.Ordinal).Count());
+        Assert.Equal(7, unlevered.Except(levered, StringComparer.Ordinal).Count());
+        Assert.Single(levered.Except(unlevered, StringComparer.Ordinal));
+
+        // sellingGeneralAndAdministrativeExpensesPct is FMP's eighteenth override and it moved NOTHING on
+        // either path, measured 2026-08-31. A property for it would be a control that does nothing, so it is
+        // on neither record — and this assertion is what stops it being "helpfully" added back.
+        Assert.DoesNotContain("SellingGeneralAndAdministrativeExpensesPct", unlevered);
+        Assert.DoesNotContain("SellingGeneralAndAdministrativeExpensesPct", levered);
+
+        // Every property on both is decimal?, which is what lets one Number() helper serve all of them.
+        foreach (var t in new[] { typeof(CustomDcfAssumptions), typeof(CustomLeveredDcfAssumptions) })
+            Assert.All(t.GetProperties(BindingFlags.Public | BindingFlags.Instance),
+                p => Assert.Equal(typeof(decimal?), p.PropertyType));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task A_blank_symbol_is_rejected_on_all_four_paths(string? blank)
+    {
+        // All four answer a naked request with HTTP 400 and a plain-text body naming `symbol`, measured
+        // 2026-08-31. Rejecting locally saves a call against the key's quota.
+        //
+        // There is deliberately NO uppercase guard: measured 2026-08-31, symbol=aapl returned "AAPL" with
+        // values byte-identical to the uppercase call on the plain path, and the custom path normalised and
+        // returned all 10 rows. The News slice guards case because lowercase THERE returns 0 rows at HTTP
+        // 200; that reasoning does not transfer, and a guard invented here would reject a request FMP serves.
+        var (dcf, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => dcf.GetValuationAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(() => dcf.GetLeveredValuationAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(() => dcf.GetCustomValuationAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(() => dcf.GetCustomLeveredValuationAsync(blank!));
+        Assert.Empty(handler.Requests);
+
+        // And a lowercase symbol goes through untouched, which is the absence this asserts.
+        await dcf.GetValuationAsync("aapl");
+        Assert.Equal("aapl", HttpUtility.ParseQueryString(handler.Requests[0].Query)["symbol"]);
+    }
+
+    [Fact]
+    public async Task A_null_symbol_is_refused_with_ArgumentNullException_on_all_four_paths()
+    {
+        // ArgumentException.ThrowIfNullOrWhiteSpace(null) raises ArgumentNullException, and
+        // Assert.ThrowsAsync matches the type EXACTLY rather than by assignment — the repo splits null from
+        // blank for that reason, and DividendTests.cs:182 records it. Both branches refuse before a request
+        // is built, which is the guarantee that matters to a caller.
+        var (dcf, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => dcf.GetValuationAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => dcf.GetLeveredValuationAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => dcf.GetCustomValuationAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => dcf.GetCustomLeveredValuationAsync(null!));
+        Assert.Empty(handler.Requests);
     }
 }
