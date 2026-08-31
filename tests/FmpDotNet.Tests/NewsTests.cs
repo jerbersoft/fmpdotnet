@@ -1,6 +1,9 @@
 using System.Text.Json;
+using System.Web;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -207,5 +210,222 @@ public class NewsTests
         // And the computed pair stays invisible to the binding check, which is what the [JsonIgnore]
         // attributes buy. Without them the source generator emits metadata for members the wire never sends.
         Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)));
+    }
+
+    private static (NewsEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new NewsEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Each_of_the_ten_paths_is_asked_exactly_once()
+    {
+        var (news, handler) = Build();
+        string[] symbols = ["AAPL"];
+
+        await news.GetGeneralLatestAsync();
+        await news.GetStockLatestAsync();
+        await news.GetCryptoLatestAsync();
+        await news.GetForexLatestAsync();
+        await news.GetPressReleasesLatestAsync();
+        await news.SearchStockAsync(symbols);
+        await news.SearchCryptoAsync(["BTCUSD"]);
+        await news.SearchForexAsync(["EURUSD"]);
+        await news.SearchPressReleasesAsync(symbols);
+        await news.GetArticlesAsync();
+
+        Assert.Equal(
+            [
+                "/stable/news/general-latest",
+                "/stable/news/stock-latest",
+                "/stable/news/crypto-latest",
+                "/stable/news/forex-latest",
+                "/stable/news/press-releases-latest",
+                "/stable/news/stock",
+                "/stable/news/crypto",
+                "/stable/news/forex",
+                "/stable/news/press-releases",
+                "/stable/fmp-articles",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath));
+    }
+
+    [Fact]
+    public async Task The_five_latest_feeds_never_send_a_symbols_parameter()
+    {
+        // The measured reason the two method families are separate. `symbols` is accepted and SILENTLY
+        // IGNORED on all five: measured 2026-08-29, stock-latest?symbols=AAPL returned 20 rows carrying 20
+        // DISTINCT symbols. A caller who passed a filter and got an unfiltered feed has no way to notice, so
+        // the SDK does not offer the parameter here at all. This test fails if someone "unifies" the two
+        // families behind one optional symbols argument.
+        var (news, handler) = Build();
+
+        await news.GetGeneralLatestAsync();
+        await news.GetStockLatestAsync();
+        await news.GetCryptoLatestAsync();
+        await news.GetForexLatestAsync();
+        await news.GetPressReleasesLatestAsync();
+
+        Assert.All(handler.Requests, u => Assert.DoesNotContain("symbols", u.Query, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task An_unparameterised_call_sends_no_limit_and_no_page()
+    {
+        // limit and page are int? rather than SDK-defaulted, deliberately. An SDK-chosen default invents a
+        // page size the wire did not ask for; sending nothing lets FMP's own measured default of 20 rows
+        // apply on all ten paths. Only the api key rides along.
+        var (news, handler) = Build();
+
+        await news.GetStockLatestAsync();
+        await news.GetArticlesAsync();
+
+        Assert.All(handler.Requests, u =>
+        {
+            Assert.DoesNotContain("limit=", u.Query, StringComparison.Ordinal);
+            Assert.DoesNotContain("page=", u.Query, StringComparison.Ordinal);
+            Assert.DoesNotContain("from=", u.Query, StringComparison.Ordinal);
+            Assert.DoesNotContain("to=", u.Query, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
+    public async Task A_search_joins_its_symbols_and_drops_the_blanks()
+    {
+        // Modelled on QuoteEndpoints.Batch: a trailing comma produces `symbols=AAPL,`, which FMP reads as a
+        // request for a symbol named "" and answers with one fewer row — indistinguishable from the symbol
+        // not existing. Measured 2026-08-29, `symbols=AAPL,` matched `symbols=AAPL` exactly, so dropping
+        // blanks changes no measured behaviour and removes the shape that could.
+        var (news, handler) = Build();
+
+        await news.SearchStockAsync(["AAPL", "  ", "MSFT", ""]);
+
+        Assert.Equal("AAPL,MSFT", HttpUtility.ParseQueryString(handler.Requests[0].Query)["symbols"]);
+    }
+
+    [Fact]
+    public async Task A_search_rejects_a_symbol_list_that_would_reach_FMP_empty()
+    {
+        // An empty list cannot mean "everything": omitting `symbols` substitutes a hard-coded ticker —
+        // measured 2026-08-29, AAPL on stock and press-releases, BTCUSD on crypto, EURUSD on forex — so an
+        // empty request answers 20 rows about a company nobody asked for. The "give me everything" call
+        // already exists under its own name and takes no filter: GetStockLatestAsync.
+        //
+        // The first assertion names ArgumentNullException rather than its base: Assert.ThrowsAsync matches the
+        // type EXACTLY, so ArgumentException would fail against the derived type the null guard throws.
+        var (news, _) = Build();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(() => news.SearchStockAsync(null!));
+        await Assert.ThrowsAsync<ArgumentException>(() => news.SearchStockAsync([]));
+        await Assert.ThrowsAsync<ArgumentException>(() => news.SearchStockAsync(["", "   "]));
+    }
+
+    [Theory]
+    [InlineData("aapl", "AAPL")]
+    [InlineData("Aapl", "AAPL")]
+    [InlineData("btcusd", "BTCUSD")]
+    public async Task A_lowercase_symbol_is_rejected_with_the_uppercase_form_named(
+        string given, string wanted)
+    {
+        // Measured 2026-08-29: symbols=aapl and symbols=Aapl each return 0 ROWS at HTTP 200, which reads as
+        // "this symbol has no news". The SDK neither uppercases silently — that would rewrite the caller's
+        // identifier — nor passes it through to buy a wrong answer out of the key's quota. It names the fix.
+        var (news, handler) = Build();
+
+        var thrown = await Assert.ThrowsAsync<ArgumentException>(
+            () => news.SearchStockAsync([given]));
+
+        Assert.Contains(wanted, thrown.Message, StringComparison.Ordinal);
+        Assert.Equal("symbols", thrown.ParamName);
+        Assert.Empty(handler.Requests);   // rejected before anything reached the wire
+    }
+
+    [Fact]
+    public async Task The_feed_paging_ceilings_are_250_rows_and_page_100()
+    {
+        // Measured 2026-08-29 on the nine news/* paths: limit=1000 and limit=5000 both returned 250 rows
+        // byte-identically, and page=101 is HTTP 400 with a plain-text body. limit=0 and limit=-1 return ONE
+        // row rather than erroring or returning nothing, which is why zero is rejected rather than passed on.
+        var (news, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: 0));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: 251));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(page: -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(page: 101));
+        Assert.Empty(handler.Requests);
+
+        // The boundaries themselves are legal and reach the wire.
+        await news.GetStockLatestAsync(limit: NewsEndpoints.MaxFeedPageSize, page: NewsEndpoints.MaxFeedPage);
+        await news.SearchCryptoAsync(["BTCUSD"], limit: 1, page: 0);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task The_article_path_caps_rows_at_200_and_has_no_page_ceiling_at_all()
+    {
+        // THE test that fails if someone tidies the two paging guards into one. The two families measured
+        // DIFFERENT ceilings on 2026-08-29: fmp-articles caps limit at 200 (limit=201 is byte-identical to
+        // limit=200) and has NO page ceiling — pages 1000, 1400, 1600, 2000 and 10000 all returned the
+        // identical two rows rather than an error. A merged guard would either reject a legal page here or
+        // accept an illegal one on the feeds.
+        var (news, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(limit: 0));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(limit: 201));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(page: -1));
+        Assert.Empty(handler.Requests);
+
+        // 201 is rejected here and legal on a feed; page 10000 is legal here and rejected on a feed.
+        await news.GetArticlesAsync(limit: NewsEndpoints.MaxArticlePageSize, page: 10_000);
+        await news.GetStockLatestAsync(limit: 201);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal("10000", HttpUtility.ParseQueryString(handler.Requests[0].Query)["page"]);
+    }
+
+    [Fact]
+    public async Task A_backwards_range_is_rejected_before_the_call_goes_out()
+    {
+        // Measured 2026-08-29: from=2026-01-09&to=2026-01-05 returns 0 rows at HTTP 200, which reads as
+        // "nothing was published that week". The shared DateRange guard turns it into an exception that
+        // names the parameter, and costs the key's quota nothing.
+        var (news, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.GetStockLatestAsync(new LocalDate(2026, 1, 9), new LocalDate(2026, 1, 5)));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.SearchStockAsync(["AAPL"], new LocalDate(2026, 1, 9), new LocalDate(2026, 1, 5)));
+        Assert.Empty(handler.Requests);
+
+        // An equal range is NOT rejected here, unlike MarketHoursEndpoints.GetHolidaysAsync: measured
+        // 2026-08-29, from=X&to=X returns that whole calendar day inclusive at both ends on these paths.
+        await news.GetStockLatestAsync(new LocalDate(2026, 1, 5), new LocalDate(2026, 1, 5));
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_to_without_a_from_is_sent_rather_than_rejected()
+    {
+        // A settled decision, pinned so it is not "fixed" later. `to` alone falls off the three-month floor —
+        // measured 2026-08-29, to=2026-01-09 alone returns 0 rows while from=2026-01-05&to=2026-01-09 returns
+        // 20 — and it is the one trap in this group that is SOMETIMES A RIGHT ANSWER: `to` inside the floor
+        // is a correct request with a correct answer. A client-side threshold could not be written honestly
+        // either, because one day's measurement separated the floor from 90 days but could not separate
+        // "three calendar months" from "92 days". It is documented on every method instead.
+        var (news, handler) = Build();
+
+        await news.GetStockLatestAsync(to: new LocalDate(2026, 1, 9));
+
+        var query = HttpUtility.ParseQueryString(handler.Requests[0].Query);
+        Assert.Equal("2026-01-09", query["to"]);
+        Assert.Null(query["from"]);
     }
 }

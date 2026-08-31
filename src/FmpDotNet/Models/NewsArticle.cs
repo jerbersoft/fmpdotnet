@@ -9,7 +9,8 @@ namespace FmpDotNet.Models;
 /// <para><b>Nine paths, one shape, measured exactly.</b> The five <c>-latest</c> feeds and the four search
 /// paths returned the same eight keys in the same order across <b>2,250 rows</b> on 2026-08-29. The tenth
 /// News path, <c>stable/fmp-articles</c>, is <see cref="FmpArticle"/>: it carries the same eight concepts
-/// under six different names and cannot share this record.</para>
+/// under six different names and cannot share this record. The facade is
+/// <see cref="Endpoints.NewsEndpoints"/>.</para>
 ///
 /// <para><b>A row is an article-symbol pairing, not an article.</b> A multi-symbol query returns the same
 /// article once per matching symbol. Measured 2026-08-29 on <c>news/crypto?symbols=BTCUSD,ETHUSD</c>: 19 of
