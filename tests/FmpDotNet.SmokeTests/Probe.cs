@@ -270,8 +270,8 @@ internal static class Probe
     /// <para><b>The one blind spot, counted rather than assumed.</b> A non-nullable value-typed property reads as
     /// populated whatever arrives, because its default is a legal value — so a field behind one could stop coming
     /// and this would not see it. Every public property across the models was re-classified on 2026-08-31,
-    /// superseding a 2026-08-30 count of 1757 that this slice's own eighteen new nullable properties had
-    /// already outgrown: 1775 are nullable, 26 are <c>string</c> defaulting to <c>""</c> and 4 are
+    /// superseding a count of 1775 that this slice's own two hundred and twelve new nullable properties had
+    /// already outgrown: 1987 are nullable, 26 are <c>string</c> defaulting to <c>""</c> and 4 are
     /// collection-typed defaulting to empty, all of which this reads correctly. <b>Nineteen</b> are
     /// non-nullable value types. Eight are on
     /// <see cref="Models.CalendarResult{T}"/> — <c>AtRowCap</c>, <c>Count</c>, <c>ExceedsLookbackLimit</c>,
