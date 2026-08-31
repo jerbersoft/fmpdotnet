@@ -392,9 +392,26 @@ after it agrees — the endpoint would be probed weekly and never checked. `Live
 `LiveApi.ForexPairs` exist for that reason, and are pinned by a test rather than left to a comment.
 
 **`fmp-articles` still answers** at `limit=5&page=0`, 5 rows spanning 2026-08-28 21:00:00 .. 2026-08-29
-13:00:21, despite having published nothing new since 2026-08-28 21:05:54. The stall recorded in the previous
-addendum is a stall in *publication*, not in the corpus — which is what makes it a documentation problem
-rather than a broken path.
+13:00:21 — which is why the Shape B fixture could be captured at all.
+
+**A row entered the corpus between the two measurements, carrying a `date` far older than either measurement
+time.** The prior addendum (`1aaa02b`, measured **2026-08-31 09:38:08 UTC**, taken from FMP's own `Date`
+response header) recorded a 200-row page-0 capture whose newest `date` was `2026-08-28 21:05:54`, with zero
+rows dated 2026-08-29. This capture, measured **2026-08-31 13:15:13 UTC** (also from FMP's `Date` header on
+the `fx-articles` response), still carries that same row — at position 1 in `fmp-articles.head.json`,
+confirming continuity rather than a different corpus — but now sitting below a new row at position 0: `date`
+`2026-08-29 13:00:21`, ticker `NASDAQ:NRIM`. That row's own `date` was already **~44.6 hours old** at the
+moment the earlier measurement was taken (09:38:08 UTC), and yet it was absent from that capture; it appears
+only in this one, taken ~3h37m later. **`date` on this path is therefore not insertion time and not
+insertion order.** A caller polling `GetArticlesAsync` for "everything newer than the last `date` I saw"
+would have missed this row entirely — it entered the feed roughly two days after the timestamp it carries.
+
+This does not establish that the stall ended or that publication resumed: a single late-arriving row cannot
+distinguish a resumed feed from a backfill, and both captures are `limit=5` snapshots of a page that could be
+repopulated either way. It also does not discharge the direct clock test recorded as outstanding in the
+previous addendum — that test needs a *newly appeared* article's wire `date` compared to FMP's `Date` header
+at the moment of appearance, and a row whose `date` predates its own appearance by roughly two days gives no
+clean publication instant to test a clock against.
 
 **Fixtures captured from this run** and committed to `tests/FmpDotNet.Tests/Fixtures/`:
 `news-stock-latest.head.json` (3 rows, `limit=3`, row 0 `symbol="SAIC"` with no null values on any key),
@@ -402,8 +419,11 @@ rather than a broken path.
 rows, `limit=2`, `tickers` colon-prefixed on both captured rows: `NASDAQ:NRIM`, `NASDAQ:CSIQ`). No request URL
 and no key appears in any of them; they are response bodies as FMP sent them.
 
-**Task 3's two extra fixture-gate checks, run against the captured `fmp-articles.head.json` rows before
-copying them in, both passed on 2026-08-31:** `Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)))` — no
-row is missing a non-blank value for any of the eight bound keys (`title`, `date`, `content`, `link`,
-`author`, `site`, `image`, `tickers`) — and `Assert.All(rows, r => Assert.Equal("Financial Modeling Prep",
-r.Site))` — both captured rows carry `site == "Financial Modeling Prep"`.
+**The captured `fmp-articles.head.json` rows were checked by direct inspection of the JSON against the
+two conditions Task 3's fixture gate will assert** — no C# ran, and none could: no model for
+`fmp-articles` rows exists at this commit. The two conditions, stated as Task 3 will assert them, are
+`Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)))` — no row leaves any of the eight bound keys
+(`title`, `date`, `content`, `link`, `author`, `site`, `image`, `tickers`) null, blank, or missing —
+and `Assert.All(rows, r => Assert.Equal("Financial Modeling Prep", r.Site))`. On inspection, both
+captured rows satisfy both conditions: neither row has a null, blank, or missing value on any of the
+eight keys, and both carry `site == "Financial Modeling Prep"`.
