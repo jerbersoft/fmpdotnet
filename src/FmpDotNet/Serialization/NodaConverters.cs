@@ -816,6 +816,58 @@ public sealed class LongFormLocalDateJsonConverter : JsonConverter<LocalDate?>
     }
 }
 
+/// <summary>Reads FMP's <c>MM-DD-YYYY</c> dates — <c>"11-22-2011"</c> — as a <see cref="LocalDate"/>.
+///
+/// <para><b>The fifth converter for a date in this SDK, and the trap it closes is the reason it exists.</b>
+/// <see cref="NullableLocalDateJsonConverter"/> parses with <c>LocalDatePattern.Iso</c> and answers
+/// <see langword="null"/> on failure rather than throwing, so binding a <c>MM-DD-YYYY</c> field with it
+/// yields <b>null on 100% of rows, at HTTP 200, with no exception and no warning</b>. Measured 2026-08-31 by
+/// deserialising through it: <c>"08-28-2026"</c> and <c>"04-30-2027"</c> both read as null, while
+/// <c>"2026-08-31"</c> reads correctly.</para>
+///
+/// <para><b>The component order is measured, not assumed.</b> Over 1,000 crowdfunding offering rows and
+/// 6,542 dated search rows captured 2026-08-31, the first component never exceeded <b>12</b> while the
+/// second reached <b>31</b> — so <c>DD-MM-YYYY</c> is ruled out by 7,542 rows. FMP's own documented sample
+/// corroborates it independently with <c>"11-22-2011"</c> and <c>"10-31-2026"</c>: a 22 and a 31 in second
+/// position can only be days.</para>
+///
+/// <para><b>Invariant culture is load-bearing, not boilerplate</b> — for the reason
+/// <see cref="LongFormLocalDateJsonConverter"/> records. The separator and field order are fixed here rather
+/// than taken from the host, so a French or German runtime reads the same value this one does.</para>
+///
+/// <para><b>One pattern, no fallback, deliberately.</b> If FMP ever switches this field to ISO, this reads
+/// null rather than quietly accepting a second format, and the weekly smoke baseline reports it as
+/// <c>Date: now always null, was populated</c> on the run after it happens. A silent fallback would make the
+/// change invisible, which is the opposite of what a measured SDK is for.</para>
+///
+/// <para>Applied to <c>CrowdfundingOffering.Date</c>, <c>CrowdfundingOffering.OfferingDeadlineDate</c> and
+/// <c>CrowdfundingSearchHit.Date</c>. Its sibling <c>FundraisingNotice.Date</c> is ISO on the same-named
+/// field of a different path and keeps <see cref="NullableLocalDateJsonConverter"/> — the two are one
+/// substitution apart and neither substitution throws.</para>
+///
+/// <para>Null on JSON null, on <c>""</c> and on any unparseable value, following the rest of this file: one
+/// bad date costs one field rather than the whole response.</para></summary>
+public sealed class NullableMonthDayYearDateJsonConverter : JsonConverter<LocalDate?>
+{
+    private static readonly LocalDatePattern Pattern =
+        LocalDatePattern.CreateWithInvariantCulture("MM-dd-uuuu");
+
+    /// <inheritdoc/>
+    public override LocalDate? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null) return null;
+        var parsed = Pattern.Parse(reader.GetString() ?? "");
+        return parsed.Success ? parsed.Value : null;
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, LocalDate? value, JsonSerializerOptions options)
+    {
+        if (value is null) writer.WriteNullValue();
+        else writer.WriteStringValue(Pattern.Format(value.Value));
+    }
+}
+
 /// <summary>Reads a bare wall-clock time — <c>"13:00"</c> — as a <see cref="LocalTime"/>.
 ///
 /// <para><b>Written for <c>stable/holidays-by-exchange</c>'s <c>adjOpenTime</c> and <c>adjCloseTime</c></b>,

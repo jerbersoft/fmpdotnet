@@ -167,4 +167,9 @@ namespace FmpDotNet.Serialization;
 // key tuple exactly across 2,250 rows, and fmp-articles renames six of the same eight concepts.
 [JsonSerializable(typeof(List<NewsArticle>))]
 [JsonSerializable(typeof(List<FmpArticle>))]
+// Fundraisers and DCF (#39). EIGHT entries for ten paths: the by-CIK path and its -latest sibling share one
+// shape in each of the two filing corpora, and the two search paths carry the same three keys under two
+// different date encodings — which is why they are two records rather than one.
+[JsonSerializable(typeof(List<CrowdfundingOffering>))]
+[JsonSerializable(typeof(List<CrowdfundingSearchHit>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
