@@ -174,4 +174,8 @@ namespace FmpDotNet.Serialization;
 [JsonSerializable(typeof(List<CrowdfundingSearchHit>))]
 [JsonSerializable(typeof(List<FundraisingNotice>))]
 [JsonSerializable(typeof(List<FundraisingSearchHit>))]
+[JsonSerializable(typeof(List<DcfValuation>))]
+[JsonSerializable(typeof(List<LeveredDcfValuation>))]
+[JsonSerializable(typeof(List<CustomDcfProjection>))]
+[JsonSerializable(typeof(List<CustomLeveredDcfProjection>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
