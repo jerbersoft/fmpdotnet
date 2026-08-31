@@ -22,7 +22,7 @@ namespace FmpDotNet.Models;
 public sealed record FundraisingSearchHit
 {
     /// <summary>The issuer's CIK, zero-padded to ten digits. The key to
-    /// <c>FundraisersEndpoints.GetFundraisingByCikAsync</c>, and the field to dedupe on.</summary>
+    /// <see cref="Endpoints.FundraisersEndpoints.GetFundraisingByCikAsync"/>, and the field to dedupe on.</summary>
     [JsonPropertyName("cik")] public string? Cik { get; init; }
 
     /// <summary>The matched name.</summary>

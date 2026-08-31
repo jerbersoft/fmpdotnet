@@ -1,8 +1,11 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Web;
+using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
+using Microsoft.Extensions.Options;
 using NodaTime;
 
 namespace FmpDotNet.Tests;
@@ -439,5 +442,226 @@ public class FundraisersTests
         // 2026-08-31: a crowdfunding CIK answers 0 rows on stable/fundraising and vice versa.
         Assert.DoesNotContain("overSubscriptionAccepted", names);
         Assert.DoesNotContain("intermediaryCompanyName", names);
+    }
+
+    private static (FundraisersEndpoints Endpoints, StubHandler Handler) Build(string body = "[]")
+    {
+        var handler = new StubHandler(StubHandler.Json(body));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new FundraisersEndpoints(
+                new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))),
+            handler);
+    }
+
+    [Fact]
+    public async Task Each_of_the_six_paths_is_asked_exactly_once()
+    {
+        var (fundraisers, handler) = Build();
+
+        await fundraisers.GetCrowdfundingOfferingsByCikAsync("0002010670");
+        await fundraisers.GetCrowdfundingOfferingsLatestAsync();
+        await fundraisers.SearchCrowdfundingOfferingsAsync("Wellness");
+        await fundraisers.GetFundraisingByCikAsync("0001617426");
+        await fundraisers.GetFundraisingLatestAsync();
+        await fundraisers.SearchFundraisingAsync("Schutt");
+
+        Assert.Equal(
+            [
+                "/stable/crowdfunding-offerings",
+                "/stable/crowdfunding-offerings-latest",
+                "/stable/crowdfunding-offerings-search",
+                "/stable/fundraising",
+                "/stable/fundraising-latest",
+                "/stable/fundraising-search",
+            ],
+            handler.Requests.Select(u => u.AbsolutePath));
+    }
+
+    [Fact]
+    public async Task The_two_paging_ceilings_differ_by_a_factor_of_ten_and_are_not_shared()
+    {
+        // THE test that fails if someone tidies the two paging guards into one. Measured 2026-08-31:
+        // crowdfunding-offerings-latest returned 1000 rows at BOTH limit=1000 and limit=5000, while
+        // fundraising-latest returned 100 at limit=1000 and 100 at limit=101. Their DEFAULTS differ by the
+        // same factor of ten — 100 rows against 10. A merged guard would either reject a legal request on
+        // crowdfunding or accept an illegal one on fundraising.
+        var (fundraisers, handler) = Build();
+
+        // Legal on crowdfunding, illegal on fundraising.
+        await fundraisers.GetCrowdfundingOfferingsLatestAsync(limit: FundraisersEndpoints.MaxCrowdfundingPageSize);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetFundraisingLatestAsync(limit: FundraisersEndpoints.MaxCrowdfundingPageSize));
+
+        // Legal on crowdfunding, illegal on fundraising — one past the fundraising ceiling.
+        await fundraisers.GetCrowdfundingOfferingsLatestAsync(limit: FundraisersEndpoints.MaxFundraisingPageSize + 1);
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetFundraisingLatestAsync(limit: FundraisersEndpoints.MaxFundraisingPageSize + 1));
+
+        // Legal on both, at the fundraising ceiling.
+        await fundraisers.GetFundraisingLatestAsync(limit: FundraisersEndpoints.MaxFundraisingPageSize);
+
+        // Illegal on both.
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetCrowdfundingOfferingsLatestAsync(
+                limit: FundraisersEndpoints.MaxCrowdfundingPageSize + 1));
+
+        Assert.Equal(1000, FundraisersEndpoints.MaxCrowdfundingPageSize);
+        Assert.Equal(100, FundraisersEndpoints.MaxFundraisingPageSize);
+        Assert.Equal(3, handler.Requests.Count);   // only the three legal calls reached the wire
+    }
+
+    [Fact]
+    public async Task Zero_rows_and_a_negative_page_are_rejected_on_both_latest_paths()
+    {
+        // limit is rejected at zero and below rather than passed through, because measured 2026-08-31
+        // limit=0 returns ONE row on both paths — not an error and not nothing. page is rejected below zero
+        // because page=-1 silently returns page 0, identical first row.
+        var (fundraisers, handler) = Build();
+
+        var limitThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetCrowdfundingOfferingsLatestAsync(limit: 0));
+        var pageThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetFundraisingLatestAsync(page: -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetFundraisingLatestAsync(limit: -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => fundraisers.GetCrowdfundingOfferingsLatestAsync(page: -1));
+        Assert.Empty(handler.Requests);
+
+        // Both guards pattern-match into locals named `rows` and `index`; without the explicit
+        // nameof(limit)/nameof(page) arguments, CallerArgumentExpression reports THOSE names instead of the
+        // caller's own parameter names. Pinned so deleting those arguments goes red.
+        Assert.Equal("limit", limitThrown.ParamName);
+        Assert.Equal("page", pageThrown.ParamName);
+    }
+
+    [Fact]
+    public async Task There_is_no_page_ceiling_on_either_latest_path()
+    {
+        // Measured 2026-08-31, page=1000 answered HTTP 200 with rows on BOTH -latest paths, where the News
+        // feeds answer HTTP 400 past page 100. A ceiling invented here would reject requests FMP serves.
+        // This follows the GetArticlesAsync precedent, and the real hazard — a page-until-empty loop that
+        // never terminates — is documented on both methods rather than guarded.
+        var (fundraisers, handler) = Build();
+
+        await fundraisers.GetCrowdfundingOfferingsLatestAsync(page: 1000);
+        await fundraisers.GetFundraisingLatestAsync(page: 1000);
+
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.All(handler.Requests, u =>
+            Assert.Equal("1000", HttpUtility.ParseQueryString(u.Query)["page"]));
+    }
+
+    [Fact]
+    public async Task An_unparameterised_latest_call_sends_no_limit_and_no_page()
+    {
+        // limit and page are int? rather than SDK-defaulted. An SDK-chosen default invents a page size the
+        // wire did not ask for; sending nothing lets FMP's own measured defaults apply — 100 rows on
+        // crowdfunding-offerings-latest and 10 on fundraising-latest, which is itself a difference a caller
+        // should be able to observe rather than have papered over.
+        var (fundraisers, handler) = Build();
+
+        await fundraisers.GetCrowdfundingOfferingsLatestAsync();
+        await fundraisers.GetFundraisingLatestAsync();
+
+        Assert.All(handler.Requests, u =>
+        {
+            Assert.DoesNotContain("limit=", u.Query, StringComparison.Ordinal);
+            Assert.DoesNotContain("page=", u.Query, StringComparison.Ordinal);
+        });
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task A_blank_cik_or_name_is_rejected_before_anything_reaches_the_wire(string? blank)
+    {
+        // Eight of the ten paths in this group answer a naked request with HTTP 400 and a plain-text body
+        // naming the missing parameter, measured 2026-08-31. Rejecting locally saves a call against the
+        // key's quota and gives the caller the parameter name in an exception type they can catch.
+        var (fundraisers, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => fundraisers.GetCrowdfundingOfferingsByCikAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => fundraisers.GetFundraisingByCikAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => fundraisers.SearchCrowdfundingOfferingsAsync(blank!));
+        await Assert.ThrowsAsync<ArgumentException>(
+            () => fundraisers.SearchFundraisingAsync(blank!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task A_null_cik_or_name_is_refused_with_ArgumentNullException()
+    {
+        // Same guard, different exception: ArgumentException.ThrowIfNullOrWhiteSpace(null) raises
+        // ArgumentNullException, and Assert.ThrowsAsync matches the type EXACTLY rather than by assignment.
+        // The repo splits the two cases for that reason — the note is on DividendTests.cs:182 — and the
+        // caller-facing contract is worth pinning on both branches: null and blank are both refused before a
+        // request is built, and ArgumentNullException is an ArgumentException either way.
+        var (fundraisers, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => fundraisers.GetCrowdfundingOfferingsByCikAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => fundraisers.GetFundraisingByCikAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => fundraisers.SearchCrowdfundingOfferingsAsync(null!));
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => fundraisers.SearchFundraisingAsync(null!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public void Paging_is_offered_only_where_it_was_measured_to_work_and_cik_is_offered_nowhere_on_latest()
+    {
+        // Two absences, pinned by reflection so the measurements behind them are not lost.
+        //
+        // 1. PAGING. On the by-CIK paths `page` had no measured effect — fundraising?cik=... returned the
+        //    same 14 rows at page=0 and page=1 — and those paths return the filer's whole history in one
+        //    response. On the four search paths `limit` is IGNORED outright: measured 2026-08-31,
+        //    crowdfunding-offerings-search?name=Well&limit=2 returned all 44 rows and
+        //    fundraising-search?name=Apple&limit=2 all 59. A parameter the SDK offers that the wire discards
+        //    is worse than no parameter.
+        var withoutPaging = new[]
+        {
+            nameof(FundraisersEndpoints.GetCrowdfundingOfferingsByCikAsync),
+            nameof(FundraisersEndpoints.SearchCrowdfundingOfferingsAsync),
+            nameof(FundraisersEndpoints.GetFundraisingByCikAsync),
+            nameof(FundraisersEndpoints.SearchFundraisingAsync),
+        };
+
+        foreach (var name in withoutPaging)
+        {
+            var parameters = typeof(FundraisersEndpoints).GetMethod(name)!
+                .GetParameters().Select(p => p.Name).ToList();
+            Assert.DoesNotContain("limit", parameters);
+            Assert.DoesNotContain("page", parameters);
+        }
+
+        // 2. CIK ON -LATEST. Measured 2026-08-31, `cik` is HONOURED on fundraising-latest —
+        //    cik=0001617426&limit=100 returned 14 rows, all one CIK, the same count
+        //    GetFundraisingByCikAsync returns — and SILENTLY IGNORED on its crowdfunding sibling:
+        //    crowdfunding-offerings-latest?cik=0002010670&limit=100 returned 100 rows across 85 distinct
+        //    CIKs. The parameter adds no capability the by-CIK method does not already provide, and offering
+        //    it on one -latest method but not the other would invite a caller to try the one that fails
+        //    silently. So it is on neither, and this is the record of why.
+        foreach (var name in new[]
+                 {
+                     nameof(FundraisersEndpoints.GetCrowdfundingOfferingsLatestAsync),
+                     nameof(FundraisersEndpoints.GetFundraisingLatestAsync),
+                 })
+        {
+            var parameters = typeof(FundraisersEndpoints).GetMethod(name)!
+                .GetParameters().Select(p => p.Name).ToList();
+            Assert.Equal(["limit", "page", "ct"], parameters);
+        }
     }
 }
