@@ -308,3 +308,48 @@ expected wait is ~7 hours on a Sunday and ~20 minutes on a weekday.
 **Corpus extent, corrected.** `fmp-articles` paginates for real well past page 0: pages 0–3 at `limit=200` returned
 800 rows with 800 distinct links and no overlap, spanning 2026-08-05 to 2026-08-28. The page-repetition described
 above begins only past the end of the corpus.
+
+## Addendum — the direct test is still un-run, because Shape B stopped publishing (measured 2026-08-31)
+
+Measured Monday **2026-08-31 09:38:08 UTC**, taken from FMP's own `Date` response header rather than the local
+clock. That is 05:38 ET — pre-market, with European trading under way.
+
+**The nine feeds are live.** `stock-latest`'s newest row was **7 minutes old** and `general-latest`'s **17
+minutes**, reading `publishedDate` as Eastern; fifty rows of `stock-latest` spanned only 2.35 hours. Read as UTC
+instead, the newest row of a general newswire would be 4.3 hours stale on a Monday morning, with a European
+market story at the top of it. That is one more brick on the Eastern side, not a proof — the DST discriminator
+above remains the evidence.
+
+**`fmp-articles` has published nothing since 2026-08-28 21:05:54 — a gap of 60.5 hours.** Per-day counts from a
+single 200-row capture of page 0, spanning 2026-08-21 17:10:30 to 2026-08-28 21:05:54:
+
+| date | day | rows | first..last |
+|---|---|---|---|
+| 2026-08-21 | Fri | 9 | 17:10..21:00 |
+| 2026-08-22 | Sat | 1 | 18:00 |
+| 2026-08-23 | Sun | 2 | 16:00..17:00 |
+| 2026-08-24 | Mon | 22 | 01:00..23:00 |
+| 2026-08-25 | Tue | 41 | 03:00..23:07 |
+| 2026-08-26 | Wed | 40 | 00:00..23:05 |
+| 2026-08-27 | Thu | 53 | 00:00..23:00 |
+| 2026-08-28 | Fri | 32 | 00:00..21:05 |
+| 2026-08-29 | Sat | **0** | — |
+| 2026-08-30 | Sun | **0** | — |
+| 2026-08-31 | Mon | **0** | none by 09:38 UTC |
+
+**This corrects the weekend figure quoted above.** The 3.5-articles-per-weekend-day rate is an average, not a
+floor: the 2026-08-22 weekend carried 1 and 2 rows, and the 2026-08-29 weekend carried none at all. **A caller
+cannot assume this path produces anything on a given day.**
+
+The stall is not the timezone question wearing a disguise. Every weekday in the table opened between 00:00 and
+03:00 on the wire clock, so under either hypothesis — Eastern or UTC — Monday rows should already exist at 09:38
+UTC. They do not. Whatever is behind it, a four-hour offset cannot account for a 60-hour silence.
+
+**The consequence for the pending direct test: it remains un-run.** It compares a *newly appeared* article's wire
+`date` against FMP's `Date` header at that moment, and no article has appeared in 60.5 hours — there is nothing
+to poll against. The weekday gate has been reached and passed without the test becoming runnable.
+
+**This does not reopen the converter decision.** `fmp-articles.date` is bound as UTC on the strength of the
+distributional measurement above, and this addendum leaves that evidence exactly as it stood. The direct test was
+always corroboration. It is recorded here as outstanding rather than quietly dropped, and it stays outstanding
+until the path publishes again.
