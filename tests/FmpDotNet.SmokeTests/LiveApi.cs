@@ -268,6 +268,25 @@ internal static class LiveApi
     /// cost.</para></summary>
     public const string EtfSymbol = "QQQ";
 
+    /// <summary>The pairs the crypto news search is probed with.
+    ///
+    /// <para><b>Named for the reason <see cref="EtfSymbol"/> and <see cref="CotContract"/> are.</b>
+    /// <c>Probe.Argument</c> maps every <c>IEnumerable&lt;string&gt;</c> parameter to
+    /// <see cref="Symbol"/> and <see cref="SecondSymbol"/> — AAPL and MSFT — and this path's vocabulary is
+    /// the currency PAIR. Measured 2026-08-29, <c>news/crypto?symbols=BTC</c> (the coin) answers <b>0
+    /// rows</b> at HTTP 200 while <c>BTCUSD</c> answers 250; an equity ticker is further from that
+    /// vocabulary still. A zero-row answer records <c>outcome empty</c> as this endpoint's healthy baseline
+    /// and matches it green for ever.</para>
+    ///
+    /// <para>Two pairs rather than one, so the batch shape is probed as a batch — and these two, because
+    /// <c>symbols=BTCUSD,ETHUSD</c> was measured at 250 rows on 2026-08-29.</para></summary>
+    public static readonly string[] CryptoPairs = ["BTCUSD", "ETHUSD"];
+
+    /// <summary>The pairs the forex news search is probed with. Named for the reason
+    /// <see cref="CryptoPairs"/> is; <c>symbols=EURUSD,USDJPY</c> was measured at 250 rows on
+    /// 2026-08-29.</summary>
+    public static readonly string[] ForexPairs = ["EURUSD", "USDJPY"];
+
     /// <summary>The exchange the whole-exchange probe asks for.
     ///
     /// <para><b>Named rather than falling out of the default string case, because the default is silently

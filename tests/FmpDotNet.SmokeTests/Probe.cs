@@ -389,7 +389,24 @@ internal static class Probe
             };
 
         // Two symbols rather than one, so a batch endpoint is probed as a batch. See LiveApi.SecondSymbol.
-        if (type == typeof(IEnumerable<string>)) return new[] { LiveApi.Symbol, LiveApi.SecondSymbol };
+        //
+        // Dispatched on the DECLARING TYPE and then the METHOD, the way the `symbol` and `from` arms above
+        // are, because "a list of symbols" is three different vocabularies. The batch quote paths and the
+        // two equity news searches take tickers; the crypto and forex news searches take PAIRS, and the
+        // wrong vocabulary is not an error — measured 2026-08-29, news/crypto?symbols=BTC answers 0 rows at
+        // HTTP 200. See LiveApi.CryptoPairs.
+        if (type == typeof(IEnumerable<string>))
+        {
+            if (parameter.Member.DeclaringType == typeof(Endpoints.NewsEndpoints))
+                return parameter.Member.Name switch
+                {
+                    nameof(Endpoints.NewsEndpoints.SearchCryptoAsync) => LiveApi.CryptoPairs,
+                    nameof(Endpoints.NewsEndpoints.SearchForexAsync) => LiveApi.ForexPairs,
+                    _ => new[] { LiveApi.Symbol, LiveApi.SecondSymbol },
+                };
+
+            return new[] { LiveApi.Symbol, LiveApi.SecondSymbol };
+        }
 
         // OneHour rather than OneMinute: every interval sits inside its own lookback window when asked for a
         // recent range, but the hourly bar answers 434 rows where the minute bar answers 1169 for the same days,

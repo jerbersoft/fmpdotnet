@@ -7,13 +7,13 @@ namespace FmpDotNet.SmokeTests;
 /// would surface then as an exception inside a sweep rather than as a compile-time-shaped complaint about the
 /// thing that actually changed. (<see cref="BaselineRecordingTests"/> is keyless too, and for the same reason;
 /// what is specific to this class is <i>what</i> it guards — that the sweep can still reach every endpoint and
-/// still ask it something worth answering.) All fifteen checks below are pure
+/// still ask it something worth answering.) All sixteen checks below are pure
 /// reflection over the SDK's own types and literal assertions about what <see cref="Probe"/> would do with them,
 /// so they run on every push, cost nothing, and fail on the commit that broke them.</para>
 ///
 /// <para>Two are general: can the sweep supply an argument for every parameter on every endpoint method, and can
 /// it read rows out of every endpoint's return type. One confirms the ordinary/bulk partition itself is
-/// non-empty. The remaining twelve pin the literal argument <see cref="Probe.Argument"/> would synthesise for
+/// non-empty. The remaining thirteen pin the literal argument <see cref="Probe.Argument"/> would synthesise for
 /// specific endpoints where synthesis succeeds but produces a value the endpoint cannot answer meaningfully
 /// — a ticker where the endpoint wants a company name, a single day where a filing search needs a wide date
 /// range, a bare symbol where a search wants a form type or a SIC code, a wide range where the earnings and
@@ -22,8 +22,9 @@ namespace FmpDotNet.SmokeTests;
 /// stopped in late 2025, a narrow calendar window inherited by the treasury path that wants a wide one, a
 /// ticker and a recent range where the COT paths want a futures contract code and a range the frozen data
 /// covers, a ticker where five of nine ETF and mutual-fund paths want a fund and a sixth wants a fund
-/// company's name, and a ninety-day trailing window where the holiday calendar holds three days and a quiet
-/// quarter none — so a probe that runs without error but never asks a meaningful question doesn't slip back
+/// company's name, a ninety-day trailing window where the holiday calendar holds three days and a quiet
+/// quarter none, and a ticker where the crypto and forex news searches want a currency pair — so a probe that
+/// runs without error but never asks a meaningful question doesn't slip back
 /// in unnoticed.</para>
 ///
 /// <para>What they protect against is specific: the sweep discovers endpoints by reflection and synthesises
@@ -387,5 +388,44 @@ public class SweepCoverageTests
             .GetMethod(nameof(Endpoints.MarketHoursEndpoints.GetExchangeAsync))!;
 
         Assert.Equal(LiveApi.Exchange, Probe.Argument(single.GetParameters()[0]));
+    }
+
+    [Fact]
+    public void The_sweep_asks_the_crypto_and_forex_news_searches_for_pairs_rather_than_for_tickers()
+    {
+        // The synthesiser produces a well-formed symbol list for all four News searches, so the generic
+        // argument check at the top of this file passes either way — this is the check that the list means
+        // the right thing on each path. Measured 2026-08-29, news/crypto?symbols=BTC — the COIN rather than
+        // the pair — returns 0 rows, and an equity ticker is further from that vocabulary than BTC is.
+        // Task 1 measured symbols=AAPL,MSFT on both paths directly; see the sweep-window addendum.
+        //
+        // A zero-row answer records `outcome empty` with no properties, and every run after it agrees — the
+        // endpoint would be probed weekly and never checked. Same silent green LiveApi.EtfSymbol,
+        // LiveApi.CotContract and LiveApi.Exchange were each named for.
+        var news = typeof(Endpoints.NewsEndpoints);
+
+        Assert.Equal(LiveApi.CryptoPairs, (string[])Probe.Argument(
+            news.GetMethod(nameof(Endpoints.NewsEndpoints.SearchCryptoAsync))!.GetParameters()[0]));
+        Assert.Equal(LiveApi.ForexPairs, (string[])Probe.Argument(
+            news.GetMethod(nameof(Endpoints.NewsEndpoints.SearchForexAsync))!.GetParameters()[0]));
+
+        // The two equity searches keep the default pair, because AAPL and MSFT ARE their vocabulary.
+        string[] equities = [LiveApi.Symbol, LiveApi.SecondSymbol];
+        Assert.Equal(equities, (string[])Probe.Argument(
+            news.GetMethod(nameof(Endpoints.NewsEndpoints.SearchStockAsync))!.GetParameters()[0]));
+        Assert.Equal(equities, (string[])Probe.Argument(
+            news.GetMethod(nameof(Endpoints.NewsEndpoints.SearchPressReleasesAsync))!.GetParameters()[0]));
+
+        // And the batch quote paths the IEnumerable<string> arm was originally written for are untouched.
+        var batch = Probe.EndpointMethods(typeof(Endpoints.QuoteEndpoints))
+            .SelectMany(m => m.GetParameters())
+            .First(p => p.ParameterType == typeof(IEnumerable<string>));
+        Assert.Equal(equities, (string[])Probe.Argument(batch));
+
+        // Every synthesised symbol must survive the facade's own uppercase guard, or the sweep would throw
+        // ArgumentException on four endpoints instead of calling them — an outcome the baseline would then
+        // record as `error` and refuse to write.
+        foreach (var vocabulary in new[] { LiveApi.CryptoPairs, LiveApi.ForexPairs, equities })
+            Assert.All(vocabulary, s => Assert.Equal(s.ToUpperInvariant(), s));
     }
 }
