@@ -24,7 +24,8 @@ public class NewsTests
         // Binding.Unbound names every [JsonPropertyName] property that came back null, blank or empty, so an
         // empty result is the WHOLE record binding rather than a spot check. Five of the models in this repo
         // were measured 2026-08-27 with most of their [JsonPropertyName] attributes doing nothing, which a
-        // two-field assertion cannot see. Task 1 verified this fixture's first row carries no null.
+        // two-field assertion cannot see. The measurements file's sweep-window addendum (measured 2026-08-31)
+        // verified this fixture's first row carries no null.
         Assert.Empty(Binding.Unbound(row));
 
         // And the three failures a whole-record check still cannot see, because a value in the wrong property
@@ -104,7 +105,7 @@ public class NewsTests
 
         Assert.NotEmpty(rows);
 
-        // Nothing was null on any of the 200 rows measured 2026-08-30, so EVERY row is asserted whole rather
+        // Nothing was null on any of the 200 rows measured 2026-08-29, so EVERY row is asserted whole rather
         // than just the first. Six of these eight keys are renames — date, content, link, author, tickers and
         // the shared title — so a copy-paste of NewsArticle's attributes would bind two of eight and leave
         // six silently null. That is precisely what Binding.Unbound catches and a spot check does not.
@@ -112,7 +113,7 @@ public class NewsTests
         Assert.All(rows, r => Assert.NotNull(r.Date));
         Assert.All(rows, r => Assert.StartsWith("http", r.Link));
 
-        // `site` is the constant "Financial Modeling Prep" on all 200 rows measured 2026-08-30. These are
+        // `site` is the constant "Financial Modeling Prep" on all 200 rows measured 2026-08-29. These are
         // FMP's own articles, which is the reason the path exists and the reason `author` has 7 values.
         Assert.All(rows, r => Assert.Equal("Financial Modeling Prep", r.Site));
     }
@@ -172,7 +173,7 @@ public class NewsTests
     // No colon: the value is already a bare ticker, or something this SDK has never measured. Either way it
     // is not a prefixed pair, and inventing an exchange for it would be a fabricated fact.
     [InlineData("CSIQ", null, null)]
-    // The plural name is a standing warning. Not one comma appeared in the 200 rows measured 2026-08-30, so a
+    // The plural name is a standing warning. Not one comma appeared in the 200 rows measured 2026-08-29, so a
     // multi-valued form has never been seen — and this SDK will not guess which of two tickers a caller meant.
     [InlineData("NASDAQ:CSIQ,NYSE:GE", null, null)]
     [InlineData("A:B:C", null, null)]
@@ -184,7 +185,7 @@ public class NewsTests
         string? tickers, string? symbol, string? exchange)
     {
         // The measured reason this parse exists: every one of 200 rows carried an exchange prefix on
-        // 2026-08-30 — NASDAQ 101, NYSE 86, OTC 10, AMEX 3 — and `symbols=NASDAQ:CSIQ` returns 0 rows on
+        // 2026-08-29 — NASDAQ 101, NYSE 86, OTC 10, AMEX 3 — and `symbols=NASDAQ:CSIQ` returns 0 rows on
         // news/stock while `symbols=CSIQ` returns 20. Symbol is the half that feeds back into a search call.
         var row = new FmpArticle { Tickers = tickers };
 
@@ -358,10 +359,18 @@ public class NewsTests
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: 0));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: -1));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(limit: 251));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(page: -1));
+        var limitThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.GetStockLatestAsync(limit: 251));
+        var pageThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.GetStockLatestAsync(page: -1));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetStockLatestAsync(page: 101));
         Assert.Empty(handler.Requests);
+
+        // ThrowIfFeedPagingOutOfRange pattern-matches into locals named `rows` and `index`; without the
+        // explicit nameof(limit)/nameof(page) it passes, CallerArgumentExpression would report THOSE names
+        // instead of the caller's own parameter names. Pinned here so deleting those arguments goes red.
+        Assert.Equal("limit", limitThrown.ParamName);
+        Assert.Equal("page", pageThrown.ParamName);
 
         // The boundaries themselves are legal and reach the wire.
         await news.GetStockLatestAsync(limit: NewsEndpoints.MaxFeedPageSize, page: NewsEndpoints.MaxFeedPage);
@@ -380,9 +389,16 @@ public class NewsTests
         var (news, handler) = Build();
 
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(limit: 0));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(limit: 201));
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => news.GetArticlesAsync(page: -1));
+        var limitThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.GetArticlesAsync(limit: 201));
+        var pageThrown = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => news.GetArticlesAsync(page: -1));
         Assert.Empty(handler.Requests);
+
+        // Same subtlety as the feed guard above: ThrowIfArticlePagingOutOfRange also pattern-matches into
+        // locals, so this is what confirms the explicit nameof() arguments are still doing their job here.
+        Assert.Equal("limit", limitThrown.ParamName);
+        Assert.Equal("page", pageThrown.ParamName);
 
         // 201 is rejected here and legal on a feed; page 10000 is legal here and rejected on a feed.
         await news.GetArticlesAsync(limit: NewsEndpoints.MaxArticlePageSize, page: 10_000);

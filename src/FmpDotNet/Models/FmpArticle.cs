@@ -21,7 +21,7 @@ namespace FmpDotNet.Models;
 /// 2026-08-29 weekend carried <b>none at all</b> — the path had then been silent for 60.5 hours. An earlier
 /// figure of 3.5 articles per weekend day is an average and not a floor.</para>
 ///
-/// <para>Nothing was null on any of the 200 rows measured 2026-08-30. Every property is nullable anyway,
+/// <para>Nothing was null on any of the 200 rows measured 2026-08-29. Every property is nullable anyway,
 /// because the deserialiser cannot promise a key is present.</para></summary>
 public sealed record FmpArticle
 {
@@ -49,14 +49,24 @@ public sealed record FmpArticle
     /// rests on inference from distribution rather than a direct clock comparison. The direct test —
     /// comparing a newly appeared article's wire <c>date</c> against FMP's own <c>Date</c> response header —
     /// is recorded as outstanding in the measurements file, and remains un-run because the path published
-    /// nothing between 2026-08-28 21:05:54 and at least 2026-08-31 09:38 UTC.</para></summary>
+    /// nothing between 2026-08-28 21:05:54 and at least 2026-08-31 09:38 UTC.</para>
+    ///
+    /// <para><b>Documented rather than guarded: this is neither insertion time nor insertion order, and a
+    /// <c>date</c>-watermark poll can silently miss a row.</b> Measured 2026-08-31: a 200-row page-0 capture
+    /// taken at <c>2026-08-31 09:38:08 UTC</c> did not contain a row dated <c>2026-08-29 13:00:21</c> —
+    /// already about 44.6 hours old by that capture's own clock — and a second capture, taken ~3h37m later
+    /// at <c>2026-08-31 13:15:13 UTC</c>, did. A caller polling
+    /// <see cref="Endpoints.NewsEndpoints.GetArticlesAsync"/> for "everything newer than the last
+    /// <c>date</c> I saw" would have missed this row entirely — it entered the feed roughly two days after
+    /// the timestamp it carries. Two captures cannot tell a resumed feed from a backfill, and this doc
+    /// claims neither.</para></summary>
     [JsonPropertyName("date")]
     [JsonConverter(typeof(NullableFmpInstantJsonConverter))]
     public Instant? Date { get; init; }
 
     /// <summary>The article body, as <b>HTML that FMP wrote</b>.
     ///
-    /// <para>Measured 2026-08-30, <b>200 of 200</b> rows carried tags — <c>&lt;ul&gt;</c>, <c>&lt;li&gt;</c>,
+    /// <para>Measured 2026-08-29, <b>200 of 200</b> rows carried tags — <c>&lt;ul&gt;</c>, <c>&lt;li&gt;</c>,
     /// <c>&lt;strong&gt;</c> — at a median length of 3,013 characters, against <b>0 of 2,250</b> rows
     /// carrying a tag in <see cref="NewsArticle.Text"/>. <b>A caller rendering this into a page is rendering
     /// markup from the wire.</b> This SDK does not strip it: the record carries what the wire sent, and what
@@ -65,13 +75,13 @@ public sealed record FmpArticle
 
     /// <summary>The ticker, exactly as FMP spells it — exchange-prefixed, as in <c>"NASDAQ:CSIQ"</c>.
     ///
-    /// <para><b>This value cannot be fed back into a <c>symbols=</c> query.</b> Measured 2026-08-30,
+    /// <para><b>This value cannot be fed back into a <c>symbols=</c> query.</b> Measured 2026-08-29,
     /// <c>news/stock?symbols=NASDAQ:CSIQ</c> returns <b>0 rows</b> while <c>symbols=CSIQ</c> returns 20 —
     /// and a zero-row answer reads as "this company has no news". <see cref="Symbol"/> is the property that
     /// round-trips; this one is kept under its wire name because it is what FMP sent.</para>
     ///
     /// <para><b>The plural name is a warning, not a description of the measured data.</b> All 200 rows
-    /// measured 2026-08-30 carried exactly one ticker and <b>not one comma appeared</b>. Every one carried a
+    /// measured 2026-08-29 carried exactly one ticker and <b>not one comma appeared</b>. Every one carried a
     /// prefix: NASDAQ 101, NYSE 86, OTC 10, AMEX 3.</para></summary>
     [JsonPropertyName("tickers")] public string? Tickers { get; init; }
 
@@ -81,12 +91,12 @@ public sealed record FmpArticle
     /// <summary>The link to the article. <see cref="NewsArticle"/> spells this <c>url</c>.</summary>
     [JsonPropertyName("link")] public string? Link { get; init; }
 
-    /// <summary>Who wrote it. 7 distinct values across the 200 rows measured 2026-08-30.
+    /// <summary>Who wrote it. 7 distinct values across the 200 rows measured 2026-08-29.
     /// <see cref="NewsArticle"/> spells this <c>publisher</c> and carries 6 to 39 values per feed.</summary>
     [JsonPropertyName("author")] public string? Author { get; init; }
 
     /// <summary>The source name — the constant <c>"Financial Modeling Prep"</c> on all 200 rows measured
-    /// 2026-08-30. These are FMP's own articles rather than a feed of anyone else's, which is what
+    /// 2026-08-29. These are FMP's own articles rather than a feed of anyone else's, which is what
     /// <see cref="Author"/>'s seven values and this path's absence of a <c>symbols</c> filter both
     /// reflect.</summary>
     [JsonPropertyName("site")] public string? Site { get; init; }
@@ -101,7 +111,7 @@ public sealed record FmpArticle
     [JsonIgnore] public string? Symbol => Split(Tickers).Symbol;
 
     /// <summary>The exchange <see cref="Tickers"/> is prefixed with — <c>"NASDAQ"</c>, <c>"NYSE"</c>,
-    /// <c>"OTC"</c>, <c>"AMEX"</c> across the 200 rows measured 2026-08-30. <see langword="null"/> under the
+    /// <c>"OTC"</c>, <c>"AMEX"</c> across the 200 rows measured 2026-08-29. <see langword="null"/> under the
     /// same conditions as <see cref="Symbol"/>.</summary>
     [JsonIgnore] public string? Exchange => Split(Tickers).Exchange;
 
@@ -109,7 +119,7 @@ public sealed record FmpArticle
     ///
     /// <para>Strict on purpose. The alternative — take the text after the last colon — would turn
     /// <c>"NASDAQ:CSIQ,NYSE:GE"</c> into <c>"GE"</c> and silently discard the other ticker, which is a
-    /// fabricated answer rather than a missing one. No comma appeared in the 200 rows measured 2026-08-30,
+    /// fabricated answer rather than a missing one. No comma appeared in the 200 rows measured 2026-08-29,
     /// so the multi-valued form is unmeasured and this returns null for it.</para></summary>
     private static (string? Symbol, string? Exchange) Split(string? tickers)
     {

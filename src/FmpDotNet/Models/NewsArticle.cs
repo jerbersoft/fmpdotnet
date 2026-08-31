@@ -82,9 +82,9 @@ public sealed record NewsArticle
     ///
     /// <para><b>The one property that separates this record from <see cref="FmpArticle"/> in kind rather
     /// than in name.</b> Measured 2026-08-29, <b>0 of 2,250</b> rows carried an HTML tag here, at a median
-    /// length of 88–462 characters by path. <see cref="FmpArticle.Content"/> is markup on 200 of 200 rows at
-    /// a median 3,013 characters. A caller that renders one the way it renders the other is either escaping
-    /// tags into visible text or injecting FMP's markup into a page.</para>
+    /// length of 88–462 characters by path. <see cref="FmpArticle.Content"/> is markup on 200 of 200 rows
+    /// at a median 3,013 characters, measured 2026-08-29. A caller that renders one the way it renders
+    /// the other is either escaping tags into visible text or injecting FMP's markup into a page.</para>
     ///
     /// <para>Never null in 2,250 rows.</para></summary>
     [JsonPropertyName("text")] public string? Text { get; init; }

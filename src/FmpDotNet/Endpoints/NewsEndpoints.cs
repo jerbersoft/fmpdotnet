@@ -97,14 +97,16 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <see cref="SearchStockAsync"/> for one company. Measured 2026-08-29: 146 distinct symbols and 28
     /// publishers in 250 rows, led by The Motley Fool with 54, and <see cref="NewsArticle.Symbol"/> null on
     /// 46 of 250 — the untagged rows a whole-market feed carries.</para></summary>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The page's articles, newest first. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> GetStockLatestAsync(
         LocalDate? from = null, LocalDate? to = null, int? limit = null, int? page = null,
@@ -116,14 +118,16 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <para>39 distinct publishers in 250 rows measured 2026-08-29 — the widest of the five feeds — led by
     /// Blockchain News with 30, over 69 distinct symbols. <b>The six rows in the whole 2,250-row sample with
     /// a null <see cref="NewsArticle.Site"/> are all on this path and its search sibling.</b></para></summary>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The page's articles, newest first. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> GetCryptoLatestAsync(
         LocalDate? from = null, LocalDate? to = null, int? limit = null, int? page = null,
@@ -135,14 +139,16 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <para><b>The narrowest feed of the five.</b> 9 distinct publishers in 250 rows measured 2026-08-29,
     /// of which FX Street alone supplied <b>136</b>, over 24 distinct symbols. A caller treating this as a
     /// representative sample of currency coverage is mostly reading one publisher.</para></summary>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The page's articles, newest first. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> GetForexLatestAsync(
         LocalDate? from = null, LocalDate? to = null, int? limit = null, int? page = null,
@@ -158,14 +164,16 @@ public sealed class NewsEndpoints(FmpTransport transport)
     ///
     /// <para>6 distinct publishers, the narrowest vocabulary of the five, led by Newsfile Corp with 83.
     /// Daily volume is high: 964 rows on 2026-08-27 and 839 on 2026-01-14.</para></summary>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The page's releases, newest first. Never <see langword="null"/>.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> GetPressReleasesLatestAsync(
         LocalDate? from = null, LocalDate? to = null, int? limit = null, int? page = null,
@@ -190,7 +198,8 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// rejected. A list of 30 was accepted in one call. <b>Each matching article returns once per matching
     /// symbol.</b></param>
     /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -201,6 +210,7 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// uppercase.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> SearchStockAsync(
         IEnumerable<string> symbols, LocalDate? from = null, LocalDate? to = null, int? limit = null,
@@ -215,8 +225,9 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <c>BTCUSD</c>, which is why this SDK requires it.</para></summary>
     /// <param name="symbols">Uppercase pairs — <c>"BTCUSD"</c>, <c>"ETHUSD"</c>. Not bare coin
     /// symbols.</param>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -226,6 +237,7 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// uppercase.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> SearchCryptoAsync(
         IEnumerable<string> symbols, LocalDate? from = null, LocalDate? to = null, int? limit = null,
@@ -238,8 +250,9 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// why this SDK requires it. The pair vocabulary is the same one
     /// <see cref="QuoteEndpoints.GetQuoteAsync"/> takes.</para></summary>
     /// <param name="symbols">Uppercase pairs — <c>"EURUSD"</c>, <c>"USDJPY"</c>.</param>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -249,6 +262,7 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// uppercase.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> SearchForexAsync(
         IEnumerable<string> symbols, LocalDate? from = null, LocalDate? to = null, int? limit = null,
@@ -260,8 +274,9 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <para>Omitting <paramref name="symbols"/> substitutes <c>AAPL</c> — measured 2026-08-29 — which is
     /// why this SDK requires it. History reaches 2015 with an explicit <paramref name="from"/>.</para></summary>
     /// <param name="symbols">Uppercase tickers.</param>
-    /// <param name="from">Earliest publication date.</param>
-    /// <param name="to">Latest publication date.</param>
+    /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
+    /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
+    /// nothing for dates older than the three-month floor.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxFeedPageSize"/>.</param>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxFeedPage"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -271,6 +286,7 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// uppercase.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The range runs backwards, or paging is out of
     /// range.</exception>
+    /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<NewsArticle>> SearchPressReleasesAsync(
         IEnumerable<string> symbols, LocalDate? from = null, LocalDate? to = null, int? limit = null,
@@ -291,8 +307,8 @@ public sealed class NewsEndpoints(FmpTransport transport)
     ///   <item><description><b>It has no page ceiling and never errors — it repeats its last page for
     ///     ever.</b> Measured 2026-08-29, pages 1000, 1400, 1600, 2000 and 10000 all returned the identical
     ///     two rows. <b>A caller paging until the response is empty never terminates here.</b> Page against
-    ///     <see cref="FmpArticle.Link"/> or <see cref="FmpArticle.Date"/>, not against emptiness. This
-    ///     cannot be guarded, because the corpus end moves.</description></item>
+    ///     <see cref="FmpArticle.Link"/>, not against emptiness. This cannot be guarded, because the corpus
+    ///     end moves.</description></item>
     ///   <item><description><b>It may produce nothing on a given day.</b> Measured 2026-08-31, weekdays
     ///     carried 22 to 53 rows and the 2026-08-29 weekend carried <b>none</b>, after which the path was
     ///     silent for 60.5 hours. An empty or stale response is not evidence of a broken call.</description></item>
