@@ -23,6 +23,20 @@ under Directory here and under Earnings Transcript there — the same path eithe
 **Validation.** All 82 currently-modelled paths appear in Source A with zero misses and no truncated fragments,
 and 21 of 29 sections match Source B's counts exactly.
 
+**Re-verified 2026-08-31**, path-by-path against Source B rather than by section count, and against the table
+`EndpointCoverageTests` generates from the code. The two sets differ on exactly 14 paths, and every one is
+accounted for: Source B carries the 7 `tipranks-*` paths this SDK defers (#41) plus its single parameterised
+`historical-chart/{timeframe}`; this SDK carries the 6 concrete intraday paths that one collapses. 7 − 5 = 2,
+which is the whole of the 238-methods-there against 236-here gap, and it is a counting convention rather than
+a coverage difference. **No path is modelled by Source B and missing here, and none is modelled here and
+missing there.** The 243 denominator is unchanged.
+
+A parameter-level diff over the 230 shared paths was run at the same time and does *not* reconcile: Source B
+sends a documented query parameter this SDK never sends on 26 of them, with no path where the reverse holds.
+That is a real gap in this client and is tracked in #46 — note that Source B validates nothing it sends, so
+some fraction of those parameters will turn out to be accepted-and-ignored by FMP, which #46 treats as a
+finding to record rather than a dead end.
+
 ## One section is not buyable at any tier
 
 The seven `tipranks-*` paths require a **separately-purchased add-on**, not a plan tier. Source B's maintainer
