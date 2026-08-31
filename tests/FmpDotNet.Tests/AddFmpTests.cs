@@ -54,11 +54,13 @@ public class AddFmpTests
         Assert.NotNull(client.Indexes);
         Assert.NotNull(client.MarketHours);
         Assert.NotNull(client.News);
+        Assert.NotNull(client.Fundraisers);
+        Assert.NotNull(client.DiscountedCashFlow);
 
         // The list above was three short when SecFilings was added — Search, Quote and Chart had never been
         // named here. A missing line is invisible: the test passes, and the group it forgot is untested for
         // resolution. This makes the omission fail instead.
-        Assert.Equal(23, typeof(FmpClient)
+        Assert.Equal(25, typeof(FmpClient)
             .GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance).Length);
     }
 

@@ -3,6 +3,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
+using FmpDotNet.Models;
 using Microsoft.Extensions.Options;
 using NodaTime;
 
@@ -334,6 +335,14 @@ public partial class EndpointCoverageTests
             };
         }
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria();
+
+        // The two custom-DCF assumption records, following the ScreenerCriteria arm above. An EMPTY record
+        // rather than a populated one: every property is nullable and FmpRequest.With drops nulls, so this
+        // sends `symbol` and nothing else — which is the call whose path this harness is recording. Without
+        // these two arms Argument throws, the two custom methods issue no request, and they drop out of the
+        // README coverage table while Every_public_endpoint_method_reaches_the_api goes red.
+        if (type == typeof(CustomDcfAssumptions)) return new CustomDcfAssumptions();
+        if (type == typeof(CustomLeveredDcfAssumptions)) return new CustomLeveredDcfAssumptions();
         if (type.IsEnum) return Enum.GetValues(type).GetValue(0)!;
         if (type == typeof(int))
         {

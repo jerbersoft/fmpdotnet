@@ -1,4 +1,5 @@
 using FmpDotNet.Endpoints;
+using FmpDotNet.Models;
 
 namespace FmpDotNet;
 
@@ -15,7 +16,8 @@ public sealed class FmpClient(
     QuoteEndpoints quote, ChartEndpoints chart, BulkEndpoints bulk,
     TechnicalIndicatorsEndpoints technicalIndicators, MarketPerformanceEndpoints marketPerformance,
     EtfAndFundsEndpoints etfAndFunds, IndexesEndpoints indexes, MarketHoursEndpoints marketHours,
-    NewsEndpoints news)
+    NewsEndpoints news, FundraisersEndpoints fundraisers,
+    DiscountedCashFlowEndpoints discountedCashFlow)
 {
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; } = company;
@@ -175,4 +177,25 @@ public sealed class FmpClient(
     /// <see cref="NewsEndpoints.GetArticlesAsync"/> before paging that path — it has no page ceiling and
     /// repeats its last page for ever.</para></summary>
     public NewsEndpoints News { get; } = news;
+
+    /// <summary>Fundraisers — Regulation Crowdfunding (Form C) and Regulation D (Form D) offerings.
+    ///
+    /// <para><b>Two corpora that do not overlap</b>, which is why the six methods name their corpus rather
+    /// than taking it as an argument: measured 2026-08-31, a Form C issuer's CIK answers <b>0 rows</b> on the
+    /// Form D paths and vice versa, both at HTTP 200 with an empty array. Read
+    /// <see cref="FundraisersEndpoints.GetCrowdfundingOfferingsLatestAsync"/> before paging — neither
+    /// <c>-latest</c> path has a page ceiling, and the two have ceilings and defaults that differ by a factor
+    /// of ten from each other.</para></summary>
+    public FundraisersEndpoints Fundraisers { get; } = fundraisers;
+
+    /// <summary>Discounted cash flow — FMP's own valuations, and two models you can drive with your own
+    /// assumptions.
+    ///
+    /// <para><b>Levered and unlevered are different questions with different answers</b> — measured
+    /// 2026-08-27/31, KO reads 83.71 unlevered against 49.77 levered — so the SDK gives them separate return
+    /// types. And <b>the plain and custom paths do not reconcile with each other or with their own price
+    /// columns</b>, in both directions: do not reconstruct a price from any of them. Read
+    /// <see cref="CustomDcfAssumptions"/> before passing overrides — the two custom paths honour two
+    /// different vocabularies and each silently discards the other's.</para></summary>
+    public DiscountedCashFlowEndpoints DiscountedCashFlow { get; } = discountedCashFlow;
 }

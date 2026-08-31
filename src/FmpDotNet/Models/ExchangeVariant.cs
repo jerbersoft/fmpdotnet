@@ -143,9 +143,12 @@ public sealed record ExchangeVariant
 
     /// <summary>A discounted-cash-flow valuation, in <see cref="Currency"/>.
     ///
-    /// <para>The only DCF value the SDK currently surfaces: FMP's Discounted Cash Flow group is four further paths
-    /// in the long tail of issue #25, and none of them is modelled. See <see cref="DcfDiff"/> for why the pair
-    /// does not reconcile with <see cref="Price"/>.</para></summary>
+    /// <para><b>Not the same number as anything <c>fmp.DiscountedCashFlow</c> returns, and not reconcilable
+    /// with it.</b> FMP's four Discounted Cash Flow paths are modelled as of #39 — see
+    /// <see cref="Endpoints.DiscountedCashFlowEndpoints"/> — and measured 2026-08-31 the plain and custom
+    /// families disagree with each other and with their own price columns in both directions. See
+    /// <see cref="DcfDiff"/> for why the pair here does not reconcile with <see cref="Price"/>
+    /// either.</para></summary>
     [JsonPropertyName("dcf")] public decimal? Dcf { get; init; }
 
     /// <summary>URL of the company's logo.</summary>

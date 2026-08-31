@@ -112,7 +112,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 <!-- Generated from the code by EndpointCoverageTests. Do not edit by hand — run
      `FMPDOTNET_UPDATE_README=1 dotnet test` and commit the result. -->
 
-**226 of FMP's 243 endpoint paths are modelled.**
+**236 of FMP's 243 endpoint paths are modelled.**
 
 `fmp.Analyst`
 
@@ -248,6 +248,15 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/stock-list` | `GetStockListAsync` |
 | `stable/symbol-change` | `GetSymbolChangesAsync` |
 
+`fmp.DiscountedCashFlow`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/custom-discounted-cash-flow` | `GetCustomValuationAsync` |
+| `stable/custom-levered-discounted-cash-flow` | `GetCustomLeveredValuationAsync` |
+| `stable/discounted-cash-flow` | `GetValuationAsync` |
+| `stable/levered-discounted-cash-flow` | `GetLeveredValuationAsync` |
+
 `fmp.Economics`
 
 | FMP endpoint | Method |
@@ -278,6 +287,17 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/funds/disclosure-dates` | `GetFundDisclosureDatesAsync` |
 | `stable/funds/disclosure-holders-latest` | `GetFundHoldersAsync` |
 | `stable/funds/disclosure-holders-search` | `SearchFundsByNameAsync` |
+
+`fmp.Fundraisers`
+
+| FMP endpoint | Method |
+|---|---|
+| `stable/crowdfunding-offerings` | `GetCrowdfundingOfferingsByCikAsync` |
+| `stable/crowdfunding-offerings-latest` | `GetCrowdfundingOfferingsLatestAsync` |
+| `stable/crowdfunding-offerings-search` | `SearchCrowdfundingOfferingsAsync` |
+| `stable/fundraising` | `GetFundraisingByCikAsync` |
+| `stable/fundraising-latest` | `GetFundraisingLatestAsync` |
+| `stable/fundraising-search` | `SearchFundraisingAsync` |
 
 `fmp.Indexes`
 
