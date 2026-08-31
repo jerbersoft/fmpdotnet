@@ -324,6 +324,17 @@ internal static class Probe
                 // and economics windows below.
                 "cik" when parameter.Member.DeclaringType == typeof(Endpoints.InstitutionalOwnershipEndpoints)
                     => LiveApi.FilerCik,
+                // One facade holds BOTH filing corpora and they are disjoint, so the declaring type is not
+                // enough — the dispatch keys on the METHOD, following the CongressEndpoints arm above.
+                // Measured 2026-08-31 in both directions: a Form C issuer's CIK answers 0 rows on
+                // stable/fundraising and a Form D issuer's answers 0 rows on stable/crowdfunding-offerings,
+                // both at HTTP 200 with an empty array. And LiveApi.Cik itself — the value this arm exists
+                // to shadow — answers 0 rows on BOTH.
+                "cik" when parameter.Member.DeclaringType == typeof(Endpoints.FundraisersEndpoints)
+                    => parameter.Member.Name
+                            == nameof(Endpoints.FundraisersEndpoints.GetCrowdfundingOfferingsByCikAsync)
+                        ? LiveApi.CrowdfundingCik
+                        : LiveApi.FundraisingCik,
                 "cik" => LiveApi.Cik,
 
                 // insider-trading/search takes four optional discriminators and Probe supplies ALL of them —
@@ -370,6 +381,14 @@ internal static class Probe
                 // Congress arms above have theirs.
                 "name" when parameter.Member.DeclaringType == typeof(Endpoints.EtfAndFundsEndpoints)
                     => LiveApi.FundNameQuery,
+                // Same split, same reason: the two search paths match names in two disjoint corpora, and
+                // measured 2026-08-31 crowdfunding-offerings-search?name=Apple — which is what
+                // AcquirerNameQuery would send — answers 0 rows at HTTP 200.
+                "name" when parameter.Member.DeclaringType == typeof(Endpoints.FundraisersEndpoints)
+                    => parameter.Member.Name
+                            == nameof(Endpoints.FundraisersEndpoints.SearchCrowdfundingOfferingsAsync)
+                        ? LiveApi.CrowdfundingNameQuery
+                        : LiveApi.FundraisingNameQuery,
                 "name" => LiveApi.AcquirerNameQuery,
                 "company" => LiveApi.CompanyNameQuery,
                 "formType" => LiveApi.FormType,
@@ -523,6 +542,15 @@ internal static class Probe
         // the screener answers an unrecognised filter value with an empty list rather than an error — a typo
         // here would read as "the screener went dark".
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria { Limit = 10 };
+
+        // The two custom-DCF assumption records. An EMPTY record on purpose: every property is nullable and
+        // FmpRequest.With drops nulls, so the sweep asks for `symbol` alone and baselines FMP's OWN default
+        // valuation rather than an arbitrary set of overrides — which is what makes a week-over-week diff
+        // readable. Two arms rather than one, because the two paths honour two different override
+        // vocabularies and each silently discards the other's.
+        if (type == typeof(Models.CustomDcfAssumptions)) return new Models.CustomDcfAssumptions();
+        if (type == typeof(Models.CustomLeveredDcfAssumptions))
+            return new Models.CustomLeveredDcfAssumptions();
 
         if (type == typeof(bool))
             return parameter.Name switch

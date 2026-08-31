@@ -507,4 +507,60 @@ internal static class LiveApi
     /// <summary>The period used for the technical-indicator sweep. Ten because that is the period the
     /// design's measurement tables are keyed to, so a baseline diff can be read against them.</summary>
     public const int IndicatorPeriodLength = 10;
+
+    /// <summary>The CIK the Regulation Crowdfunding paths are probed with — <c>"0002010670"</c>, Finlete
+    /// Funding, Inc.
+    ///
+    /// <para><b>Named rather than falling out of the <c>cik</c> default, for the reason recorded on
+    /// <see cref="Exchange"/>, and the measurement here is unusually stark.</b> <c>Probe.Argument</c> maps an
+    /// unrecognised <c>cik</c> to <see cref="Cik"/> — Apple's issuer CIK — and measured 2026-08-31 that
+    /// answers <b>0 rows at HTTP 200</b> on <c>crowdfunding-offerings</c>, as does
+    /// <see cref="FilerCik"/>. Both would record <c>outcome empty</c> as this endpoint's healthy baseline
+    /// and match it every week thereafter.</para>
+    ///
+    /// <para><b>Form C and Form D filers are disjoint populations</b>, measured in both directions on
+    /// 2026-08-31, which is why this constant and <see cref="FundraisingCik"/> are separate: each answers
+    /// zero rows on the other's paths.</para>
+    ///
+    /// <para>Chosen as the filer with the <b>most filings — 12</b> — in a 1,000-row latest window rather
+    /// than the first one to hand, so the constant does not rest on a single filing that could be amended
+    /// away. It answered <b>48 rows</b> on 2026-08-31.</para></summary>
+    public const string CrowdfundingCik = "0002010670";
+
+    /// <summary>The name the Regulation Crowdfunding search is probed with — <c>"Finlete"</c>.
+    ///
+    /// <para><b>Named for the reason <see cref="Exchange"/> is.</b> <c>Probe.Argument</c> maps an
+    /// unrecognised <c>name</c> to <see cref="AcquirerNameQuery"/>, and measured 2026-08-31
+    /// <c>crowdfunding-offerings-search?name=Apple</c> answers <b>0 rows</b> with HTTP 200.</para>
+    ///
+    /// <para>Chosen to agree with <see cref="CrowdfundingCik"/> — it is the same issuer — so a diff on one
+    /// can be read against the other. It answered <b>4 rows</b> on 2026-08-31. <b>Do not shorten it:</b> this
+    /// endpoint's matching rule is not known and intermediate-length queries return nothing —
+    /// <c>Well</c> and <c>Wellness</c> both answer 44 rows while <c>Welln</c> answers zero.</para></summary>
+    public const string CrowdfundingNameQuery = "Finlete";
+
+    /// <summary>The CIK the Regulation D paths are probed with — <c>"0001617426"</c>, Schutt Private
+    /// Investment Fund, LP.
+    ///
+    /// <para><b>Its own constant, separate from <see cref="CrowdfundingCik"/>, because the two corpora are
+    /// disjoint</b> — measured 2026-08-31, this CIK answers <b>0 rows</b> on <c>crowdfunding-offerings</c>
+    /// and <see cref="CrowdfundingCik"/> answers 0 rows on <c>fundraising</c>. And separate from
+    /// <see cref="Cik"/> and <see cref="FilerCik"/>, both of which answer 0 rows here.</para>
+    ///
+    /// <para>It answered <b>14 rows</b> on 2026-08-31, spanning 2013-2026 — a filer with enough history that
+    /// a single amendment cannot empty it.</para></summary>
+    public const string FundraisingCik = "0001617426";
+
+    /// <summary>The name the Regulation D search is probed with — <c>"Apple"</c>, which answered <b>59
+    /// rows</b> on 2026-08-31.
+    ///
+    /// <para><b>Its own constant although it holds the same literal as <see cref="AcquirerNameQuery"/> and
+    /// <see cref="CompanyNameQuery"/>.</b> The value coincides by measurement, not because the three paths
+    /// share a vocabulary — and a future change to one probe must not silently move the other two. That is
+    /// the same reasoning those two constants carry about each other.</para>
+    ///
+    /// <para>Unlike its crowdfunding sibling this path <i>does</i> behave like a case-insensitive prefix
+    /// match, measured 2026-08-31 — <c>Ap</c> 421, <c>App</c> 256, <c>Apple</c> 59, <c>pple</c> 0 — so the
+    /// value is not fragile here for the reason <see cref="CrowdfundingNameQuery"/> is.</para></summary>
+    public const string FundraisingNameQuery = "Apple";
 }

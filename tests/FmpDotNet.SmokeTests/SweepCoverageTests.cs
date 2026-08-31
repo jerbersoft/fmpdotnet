@@ -1,3 +1,5 @@
+using System.Reflection;
+
 namespace FmpDotNet.SmokeTests;
 
 /// <summary>Checks that the sweep can still reach every endpoint — without a key, and without a request.
@@ -427,5 +429,69 @@ public class SweepCoverageTests
         // record as `error` and refuse to write.
         foreach (var vocabulary in new[] { LiveApi.CryptoPairs, LiveApi.ForexPairs, equities })
             Assert.All(vocabulary, s => Assert.Equal(s.ToUpperInvariant(), s));
+    }
+
+    [Fact]
+    public void The_sweep_asks_each_fundraising_corpus_for_a_CIK_and_a_name_that_belong_to_it()
+    {
+        // Probe.Argument maps any unrecognised `cik` to LiveApi.Cik and any unrecognised `name` to
+        // LiveApi.AcquirerNameQuery. Measured 2026-08-31, all three of the sweep's existing constants answer
+        // ZERO ROWS on these paths at HTTP 200: LiveApi.Cik (320193) and LiveApi.FilerCik (0001067983) on
+        // both crowdfunding-offerings and fundraising, and AcquirerNameQuery ("Apple") on
+        // crowdfunding-offerings-search. Six endpoints would record `outcome empty` as their healthy
+        // baseline and agree with themselves every week after — the same silent green LiveApi.Exchange and
+        // LiveApi.EtfSymbol exist to prevent.
+        //
+        // And the dispatch has to key on the METHOD, not just the declaring type: one facade holds both
+        // corpora, and measured 2026-08-31 a Form C CIK answers 0 rows on the Form D paths and vice versa.
+        // This is the CongressEndpoints pattern, where the chamber is a property of the method rather than
+        // of the parameter name.
+        static ParameterInfo Param(string method, string name) =>
+            typeof(Endpoints.FundraisersEndpoints).GetMethod(method)!
+                .GetParameters().Single(p => p.Name == name);
+
+        Assert.Equal(LiveApi.CrowdfundingCik, Probe.Argument(
+            Param(nameof(Endpoints.FundraisersEndpoints.GetCrowdfundingOfferingsByCikAsync), "cik")));
+        Assert.Equal(LiveApi.FundraisingCik, Probe.Argument(
+            Param(nameof(Endpoints.FundraisersEndpoints.GetFundraisingByCikAsync), "cik")));
+        Assert.Equal(LiveApi.CrowdfundingNameQuery, Probe.Argument(
+            Param(nameof(Endpoints.FundraisersEndpoints.SearchCrowdfundingOfferingsAsync), "name")));
+        Assert.Equal(LiveApi.FundraisingNameQuery, Probe.Argument(
+            Param(nameof(Endpoints.FundraisersEndpoints.SearchFundraisingAsync), "name")));
+
+        // The two CIKs are different values, and the two name queries are separate constants even though
+        // FundraisingNameQuery happens to hold the same literal as AcquirerNameQuery: the value coincides by
+        // measurement, not because the two paths share a vocabulary.
+        Assert.NotEqual(LiveApi.CrowdfundingCik, LiveApi.FundraisingCik);
+        Assert.NotEqual(LiveApi.Cik, LiveApi.CrowdfundingCik);
+        Assert.NotEqual(LiveApi.Cik, LiveApi.FundraisingCik);
+    }
+
+    [Fact]
+    public void The_sweep_probes_both_custom_DCF_paths_with_FMPs_own_default_assumptions()
+    {
+        // Probe.Argument throws on any type it has no arm for, so without these two the sweep cannot call
+        // the custom DCF methods at all — The_sweep_can_supply_arguments_for_every_endpoint_method goes red.
+        //
+        // An EMPTY record rather than a populated one, and rather than null: every property is nullable and
+        // FmpRequest.With drops nulls, so the call that goes out is `symbol=AAPL` and nothing else. The
+        // baseline therefore records FMP's own default valuation rather than an arbitrary set of overrides —
+        // which is what makes a week-over-week diff mean something. (null does not fit: Probe.Argument
+        // returns a non-nullable object, and SweepCoverageTests unboxes its result directly.)
+        static ParameterInfo Param(string method) =>
+            typeof(Endpoints.DiscountedCashFlowEndpoints).GetMethod(method)!
+                .GetParameters().Single(p => p.Name == "assumptions");
+
+        var unlevered = Assert.IsType<Models.CustomDcfAssumptions>(Probe.Argument(
+            Param(nameof(Endpoints.DiscountedCashFlowEndpoints.GetCustomValuationAsync))));
+        var levered = Assert.IsType<Models.CustomLeveredDcfAssumptions>(Probe.Argument(
+            Param(nameof(Endpoints.DiscountedCashFlowEndpoints.GetCustomLeveredValuationAsync))));
+
+        // Every member null, so a future property with a non-null initialiser cannot silently start sending
+        // an override into the weekly baseline.
+        Assert.All(unlevered.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance),
+            p => Assert.Null(p.GetValue(unlevered)));
+        Assert.All(levered.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance),
+            p => Assert.Null(p.GetValue(levered)));
     }
 }
