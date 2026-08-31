@@ -1,4 +1,5 @@
 using System.Text.Json;
+using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 using NodaTime;
 
@@ -89,5 +90,122 @@ public class NewsTests
             FmpJsonContext.Default.ListNewsArticle)!;
 
         Assert.All(rows, r => Assert.Null(r.PublishedDate));
+    }
+
+    [Fact]
+    public void An_article_row_binds_all_eight_renamed_keys()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("fmp-articles.head.json"),
+            FmpJsonContext.Default.ListFmpArticle)!;
+
+        Assert.NotEmpty(rows);
+
+        // Nothing was null on any of the 200 rows measured 2026-08-30, so EVERY row is asserted whole rather
+        // than just the first. Six of these eight keys are renames — date, content, link, author, tickers and
+        // the shared title — so a copy-paste of NewsArticle's attributes would bind two of eight and leave
+        // six silently null. That is precisely what Binding.Unbound catches and a spot check does not.
+        Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)));
+        Assert.All(rows, r => Assert.NotNull(r.Date));
+        Assert.All(rows, r => Assert.StartsWith("http", r.Link));
+
+        // `site` is the constant "Financial Modeling Prep" on all 200 rows measured 2026-08-30. These are
+        // FMP's own articles, which is the reason the path exists and the reason `author` has 7 values.
+        Assert.All(rows, r => Assert.Equal("Financial Modeling Prep", r.Site));
+    }
+
+    [Fact]
+    public void The_article_timestamp_is_UTC_rather_than_the_feeds_Eastern()
+    {
+        // The mirror of the feed converter test. Same wire shape, different zone, measured separately: the
+        // daily profile of fmp-articles correlates with a known-Eastern control feed at r = +0.656 at lag 4
+        // and r = -0.225 at lag 0 (measured 2026-08-30, 894 control rows against 779). Lag 0 is the only
+        // alignment Eastern permits and the worst in the whole 24-hour sweep.
+        //
+        // A UTC reading does NOT shift with DST, which is the observable difference from the feed converter.
+        var summer = JsonSerializer.Deserialize(
+            """[{"date":"2026-08-27 16:05:00"}]""", FmpJsonContext.Default.ListFmpArticle)![0];
+        var winter = JsonSerializer.Deserialize(
+            """[{"date":"2026-01-14 16:05:00"}]""", FmpJsonContext.Default.ListFmpArticle)![0];
+
+        Assert.Equal(Instant.FromUtc(2026, 8, 27, 16, 5, 0), summer.Date);
+        Assert.Equal(Instant.FromUtc(2026, 1, 14, 16, 5, 0), winter.Date);
+    }
+
+    [Fact]
+    public void The_two_records_read_the_same_wire_string_hours_apart()
+    {
+        // THE test the design exists to protect, and the only one that survives a symmetric mistake. Both
+        // shapes send "yyyy-MM-dd HH:mm:ss" with no zone marker; the nine feeds are Eastern and fmp-articles
+        // is UTC, and the two converters differ in nothing else. Swapping them compiles, deserialises, and
+        // moves every timestamp by four or five hours with nothing in the data to reveal it.
+        //
+        // Asserting the DIFFERENCE rather than each value separately is deliberate: someone who swapped BOTH
+        // converters and then "fixed" the two tests above would leave this one failing.
+        var summerFeed = JsonSerializer.Deserialize(
+            """[{"publishedDate":"2026-08-27 16:05:00"}]""",
+            FmpJsonContext.Default.ListNewsArticle)![0];
+        var summerArticle = JsonSerializer.Deserialize(
+            """[{"date":"2026-08-27 16:05:00"}]""",
+            FmpJsonContext.Default.ListFmpArticle)![0];
+        var winterFeed = JsonSerializer.Deserialize(
+            """[{"publishedDate":"2026-01-14 16:05:00"}]""",
+            FmpJsonContext.Default.ListNewsArticle)![0];
+        var winterArticle = JsonSerializer.Deserialize(
+            """[{"date":"2026-01-14 16:05:00"}]""",
+            FmpJsonContext.Default.ListFmpArticle)![0];
+
+        // EDT: the feed's 16:05 is 20:05 UTC, the article's is 16:05 UTC.
+        Assert.Equal(Duration.FromHours(4), summerFeed.PublishedDate!.Value - summerArticle.Date!.Value);
+        // EST: five, and the gap CHANGING is what rules out a fixed offset on either side.
+        Assert.Equal(Duration.FromHours(5), winterFeed.PublishedDate!.Value - winterArticle.Date!.Value);
+    }
+
+    [Theory]
+    [InlineData("NASDAQ:CSIQ", "CSIQ", "NASDAQ")]
+    [InlineData("NYSE:GE", "GE", "NYSE")]
+    [InlineData("OTC:ABCD", "ABCD", "OTC")]
+    [InlineData("AMEX:XYZ", "XYZ", "AMEX")]
+    // No colon: the value is already a bare ticker, or something this SDK has never measured. Either way it
+    // is not a prefixed pair, and inventing an exchange for it would be a fabricated fact.
+    [InlineData("CSIQ", null, null)]
+    // The plural name is a standing warning. Not one comma appeared in the 200 rows measured 2026-08-30, so a
+    // multi-valued form has never been seen — and this SDK will not guess which of two tickers a caller meant.
+    [InlineData("NASDAQ:CSIQ,NYSE:GE", null, null)]
+    [InlineData("A:B:C", null, null)]
+    [InlineData(":CSIQ", null, null)]
+    [InlineData("NASDAQ:", null, null)]
+    [InlineData("", null, null)]
+    [InlineData(null, null, null)]
+    public void Tickers_splits_into_a_symbol_that_round_trips_and_the_exchange_it_came_from(
+        string? tickers, string? symbol, string? exchange)
+    {
+        // The measured reason this parse exists: every one of 200 rows carried an exchange prefix on
+        // 2026-08-30 — NASDAQ 101, NYSE 86, OTC 10, AMEX 3 — and `symbols=NASDAQ:CSIQ` returns 0 rows on
+        // news/stock while `symbols=CSIQ` returns 20. Symbol is the half that feeds back into a search call.
+        var row = new FmpArticle { Tickers = tickers };
+
+        Assert.Equal(symbol, row.Symbol);
+        Assert.Equal(exchange, row.Exchange);
+        Assert.Equal(tickers, row.Tickers);   // the wire value is kept under its wire name, never rewritten
+    }
+
+    [Fact]
+    public void Every_captured_ticker_yields_a_symbol_with_no_exchange_left_in_it()
+    {
+        // The theory above pins the parse against invented inputs; this pins it against what FMP actually
+        // sent. A caller who passes Tickers straight into a symbols= query gets 0 rows and reads it as "no
+        // news for this company"; Symbol is the property that does not do that.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("fmp-articles.head.json"),
+            FmpJsonContext.Default.ListFmpArticle)!;
+
+        Assert.All(rows, r => Assert.NotNull(r.Symbol));
+        Assert.All(rows, r => Assert.NotNull(r.Exchange));
+        Assert.All(rows, r => Assert.DoesNotContain(":", r.Symbol!, StringComparison.Ordinal));
+
+        // And the computed pair stays invisible to the binding check, which is what the [JsonIgnore]
+        // attributes buy. Without them the source generator emits metadata for members the wire never sends.
+        Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)));
     }
 }

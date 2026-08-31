@@ -163,8 +163,8 @@ namespace FmpDotNet.Serialization;
 // its first row, following CompanyEndpoints.GetProfileAsync.
 [JsonSerializable(typeof(List<ExchangeMarketHours>))]
 [JsonSerializable(typeof(List<ExchangeHoliday>))]
-// News (#33). ONE record for the nine `news/*` paths, which were measured 2026-08-29 to share one key tuple
-// exactly across 2,250 rows. The tenth path, fmp-articles, renames six of the same eight concepts and gets
-// its own record.
+// News (#33). TWO entries for TEN paths, not ten: nine `news/*` paths were measured 2026-08-29 to share one
+// key tuple exactly across 2,250 rows, and fmp-articles renames six of the same eight concepts.
 [JsonSerializable(typeof(List<NewsArticle>))]
+[JsonSerializable(typeof(List<FmpArticle>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;

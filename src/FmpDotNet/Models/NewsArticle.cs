@@ -8,8 +8,8 @@ namespace FmpDotNet.Models;
 ///
 /// <para><b>Nine paths, one shape, measured exactly.</b> The five <c>-latest</c> feeds and the four search
 /// paths returned the same eight keys in the same order across <b>2,250 rows</b> on 2026-08-29. The tenth
-/// News path, <c>stable/fmp-articles</c>, is <c>FmpArticle</c>: it carries the same eight concepts under six
-/// different names and cannot share this record.</para>
+/// News path, <c>stable/fmp-articles</c>, is <see cref="FmpArticle"/>: it carries the same eight concepts
+/// under six different names and cannot share this record.</para>
 ///
 /// <para><b>A row is an article-symbol pairing, not an article.</b> A multi-symbol query returns the same
 /// article once per matching symbol. Measured 2026-08-29 on <c>news/crypto?symbols=BTCUSD,ETHUSD</c>: 19 of
@@ -51,7 +51,7 @@ public sealed record NewsArticle
     /// Under a UTC reading the post-close cluster would sit at 20:0x, where the summer day holds 14 rows
     /// against hour 16's 170.</para>
     ///
-    /// <para><b><c>FmpArticle.Date</c> takes the OTHER converter.</b> Same wire shape, different zone,
+    /// <para><b><see cref="FmpArticle.Date"/> takes the OTHER converter.</b> Same wire shape, different zone,
     /// measured separately. The two are four to five hours apart and swapping them is silent.</para>
     ///
     /// <para>Never null in 2,250 rows measured 2026-08-29.</para></summary>
@@ -79,11 +79,11 @@ public sealed record NewsArticle
 
     /// <summary>A summary or excerpt, as <b>plain text</b>.
     ///
-    /// <para><b>The one property that separates this record from <c>FmpArticle</c> in kind rather than in
-    /// name.</b> Measured 2026-08-29, <b>0 of 2,250</b> rows carried an HTML tag here, at a median length of
-    /// 88–462 characters by path. <c>FmpArticle.Content</c> is markup on 200 of 200 rows at a median 3,013
-    /// characters. A caller that renders one the way it renders the other is either escaping tags into
-    /// visible text or injecting FMP's markup into a page.</para>
+    /// <para><b>The one property that separates this record from <see cref="FmpArticle"/> in kind rather
+    /// than in name.</b> Measured 2026-08-29, <b>0 of 2,250</b> rows carried an HTML tag here, at a median
+    /// length of 88–462 characters by path. <see cref="FmpArticle.Content"/> is markup on 200 of 200 rows at
+    /// a median 3,013 characters. A caller that renders one the way it renders the other is either escaping
+    /// tags into visible text or injecting FMP's markup into a page.</para>
     ///
     /// <para>Never null in 2,250 rows.</para></summary>
     [JsonPropertyName("text")] public string? Text { get; init; }
