@@ -10,7 +10,7 @@ namespace FmpDotNet.Models;
 /// <c>name=Well</c> answered <b>44 rows across 31 distinct CIKs</b>. A caller populating a company picker
 /// must dedupe by <see cref="Cik"/>; this SDK does not, because the row is what the wire sent.</para>
 ///
-/// <para><b>Identical in shape to <c>FundraisingSearchHit</c> and deliberately a separate type</b>,
+/// <para><b>Identical in shape to <see cref="FundraisingSearchHit"/> and deliberately a separate type</b>,
 /// because <see cref="Date"/> is a different <i>kind</i> of value on each: <c>MM-DD-YYYY</c> here, and an
 /// acceptance timestamp there. One record for both would need one converter for two encodings, and the wrong
 /// one reads as null without throwing.</para>

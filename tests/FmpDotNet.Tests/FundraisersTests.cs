@@ -253,4 +253,191 @@ public class FundraisersTests
         Assert.Contains("cashAndCashEquiValentMostRecentFiscalYear", names);
         Assert.Contains("cashAndCashEquiValentPriorFiscalYear", names);
     }
+
+    [Fact]
+    public void A_fundraising_row_binds_every_one_of_its_forty_three_keys()
+    {
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("fundraising.0001617426.json"),
+            FmpJsonContext.Default.ListFundraisingNotice)!;
+
+        Assert.Equal(3, rows.Count);
+        Assert.All(rows, r => Assert.Equal("0001617426", r.Cik));
+
+        // The four absent fields are NAMED rather than waved at, and every one of them is a measured
+        // structural absence rather than a binding failure: incorporatedWithinFiveYears was null on 30 of 100
+        // rows measured 2026-08-31, securitiesOfferedAreOfEquityType on 64, revenueRange on 29, and
+        // yearOfIncorporation is the empty string on 30 — which SentinelStringJsonConverter collapses to null
+        // so that absence has one spelling. If this list grows, a [JsonPropertyName] stopped binding.
+        Assert.All(rows, r => Assert.Equal(
+            ["IncorporatedWithinFiveYears", "RevenueRange", "SecuritiesOfferedAreOfEquityType",
+             "YearOfIncorporation"],
+            Binding.Unbound(r)));
+
+        // Zero is a value, not an absence: findersFees was 0 on all 100 rows measured 2026-08-31 and
+        // Binding.Unbound does not flag it. A caller reading 0 there is reading what FMP sent.
+        Assert.All(rows, r => Assert.NotNull(r.FindersFees));
+    }
+
+    [Fact]
+    public void The_empty_string_reads_as_null_and_the_other_forty_one_fields_survive()
+    {
+        // The trap that made yearOfIncorporation a string. Measured 2026-08-31 over 100 rows it is NEVER
+        // null, is "" on 30, and is a four-digit year on the other 70 — a JSON string in both cases. It is
+        // NOT int?: FmpJsonContext sets NumberHandling = AllowReadingFromString globally, so "1998" would
+        // bind — but "" THROWS, and System.Text.Json aborts the entire list deserialisation rather than the
+        // one field. Thirty percent of rows would cost the caller the whole response.
+        //
+        // dateOfFirstSale ("" on 7 of 100) needs no special handling: NullableLocalDateJsonConverter already
+        // reads "" as null. This test pins both, and pins that the row around them survives.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("fundraising-latest.head.json"),
+            FmpJsonContext.Default.ListFundraisingNotice)!;
+
+        var emptyYear = Assert.Single(rows, r => r.YearOfIncorporation is null);
+        Assert.NotNull(emptyYear.Cik);
+        Assert.NotNull(emptyYear.EntityType);
+        Assert.NotNull(emptyYear.FilingDate);
+        Assert.NotNull(emptyYear.TotalAmountSold);
+
+        var emptyFirstSale = Assert.Single(rows, r => r.DateOfFirstSale is null);
+        Assert.NotNull(emptyFirstSale.Cik);
+        Assert.NotNull(emptyFirstSale.YearOfIncorporation);
+
+        // And the same two shapes through a literal, so the test states the wire form rather than depending
+        // on which rows the fixture happened to catch.
+        var literal = JsonSerializer.Deserialize(
+            """[{"yearOfIncorporation":"","dateOfFirstSale":"","cik":"0000000000"}]""",
+            FmpJsonContext.Default.ListFundraisingNotice)![0];
+
+        Assert.Null(literal.YearOfIncorporation);
+        Assert.Null(literal.DateOfFirstSale);
+        Assert.Equal("0000000000", literal.Cik);
+
+        // A real year stays a string. This is the user's settled decision: the wire sends a string, so the
+        // SDK surfaces a string.
+        var present = JsonSerializer.Deserialize(
+            """[{"yearOfIncorporation":"1998","dateOfFirstSale":"2014-10-03"}]""",
+            FmpJsonContext.Default.ListFundraisingNotice)![0];
+
+        Assert.Equal("1998", present.YearOfIncorporation);
+        Assert.Equal(new LocalDate(2014, 10, 3), present.DateOfFirstSale);
+    }
+
+    [Fact]
+    public void A_field_called_date_is_encoded_four_different_ways_across_this_group()
+    {
+        // The single fact that shapes six of this slice's ten records, pinned in one place. Four records
+        // carry a field literally named `date`, and no two of the four agree on what it is:
+        //
+        //   crowdfunding-offerings        MM-DD-YYYY               -> LocalDate?  (issuer formation date)
+        //   crowdfunding-offerings-search MM-DD-YYYY               -> LocalDate?  (same, null on 6.6%)
+        //   fundraising / -latest         yyyy-MM-dd               -> LocalDate?
+        //   fundraising-search            yyyy-MM-dd HH:mm:ss      -> Instant?    (Eastern acceptance)
+        //
+        // Each wrong pairing fails differently and NONE of them throws: the ISO converter nulls a
+        // MM-DD-YYYY value, the MM-DD-YYYY converter nulls an ISO one, and the UTC instant converter binds
+        // an Eastern timestamp four to five hours early.
+        var crowdfunding = JsonSerializer.Deserialize(
+            """[{"date":"11-22-2011"}]""", FmpJsonContext.Default.ListCrowdfundingOffering)![0];
+        var crowdfundingHit = JsonSerializer.Deserialize(
+            """[{"date":"12-19-2022"}]""", FmpJsonContext.Default.ListCrowdfundingSearchHit)![0];
+        var fundraising = JsonSerializer.Deserialize(
+            """[{"date":"2026-08-28"}]""", FmpJsonContext.Default.ListFundraisingNotice)![0];
+        var fundraisingHit = JsonSerializer.Deserialize(
+            """[{"date":"2026-08-31 11:34:51"}]""", FmpJsonContext.Default.ListFundraisingSearchHit)![0];
+
+        Assert.Equal(new LocalDate(2011, 11, 22), crowdfunding.Date);
+        Assert.Equal(new LocalDate(2022, 12, 19), crowdfundingHit.Date);
+        Assert.Equal(new LocalDate(2026, 8, 28), fundraising.Date);
+        Assert.Equal(Instant.FromUtc(2026, 8, 31, 15, 34, 51), fundraisingHit.Date);   // EDT, UTC-4
+
+        // Cross-fed, each converter answers null rather than throwing — which is the whole reason a wrong
+        // pairing is silent and needs a test rather than an exception to catch it.
+        Assert.Null(JsonSerializer.Deserialize(
+            """[{"date":"2026-08-28"}]""", FmpJsonContext.Default.ListCrowdfundingOffering)![0].Date);
+        Assert.Null(JsonSerializer.Deserialize(
+            """[{"date":"11-22-2011"}]""", FmpJsonContext.Default.ListFundraisingNotice)![0].Date);
+
+        // And the two `date` properties on the two three-key search records are different CLR types. This is
+        // the assertion that fails if anyone merges CrowdfundingSearchHit and FundraisingSearchHit on the
+        // grounds that they carry the same three key names — which they do.
+        Assert.Equal(typeof(LocalDate?),
+            typeof(CrowdfundingSearchHit).GetProperty(nameof(CrowdfundingSearchHit.Date))!.PropertyType);
+        Assert.Equal(typeof(Instant?),
+            typeof(FundraisingSearchHit).GetProperty(nameof(FundraisingSearchHit.Date))!.PropertyType);
+    }
+
+    [Fact]
+    public void An_amount_above_Int32_binds_rather_than_overflowing_the_response()
+    {
+        // Measured 2026-08-31 over 406 rows, totalAmountSold reaches 13,475,150,514 — 6.3x Int32.MaxValue.
+        // An int? property does not lose the value: System.Text.Json THROWS on the overflow and aborts the
+        // whole list, so one large raise costs the caller every other row in the response.
+        //
+        // decimal? rather than long? for the reason recorded on FinancialScores.PiotroskiScore: all eight
+        // amount fields were whole on 406 of 406 rows, but "not seen fractional yet" is not "cannot be
+        // fractional", and long? inherits the same abort-the-response failure the day one arrives with cents.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("fundraising-latest.head.json"),
+            FmpJsonContext.Default.ListFundraisingNotice)!;
+
+        var big = Assert.Single(rows, r => r.TotalAmountSold > int.MaxValue);
+        Assert.NotNull(big.Cik);
+        Assert.NotNull(big.TotalOfferingAmount);
+
+        var literal = JsonSerializer.Deserialize(
+            """[{"totalAmountSold":13475150514,"totalOfferingAmount":1000000000.5,"cik":"0000000000"}]""",
+            FmpJsonContext.Default.ListFundraisingNotice)![0];
+
+        Assert.Equal(13475150514m, literal.TotalAmountSold);
+        Assert.Equal(1000000000.5m, literal.TotalOfferingAmount);
+        Assert.Equal("0000000000", literal.Cik);
+    }
+
+    [Fact]
+    public void The_fundraising_search_date_is_the_acceptance_timestamp_of_the_filing()
+    {
+        // Not an assumption. Measured 2026-08-31 for CIK 0001617426, all 14 fundraising-search timestamps
+        // equal the 14 acceptedDate values returned by fundraising?cik=... EXACTLY. The field is named
+        // `date` and it is not a date; a LocalDate? here would silently discard the time of day, and the
+        // UTC converter would move it four to five hours.
+        var hits = JsonSerializer.Deserialize(
+            Binding.Fixture("fundraising-search.Schutt.json"),
+            FmpJsonContext.Default.ListFundraisingSearchHit)!;
+
+        Assert.Equal(3, hits.Count);
+        Assert.All(hits, h => Assert.Equal("0001617426", h.Cik));
+        Assert.All(hits, h => Assert.NotNull(h.Date));
+
+        // Every measured value falls in the Eastern 06:00-22:00 window, which is the finding that chose the
+        // converter: zero of 3,174 values landed in hours 22-05, which a UTC reading would require.
+        var eastern = DateTimeZoneProviders.Tzdb["America/New_York"];
+        Assert.All(hits, h =>
+            Assert.InRange(h.Date!.Value.InZone(eastern).Hour, 6, 22));
+
+        // Three keys and no more, same as the crowdfunding hit and a different type from it.
+        Assert.Equal(3, typeof(FundraisingSearchHit)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance).Length);
+    }
+
+    [Fact]
+    public void The_fundraising_notice_binds_all_forty_three_wire_names_and_no_others()
+    {
+        // 43 keys, confirmed on 2026-08-31 against the live captures and against the independent Python
+        // fmpsdk, whose TypedDict carries 43 fields with an identical key set.
+        var names = typeof(FundraisingNotice)
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
+            .ToList();
+
+        Assert.Equal(43, names.Count);
+        Assert.All(names, n => Assert.NotNull(n));
+        Assert.Equal(43, names.Distinct(StringComparer.Ordinal).Count());
+
+        // The two corpora are disjoint and this record must not grow the other one's fields. Measured
+        // 2026-08-31: a crowdfunding CIK answers 0 rows on stable/fundraising and vice versa.
+        Assert.DoesNotContain("overSubscriptionAccepted", names);
+        Assert.DoesNotContain("intermediaryCompanyName", names);
+    }
 }

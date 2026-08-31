@@ -16,7 +16,7 @@ namespace FmpDotNet.Models;
 /// directions: crowdfunding CIK <c>0002152721</c> answers <b>0 rows</b> on <c>stable/fundraising</c>, and
 /// fundraising CIK <c>0001617426</c> answers <b>0 rows</b> here. A CIK from one corpus is not a lookup that
 /// failed on the other — it is a query for something that was never there, and it arrives as HTTP 200 with an
-/// empty array either way. See <c>FundraisingNotice</c>.</para>
+/// empty array either way. See <see cref="FundraisingNotice"/>.</para>
 ///
 /// <para><b>Four fields on this record are not what their names suggest.</b>
 /// <see cref="Date"/> is not the filing date, <see cref="CompensationAmount"/> is not an amount,
@@ -66,7 +66,7 @@ public sealed record CrowdfundingOffering
     /// <c>00:00:00</c> on <b>3,575 of 3,575</b> rows measured 2026-08-31, a dummy midnight bolted on to a
     /// date. Binding it as an instant would leak a meaningless midnight into every comparison a caller
     /// writes. Reaches this type through <see cref="NullableDateAtMidnightJsonConverter"/>; the same field on
-    /// <c>FundraisingNotice.FilingDate</c> is measured identically and takes the same converter.
+    /// <see cref="FundraisingNotice.FilingDate"/> is measured identically and takes the same converter.
     /// Never null in 1,000 rows.</summary>
     [JsonPropertyName("filingDate")]
     [JsonConverter(typeof(NullableDateAtMidnightJsonConverter))]
@@ -82,7 +82,7 @@ public sealed record CrowdfundingOffering
     /// automated fetch, and the documented sample carries no offset and no timezone note.</para>
     ///
     /// <para><b>So the wire was measured, over 1,395 distinct values here and 1,779 more on
-    /// <c>FundraisingSearchHit.Date</c>, spanning 2009-2026.</b> EDT (n=1,060) window
+    /// <see cref="FundraisingSearchHit.Date"/>, spanning 2009-2026.</b> EDT (n=1,060) window
     /// <b>06:00-22:00</b>; EST (n=445) window <b>06:00-21:59</b>. <b>The window does not shift across the DST
     /// boundary</b> — a stored instant would move by an hour, a stripped wall clock does not. And a UTC
     /// reading is refuted arithmetically: 20:00 EDT is 00:00 UTC, so an Eastern-window feed read as UTC must
@@ -109,7 +109,7 @@ public sealed record CrowdfundingOffering
 
     /// <summary>The issuer's legal form. Four values measured 2026-08-31: <c>Corporation</c>,
     /// <c>Limited Liability Company</c>, <c>Limited Partnership</c>, <c>Other</c> — the same vocabulary
-    /// <c>FundraisingNotice.EntityType</c> uses under a different name.</summary>
+    /// <see cref="FundraisingNotice.EntityType"/> uses under a different name.</summary>
     [JsonPropertyName("legalStatusForm")] public string? LegalStatusForm { get; init; }
 
     /// <summary>The two-character jurisdiction the issuer is organised under. 41 distinct values, null on 3

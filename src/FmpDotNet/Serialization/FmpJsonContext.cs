@@ -172,4 +172,6 @@ namespace FmpDotNet.Serialization;
 // different date encodings — which is why they are two records rather than one.
 [JsonSerializable(typeof(List<CrowdfundingOffering>))]
 [JsonSerializable(typeof(List<CrowdfundingSearchHit>))]
+[JsonSerializable(typeof(List<FundraisingNotice>))]
+[JsonSerializable(typeof(List<FundraisingSearchHit>))]
 internal sealed partial class FmpJsonContext : JsonSerializerContext;
