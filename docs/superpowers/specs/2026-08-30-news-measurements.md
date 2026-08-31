@@ -353,3 +353,57 @@ to poll against. The weekday gate has been reached and passed without the test b
 distributional measurement above, and this addendum leaves that evidence exactly as it stood. The direct test was
 always corroboration. It is recorded here as outstanding rather than quietly dropped, and it stays outstanding
 until the path publishes again.
+
+## Addendum — the sweep's own window and vocabularies (measured 2026-08-31)
+
+The smoke sweep synthesises its arguments by parameter name, so the window and the symbol list it *would*
+send are facts about this SDK that had never been checked against these ten paths. Twelve calls, all at
+`limit=5&page=0`, over `from=2026-05-26&to=2026-08-24` — ninety days ending a week ago, which is what
+`LiveApi.RangeStart` and `LiveApi.SettledWeekday` computed on 2026-08-31 (a Monday; `SettledWeekday` landed on
+Monday 2026-08-24, and `RangeStart` ninety days before it on 2026-05-26).
+
+| path | symbols sent | rows | span |
+|---|---|---|---|
+| `news/general-latest` | — | 5 | 2026-08-24 22:14:33 .. 2026-08-24 23:48:41 |
+| `news/stock-latest` | — | 5 | 2026-08-24 23:45:00 .. 2026-08-24 23:57:00 |
+| `news/crypto-latest` | — | 5 | 2026-08-24 23:44:21 .. 2026-08-24 23:56:29 |
+| `news/forex-latest` | — | 5 | 2026-08-24 23:09:55 .. 2026-08-24 23:44:16 |
+| `news/press-releases-latest` | — | 5 | 2026-08-24 23:42:00 .. 2026-08-24 23:56:00 |
+| `news/stock` | `AAPL,MSFT` | 5 | 2026-08-24 16:55:46 .. 2026-08-24 19:37:07 |
+| `news/crypto` | `BTCUSD,ETHUSD` | 5 | 2026-08-24 23:39:31 .. 2026-08-24 23:47:22 |
+| `news/forex` | `EURUSD,USDJPY` | 5 | 2026-08-24 12:51:53 .. 2026-08-24 21:08:50 |
+| `news/press-releases` | `AAPL,MSFT` | 5 | 2026-08-12 07:00:00 .. 2026-08-18 04:00:00 |
+| `fmp-articles` | n/a | 5 | 2026-08-28 21:00:00 .. 2026-08-29 13:00:21 |
+
+**The window is safe.** A `from` ninety days before a settled weekday sits past the three-month floor
+measured 2026-08-29, and the floor binds only a call with no `from` at all — so an explicit one reaches
+through it, which these 50 rows (5 rows apiece across all ten paths above) confirm rather than assume.
+
+**The equity vocabulary is not the crypto or forex one, and the sweep would have recorded the difference as
+health.** The same two search paths asked with the sweep's current argument:
+
+| path | `symbols=AAPL,MSFT` | `symbols=` its own vocabulary |
+|---|---|---|
+| `news/crypto` | 0 rows | 5 rows |
+| `news/forex` | 0 rows | 5 rows |
+
+Both AAPL columns measured 0. A zero-row answer records `outcome empty` with no properties, and every run
+after it agrees — the endpoint would be probed weekly and never checked. `LiveApi.CryptoPairs` and
+`LiveApi.ForexPairs` exist for that reason, and are pinned by a test rather than left to a comment.
+
+**`fmp-articles` still answers** at `limit=5&page=0`, 5 rows spanning 2026-08-28 21:00:00 .. 2026-08-29
+13:00:21, despite having published nothing new since 2026-08-28 21:05:54. The stall recorded in the previous
+addendum is a stall in *publication*, not in the corpus — which is what makes it a documentation problem
+rather than a broken path.
+
+**Fixtures captured from this run** and committed to `tests/FmpDotNet.Tests/Fixtures/`:
+`news-stock-latest.head.json` (3 rows, `limit=3`, row 0 `symbol="SAIC"` with no null values on any key),
+`news-general-latest.head.json` (3 rows, `limit=3`, `symbol` null on 3 of 3), `fmp-articles.head.json` (2
+rows, `limit=2`, `tickers` colon-prefixed on both captured rows: `NASDAQ:NRIM`, `NASDAQ:CSIQ`). No request URL
+and no key appears in any of them; they are response bodies as FMP sent them.
+
+**Task 3's two extra fixture-gate checks, run against the captured `fmp-articles.head.json` rows before
+copying them in, both passed on 2026-08-31:** `Assert.All(rows, r => Assert.Empty(Binding.Unbound(r)))` — no
+row is missing a non-blank value for any of the eight bound keys (`title`, `date`, `content`, `link`,
+`author`, `site`, `image`, `tickers`) — and `Assert.All(rows, r => Assert.Equal("Financial Modeling Prep",
+r.Site))` — both captured rows carry `site == "Financial Modeling Prep"`.
