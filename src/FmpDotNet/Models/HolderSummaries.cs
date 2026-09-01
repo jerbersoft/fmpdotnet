@@ -66,8 +66,11 @@ public sealed record HolderIndustryBreakdown
 /// <c>stable/institutional-ownership/holder-performance-summary</c>.
 ///
 /// <para><b>The filer's whole history, one row per quarter, newest first</b> — 53 rows for Berkshire, measured
-/// 2026-08-28, matching the 53 quarters <c>institutional-ownership/dates</c> enumerates. The endpoint takes no
-/// year and no quarter, which is why
+/// 2026-08-28, matching the 53 quarters <c>institutional-ownership/dates</c> enumerates; 110 for FMR
+/// (<c>0000315066</c>), measured 2026-09-01, matching its 110. The history reaches back to <b>1998 Q3</b>, the
+/// earliest quarter across 299 filers measured 2026-09-01 (#53), and 110 rows — every quarter from 1999 Q1 —
+/// is the most any of them answered; 53 is where Berkshire's rows begin, not where the endpoint's do. The
+/// endpoint takes no year and no quarter, which is why
 /// <see cref="Endpoints.InstitutionalOwnershipEndpoints.GetHolderPerformanceAsync"/> takes only a CIK.</para>
 ///
 /// <para><b>The series is self-consistent across rows:</b> each row's <see cref="LastPerformance"/> equals the
