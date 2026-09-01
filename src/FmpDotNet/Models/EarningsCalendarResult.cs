@@ -44,16 +44,17 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     public const int RowCap = 4000;
 
     private readonly IReadOnlyList<EarningsCalendarEntry> _rows;
+    private readonly CalendarWalk _walk;
 
     internal EarningsCalendarResult(
         IReadOnlyList<EarningsCalendarEntry> rows,
-        int rowsReturned,
+        CalendarWalk walk,
         LocalDate requestedFrom,
         LocalDate requestedTo,
         LocalDate? earliestReturnedDate)
     {
         _rows = rows;
-        RowsReturned = rowsReturned;
+        _walk = walk;
         RequestedFrom = requestedFrom;
         RequestedTo = requestedTo;
         EarliestReturnedDate = earliestReturnedDate;
@@ -71,9 +72,42 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>How many rows FMP's response actually carried, counted before the SDK clamped or dropped anything.
-    /// This, and not <see cref="Count"/>, is what the truncation tells are computed from.</summary>
-    public int RowsReturned { get; }
+    /// <summary>How many rows FMP's responses actually carried, counted before the SDK dropped anything and
+    /// summed over every page fetched. This, and not <see cref="Count"/>, is what the truncation tells are
+    /// computed from.</summary>
+    public int RowsReturned => _walk.RowsReturned;
+
+    /// <summary>How many pages of rows this result was assembled from, and it is no longer always 1.
+    ///
+    /// <para>Measured 2026-09-01: <c>from=2026-05-13&amp;to=2026-05-19</c> is 3 requests and 6,496 rows against
+    /// the 4000 one request answers, and the first half of 2025 is 12 requests and 45,765 rows against the same
+    /// 4000. A range that fits in one page costs one request, exactly as before. It is pages kept rather than
+    /// requests spent — a walk that ends by recognising a repeated page pays for that page without counting
+    /// it.</para></summary>
+    public int PagesFetched => _walk.PagesFetched;
+
+    /// <summary>Rows that arrived on both sides of a page seam — <b>a count of rows lost, not of rows
+    /// duplicated</b>.
+    ///
+    /// <para>FMP orders these responses by <c>date</c> and by nothing else, and a page seam always falls
+    /// <i>inside</i> a date rather than between two — true of all 22 seams measured on 2026-09-01. So the
+    /// offset that cuts page <i>n+1</i> is applied to an ordering page <i>n</i> was not cut from: some rows
+    /// are served on both sides, and an equal number of different rows are served on neither.</para>
+    ///
+    /// <para><b>The equality is measured, not assumed.</b> Seven seams were re-requested a day at a time — a
+    /// single-day request fits one page and so has no seam — and compared against what the walk held for that
+    /// date: 381 duplicated / 381 missing, 174/174, 315/315, and three clean seams losing nothing. Not one row
+    /// appeared in a walk that the single-day request did not have, so rows are exchanged one for one rather
+    /// than invented.</para>
+    ///
+    /// <para><b>It over-reports rather than under-reports.</b> FMP's own data carries byte-identical duplicate
+    /// rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and such a pair
+    /// straddling a seam would be counted here with no loss behind it. No such case appeared in 22 seams, and
+    /// the bias runs the safe direction.</para>
+    ///
+    /// <para>The remedy is a narrower range: one that fits in a single page has no seam and cannot lose
+    /// anything.</para></summary>
+    public int SeamDuplicateRows => _walk.SeamDuplicateRows;
 
     /// <summary>The <c>from</c> that was asked for.</summary>
     public LocalDate RequestedFrom { get; }
@@ -85,12 +119,16 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// <see langword="null"/> if it carried no dated row. Raw, so clamping cannot move it.</summary>
     public LocalDate? EarliestReturnedDate { get; }
 
-    /// <summary>The response came back at or above <see cref="RowCap"/>, so it is almost certainly cut short.
+    /// <summary>The <b>last page fetched</b> came back at or above <see cref="RowCap"/>, so the walk stopped
+    /// with a full page in hand and something is still behind it.
     ///
-    /// <para>Exact at the cap and blind just under it: a 7-day peak-season window (2026-08-01 to 08-07) was
-    /// measured at 3676 rows — 92% of the cap without crossing it — so a false reading here is "complete" and never
-    /// "truncated". <see cref="MissesStartOfRange"/> is the tell that covers the near-cap case.</para></summary>
-    public bool AtRowCap => RowsReturned >= RowCap;
+    /// <para><b>This reads the last page, not the total, and before #49 there was only ever one page for it to
+    /// read.</b> A 4000-row response used to mean "rows are gone". Now it means "there is another page", and
+    /// <see cref="PagesFetched"/> says whether it was fetched — so a walk that ended on a short page is not at
+    /// the cap however many rows it gathered. What still fires this is a walk stopped by
+    /// <c>MaxCalendarPages</c>, or by a page repeating its predecessor,
+    /// with a full page as the last one appended.</para></summary>
+    public bool AtRowCap => _walk.LastPageRowCount >= RowCap;
 
     /// <summary>Nothing came back for the first day of the requested range, although later days did.
     ///
@@ -114,7 +152,7 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// <b>7 rows</b>, a reduction the row cap alone does not explain. Density ranges from about 60 rows a day in a
     /// quiet month to about 525 in a peak week, so a chunk width cannot be chosen from the calendar alone — this
     /// signal is the only thing that actually proves a given response complete.</para></summary>
-    public bool LikelyTruncated => AtRowCap || MissesStartOfRange;
+    public bool LikelyTruncated => AtRowCap || MissesStartOfRange || SeamDuplicateRows > 0;
 
     /// <summary>Whether a calendar result should be treated as cut short, for callers holding it as a plain
     /// <see cref="IReadOnlyList{T}"/>.

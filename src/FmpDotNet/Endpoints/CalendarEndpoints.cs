@@ -196,7 +196,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
             kept.Add(row);
         }
 
-        return new EarningsCalendarResult(kept, rows.Count, from, to, earliest);
+        return new EarningsCalendarResult(kept, CalendarWalk.Single(rows.Count), from, to, earliest);
     }
 
     /// <summary>Every dividend FMP holds for one symbol, newest first, from <c>stable/dividends</c>.
@@ -304,7 +304,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
         // rowCap 4000, lookbackLimitDays null: the cap always fires first at 340-876 rows a day, so no window
         // limit is observable on this path and asserting one would be inventing evidence.
-        return new CalendarResult<Dividend>(kept, rows.Count, from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
+        return new CalendarResult<Dividend>(
+            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
     }
 
     /// <summary>Every split FMP holds for one symbol, newest first, from <c>stable/splits</c>.
@@ -405,7 +406,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
         // The opposite of the dividend calendar: no cap was measured here, and the clamp is a flat 90-day
         // window from `to`.
-        return new CalendarResult<StockSplit>(kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+        return new CalendarResult<StockSplit>(
+            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
 
     /// <summary>Every offering FMP has scheduled or priced in a date range, from <c>stable/ipos-calendar</c>.
@@ -450,7 +452,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
             if (row is { Date: not null }) kept.Add(row);
 
         return new CalendarResult<IpoCalendarEntry>(
-            kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
 
     /// <summary>Effectiveness filings for registrations in a date range, from <c>stable/ipos-disclosure</c>.
