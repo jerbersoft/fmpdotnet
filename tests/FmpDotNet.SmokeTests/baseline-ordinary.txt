@@ -3,7 +3,7 @@
 # The *-bulk endpoints are NOT here — they are separately throttled and FMP restricts keys that call
 # them often, so they have their own opt-in sweep and their own file. See baseline-bulk.txt.
 #
-# Measured 2026-08-31. Regenerate — after checking the diff is drift and not
+# Measured 2026-09-01. Regenerate — after checking the diff is drift and not
 # a break — with:
 #
 #     FMP_API_KEY=… FMPDOTNET_UPDATE_SMOKE_BASELINE=1 \

@@ -237,8 +237,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// also appears in the following chunk was <i>inferred</i> from it and never tested; tested on 2026-08-26, it
     /// is false.</para></summary>
     /// <param name="from">First day of the range, inclusive.</param>
-    /// <param name="to">Last day of the range, inclusive. May equal <paramref name="from"/>, and day-at-a-time is
-    /// the recommended and only measured-safe usage.</param>
+    /// <param name="to">Last day of the range, inclusive. May equal <paramref name="from"/>, and a range narrow
+    /// enough to fit one page is the only width that cannot lose rows at a seam.</param>
     /// <param name="includeReportTimes">Sends <c>includeReportTimes=true</c>, which populates
     /// <see cref="EarningsCalendarEntry.ReportTime"/> and the four other extras — and re-dates a small fraction of
     /// rows one day forward, as above. Omitted from the query entirely when false, matching the request that was
