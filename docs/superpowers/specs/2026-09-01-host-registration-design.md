@@ -2,6 +2,11 @@
 
 No issue yet; one should be opened before implementation, per CONTRIBUTING.
 
+**Revised 2026-09-01, after #44 merged** (`f505748`). The first draft was written against a three-link
+chain and assumed #44 was still open. It is not, and the retry handler it added takes the outermost slot
+this design wanted to hand to consumers. Every section below that touched handler order has been
+rewritten rather than patched; see "Handler order" and "Risks". Line citations are against `f505748`.
+
 `AddFmp` already registers the SDK into anything holding an `IServiceCollection` — ASP.NET Core, a Worker
 Service, a console app built on `Host.CreateApplicationBuilder`. `FmpDotNet.SmokeTests/LiveApi.cs:41`
 registers it against a bare `ServiceCollection` today. So this slice is not "make the SDK registrable". It
@@ -24,10 +29,13 @@ loudly.
 
 ## What this is not
 
-- **Not a retry policy.** Issue #44 (retry transient 5xx and connection faults) stays open and separate.
-  This slice only decides *where a consumer's own retry handler sits* in the chain — see "Handler order"
-  — because that placement is a property of the customization surface being added here.
-- **Not a change to any handler, transport, endpoint group or model.** The five handler classes and both
+- **Not a retry policy.** #44 shipped one — `FmpRetryHandler`/`FmpBulkRetryHandler` and the four
+  `FmpOptions` knobs `MaxAttempts`, `BulkMaxAttempts`, `RetryBaseDelay`, `MaxRetryDelay` — and this
+  design does not revisit any of it. What this slice must do is fit alongside it: carry the two retry
+  links through the name-parameterised core, and decide where a consumer's handlers sit relative to a
+  retry the SDK now performs itself. That second question is materially harder than it was when retry
+  was hypothetical — see "Handler order".
+- **Not a change to any handler, transport, endpoint group or model.** All seven handler classes and both
   transports are untouched; see "No handler changes" below for why that falls out rather than being an
   aspiration.
 - **Not a tier map.** Unchanged: entitlement moves and varies per key.
@@ -100,10 +108,10 @@ over the same transport, so this is invisible in behaviour.
 
 ## Reservoirs: one per API key, not one per process
 
-Today `FmpBuckets` is a single `TryAddSingleton` (`FmpServiceCollectionExtensions.cs:100`), and
+Today `FmpBuckets` is a single `TryAddSingleton` (`FmpServiceCollectionExtensions.cs:122`), and
 `FmpBuckets.cs:3` records why: handlers are transient and `HttpClientFactory` rebuilds them, so a
 per-handler bucket would mean several independent reservoirs and an aggregate rate above the cap.
-`AddFmpTests.cs:149` pins it.
+`AddFmpTests.cs:158` pins it.
 
 Named registrations contradict that invariant, so it has to be replaced rather than dropped. FMP meters
 **per API key**, so the reservoir is scoped to the key:
@@ -139,7 +147,7 @@ dump or a debugger view of the registry would show — is not a second legible c
 crypto dependency: `SHA256.HashData` and `Convert.ToHexStringLower` are both in-box and AOT-safe.
 
 **The unset key is a real case, not an edge case.** `ApiKey` defaults to `""` and is deliberately never
-validated (`FmpServiceCollectionExtensions.cs:96`: an SDK cannot know whether its caller intends to make
+validated (`FmpServiceCollectionExtensions.cs:114`: an SDK cannot know whether its caller intends to make
 a request). So every unconfigured registration shares the `""` reservoir. That is correct — they are all
 going to fail the same way — and it is what keeps `AddFmpTests`'s configuration-free cases working.
 
@@ -154,7 +162,7 @@ registry needs an `ILogger`.
 
 ### The blocker
 
-`services.AddHttpClient<FmpTransport>(StandardClient)` (`FmpServiceCollectionExtensions.cs:105`) is a
+`services.AddHttpClient<FmpTransport>(StandardClient)` (`FmpServiceCollectionExtensions.cs:136`) is a
 **typed** client. A type can be registered that way once; two named registrations cannot both resolve as
 `FmpTransport`. So registration moves to **named** `HttpClient`s plus explicit transport construction —
 which is what typed-client registration does internally, so this is a re-spelling rather than a change in
@@ -165,29 +173,41 @@ behaviour.
 services.AddHttpClient(StandardClientName(name))              // "fmp", or "fmp:research"
     .ConfigureHttpClient((sp, c) => { c.BaseAddress = …; c.Timeout = Timeout.InfiniteTimeSpan; })
     // consumer handlers are applied here — see "Handler order"
+    .AddHttpMessageHandler(sp => new FmpRetryHandler(
+        sp.GetRequiredService<IClock>(), Options.Create(o),
+        sp.GetRequiredService<ILogger<FmpRetryHandler>>()))
     .AddHttpMessageHandler(sp => new FmpRateLimitHandler(
         sp.GetRequiredService<IClock>(), registry.For(name, o), Options.Create(o),
         sp.GetRequiredService<ILogger<FmpRateLimitHandler>>()))
     .AddHttpMessageHandler(sp => new FmpTimeoutHandler(Options.Create(o)));
 ```
 
+The bulk client adds the same four links #44 gave it, in the same order: developer cache, then
+`FmpBulkRetryHandler`, then `FmpBulkRateLimitHandler`, then `FmpBulkTimeoutHandler`.
+
 ### No handler changes
 
-The five handler classes keep their `IOptions<FmpOptions>` constructors exactly as they are. The closure
+All seven handler classes keep their `IOptions<FmpOptions>` constructors exactly as they are. The closure
 hands them `Options.Create(monitor.Get(name))`, and `FmpRateLimitHandler` gets its `FmpBuckets` from the
 registry directly — which its base already takes as a constructor parameter
-(`FmpRateLimitHandler.cs:29`). The whole feature is additive in the DI layer. Nothing in `Http/` is
+(`FmpRateLimitHandler.cs:26`). The whole feature is additive in the DI layer. Nothing in `Http/` is
 touched.
 
+**#44's two handlers cost this design nothing**, which is worth checking rather than assuming:
+`FmpRetryHandler` and `FmpBulkRetryHandler` take `(IClock, IOptions<FmpOptions>, ILogger<T>)`
+(`FmpRetryHandler.cs:138`, `:150`) — the same shape the rate-limit handlers take. They thread through the
+name-parameterised core by the same closure, with no special case.
+
 The `TryAddTransient<FmpRateLimitHandler>()` style registrations
-(`FmpServiceCollectionExtensions.cs:101-105`) go away, replaced by the explicit lambdas above. That is
+(`FmpServiceCollectionExtensions.cs:123-129`) go away, replaced by the explicit lambdas above. That is
 the AOT improvement noted in the constraints: reflective activation becomes explicit construction.
 
 ### Options
 
-`services.AddOptions<FmpOptions>(name)` carries the same seven `Validate` calls and `ValidateOnStart` as
-today, per name. Named options validate independently, so a bad `"research"` registration fails at
-startup naming `"research"`.
+`services.AddOptions<FmpOptions>(name)` carries the same **eleven** `Validate` calls and `ValidateOnStart`
+as today, per name — seven before #44, plus the four it added for `MaxAttempts`, `BulkMaxAttempts`,
+`RetryBaseDelay` and `MaxRetryDelay`. Named options validate independently, so a bad `"research"`
+registration fails at startup naming `"research"`.
 
 For the default registration `name` is `Options.DefaultName`, and `IOptions<FmpOptions>.Value` is by
 definition `monitor.Get("")` — so the default path keeps resolving `IOptions<FmpOptions>` exactly as it
@@ -208,7 +228,7 @@ must not become keyed-only.
 
 ### Naming
 
-`StandardClient` (`"fmp"`) and `BulkClient` (`"fmp-bulk"`) stay as public constants; `AddFmpTests.cs:180`
+`StandardClient` (`"fmp"`) and `BulkClient` (`"fmp-bulk"`) stay as public constants; `AddFmpTests.cs:189`
 uses them. Two helpers are added for the named forms:
 
 ```csharp
@@ -218,19 +238,23 @@ public static string BulkClientName(string? name);       // "" → "fmp-bulk", "
 
 A null or empty name means the default registration. Registering the same name twice is the caller
 re-configuring one registration, not creating two — the `TryAdd*` semantics that already make
-`AddFmp` idempotent (`AddFmpTests.cs:149`) extend per name.
+`AddFmp` idempotent (`AddFmpTests.cs:158`) extend per name.
 
 ## `IFmpBuilder` and handler order
 
 ```csharp
 services.AddFmp(configuration, fmp => fmp
-    .ConfigureStandardClient(b => b.AddStandardResilienceHandler())
+    .ConfigureStandardClient(b => b.ConfigurePrimaryHttpMessageHandler(() => corporateProxyHandler))
     .ConfigureBulkClient(b => b.ConfigurePrimaryHttpMessageHandler(() => stub))
     .UseBucketRegistry(shared));
 ```
 
+The examples are deliberately a proxy and a test stub rather than `AddStandardResilienceHandler`, which
+the first draft used and which `FmpRetryHandler`'s doc comment records as having measurably harmed a
+consumer of this SDK. See "Consumer handlers go outermost".
+
 `AddFmp` keeps returning `IServiceCollection`, so every existing call site compiles untouched — including
-`AddFmpTests.cs:18` (`…AddFmp(configuration).BuildServiceProvider()`) and `:152`
+`AddFmpTests.cs:18` (`…AddFmp(configuration).BuildServiceProvider()`) and `:162`
 (`…AddFmp(c).AddFmp(c).AddFmp(c)…`). The customization surface arrives as an optional
 `Action<IFmpBuilder>` parameter instead of as a changed return type. A builder return would be the more
 mainstream idiom, but it is a source break for a cosmetic gain and this is not the slice to spend that
@@ -258,30 +282,56 @@ order of statements inside the caller's lambda.
 
 ### Consumer handlers go outermost
 
-`AddFmp` invokes the collected client callbacks **before** adding its own handlers, so the chain is:
+`AddFmp` invokes the collected client callbacks **before** adding its own handlers, so the chains are:
 
 ```
-consumer handlers → developer bulk cache (bulk only) → throttle → timeout → network
+standard:  consumer handlers → retry → throttle → timeout → network
+bulk:      consumer handlers → developer bulk cache → retry → throttle → timeout → network
 ```
 
-This is a decision, not a consequence of how `AddHttpMessageHandler` appends. Innermost would put a
-retry handler *inside* the timeout and *inside* the throttle, which breaks both:
+Outermost is still the right default, but **the reason has changed completely since #44**, and the
+first draft's reason is now obsolete. That draft argued outermost was right so a consumer's retry handler
+would take a token and a deadline per attempt. The SDK now performs that retry itself, and
+`FmpRetryHandler` already occupies the outermost slot on the standard client for exactly that reasoning
+(`FmpServiceCollectionExtensions.cs:131`). So the question is no longer "where should a retry go" — it is
+"what does a consumer handler see, given a retry it does not control".
 
-- the whole retry sequence would share one `RequestTimeout` budget, so the deadline that is documented as
-  bounding "one FMP HTTP attempt" (`FmpOptions.cs`, `RequestTimeout`) would silently bound N of them;
-- retries would re-fire without taking a token, which is exactly the above-cap emitted rate the bucket
-  exists to prevent — and they would do it while the upstream is already refusing us.
+Outermost means a consumer handler sees **one entry per logical call**, not one per attempt. Retries,
+throttle waits and timeouts all happen beneath it. That is the correct default for the three things
+consumers actually add here — a proxy, a tracing span, a stubbed primary handler in an integration test —
+because all three want the logical call, not its internal attempts. The alternative placement, between
+the SDK's retry and its throttle, would show a handler each attempt but would sit inside a retry loop it
+cannot see, which is a worse default and a stranger thing to explain.
 
-Outermost, each retry attempt takes its own token and gets its own deadline. This is directly relevant to
-issue #44, and it is the reason that issue can be implemented later without revisiting this one.
+The cost is real and has to be documented rather than designed away: **a consumer who adds a handler to
+observe retries will not see them**, and a consumer who adds their own retry handler gets
+`MaxAttempts × their attempts` sends — nine, at both defaults of three. The XML doc on
+`ConfigureStandardClient` says so in those words.
 
-The existing order comment (`FmpServiceCollectionExtensions.cs:151`) already records that handler order
-is contractual; this adds the consumer-handler rule to the same comment, with the retry reasoning.
+**This is the design's sharpest hazard, and it is not hypothetical.** `FmpRetryHandler`'s own doc comment
+records a measured case: a consumer of this SDK "had to strip `AddStandardResilienceHandler` off both
+clients because its retry did exactly this and its circuit breaker then cascaded a handful of 429s into
+thousands of skipped symbols". The customization surface being added here is precisely the thing that
+makes `AddStandardResilienceHandler` a one-liner again. The first draft of this spec used it as the
+worked example. It no longer does — the examples are a proxy and a test stub, and the doc comment carries
+an explicit warning against stacking a second retry policy. See "Risks".
 
-Note the bulk consequence: consumer handlers sit *outside* the developer bulk cache, so a tracing handler
-observes cache hits. That is the right way round — a hit is an event the host may want to see — and it
-does not disturb the property the cache was placed outermost for, which is that a hit consumes neither a
-bulk token nor a timeout budget (`FmpServiceCollectionExtensions.cs:113`).
+The existing order comments (`FmpServiceCollectionExtensions.cs:131` and `:141`) already record that
+handler order is contractual; this adds the consumer-handler rule to both, with the reasoning above.
+
+Two smaller consequences worth stating:
+
+- Consumer handlers sit *outside* the developer bulk cache, so a tracing handler observes cache hits.
+  That is the right way round — a hit is an event the host may want to see — and it does not disturb the
+  property the cache was placed outermost for, which is that a hit consumes neither a bulk token nor a
+  timeout budget (`FmpServiceCollectionExtensions.cs:141`).
+- On the bulk client the SDK's retry sits *inside* the cache, so a replay is never retried. Consumer
+  handlers being outside both preserves that.
+
+**A stale comment to fix while here.** `FmpServiceCollectionExtensions.cs:192` still describes the chain
+as "throttle → timeout → network". #44 made that untrue on both clients and the comment was not updated;
+this slice rewrites it rather than leaving a contractual statement about order that no longer matches the
+order.
 
 ### Explicit sharing
 
@@ -347,7 +397,7 @@ tracked object beside ones already tracked; it does not introduce a new class of
 request scope — the normal case — it is disposed with the request.
 
 **Logging defaults to none.** With no `ILoggerFactory` the clamped-`Retry-After` warning
-(`FmpRateLimitHandler.cs:59`) and the cap-conflict warning go nowhere. Documented on the overload,
+(`FmpRateLimitHandler.cs:61`) and the cap-conflict warning go nowhere. Documented on the overload,
 because a silent throttle is exactly the thing someone debugging a slow run needs to see.
 
 The `configure` hook is on the factory partly for consumers — a proxy, a corporate handler — and partly
@@ -428,9 +478,18 @@ public static FmpClient Create(Action<FmpOptions> configure, ILoggerFactory? log
 
 ## Compatibility
 
-**Every existing test in `AddFmpTests` passes unmodified**, including the two that resolve `FmpBuckets`
-directly (`:158`, `:167`). That holds because the default registration keeps a compatibility
-registration:
+**Every existing test in `AddFmpTests` passes unmodified** — re-checked against the file as #44 left it,
+which added three cases the first draft of this spec never saw. The ones that constrain this design:
+
+| test | what it resolves | why it still passes |
+|---|---|---|
+| `Registers_exactly_one_reservoir_pair…` (`:158`) | `FmpBuckets` (`:167`) | compat registration below |
+| `Gives_the_two_clients_separate_reservoirs` (`:171`) | `FmpBuckets` (`:174`) | compat registration below |
+| `Every_retry_attempt_draws_its_own_token…` (`:316`) | `FmpBuckets` (`:336`) | compat registration below |
+| `The_ordinary_client_retries_a_5xx_and_the_bulk_client_does_not` (`:268`) | named clients by constant | `StandardClient`/`BulkClient` preserved |
+| `Holding_the_bucket_for_nothing_on_a_429…` (`:290`) | named client by constant | same |
+
+The compatibility registration, on the default registration only:
 
 ```csharp
 services.TryAddSingleton(sp => sp.GetRequiredService<FmpBucketRegistry>()
@@ -442,9 +501,15 @@ handlers use — so `GetRequiredService<FmpBuckets>()` keeps working and keeps m
 `Registers_exactly_one_reservoir_pair_however_many_times_AddFmp_is_called` then passes as written: three
 `AddFmp` calls with the same (empty) key reach one registry and one pair.
 
+`Every_retry_attempt_draws_its_own_token_because_the_retry_sits_outside_the_throttle` is the one to watch
+hardest, because it asserts a *cross-handler* property — that the reservoir it resolves is the same one
+the retried attempts drew from. The compat registration is what keeps that true. If it were ever dropped,
+that test would not fail loudly; it would resolve a second, full reservoir and silently assert nothing.
+Worth a comment on the registration saying so.
+
 Dropping the `TryAddTransient<FmpRateLimitHandler>()`-style registrations is safe for the same reason,
-checked rather than assumed: `FmpBuckets` at `:158` and `:167` is the *only* pipeline service any test
-resolves from the container. The handler tests construct their subjects directly — e.g.
+checked rather than assumed: `FmpBuckets` is the *only* pipeline service any test resolves from the
+container. The handler tests construct their subjects directly — e.g.
 `FmpDeveloperBulkCacheHandlerTests.cs:40` — so no test depends on a handler being registered.
 
 The one break is `new FmpClient(25 args)`, which has no caller anywhere in the repository or its
@@ -452,8 +517,8 @@ documentation.
 
 ## File layout
 
-`FmpServiceCollectionExtensions.cs` is ~160 lines and would reach ~350. Splitting it is part of this
-work, not a follow-up:
+`FmpServiceCollectionExtensions.cs` is ~200 lines after #44 and would reach ~400. Splitting it is part of
+this work, not a follow-up:
 
 | file | contents |
 |---|---|
@@ -468,7 +533,12 @@ work, not a follow-up:
 | `README.md` | a "Registering the SDK" section covering all four paths |
 
 The binder moves unchanged. Its long comment about `TimeSpan.TryParse("45")` meaning forty-five days is
-the reason it is worth having its own file rather than being buried mid-registration.
+the reason it is worth having its own file rather than being buried mid-registration. Two small
+corrections belong with the move, both left behind by #44: the binder's own doc comment still says
+"Seven explicit reads" when there are now eleven, and `FmpServiceCollectionExtensions.cs:192` still
+describes the chain as "throttle → timeout → network". Neither is this slice's doing; both are in files
+this slice rewrites, and leaving a stale contractual comment in a file being restructured is worse than
+fixing it in passing.
 
 ## Testing
 
@@ -489,11 +559,15 @@ New coverage, one test per claim this design makes:
   (the README:526 escape hatch)
 
 **`FmpBuilderTests`**
-- a consumer handler added via `ConfigureStandardClient` runs **before** the throttle. Asserted by
-  draining the shared registry's bucket with a short hold, then timing entry: the consumer handler
-  records its entry instant, the stubbed primary handler records its own, and the gap must cover the
-  hold. This is the one test with a real-time dependency; the hold is kept small and the assertion is a
-  lower bound, not an equality.
+- a consumer handler added via `ConfigureStandardClient` sits **outside the retry handler**. #44 makes
+  this assertable by counting rather than by timing, which is strictly better than what the first draft
+  of this spec proposed: point the client at a 5xx upstream with `MaxAttempts = 3` and
+  `RetryBaseDelay = 1ms`, and assert the consumer handler was entered **once** while the upstream saw
+  **three** sends. Inside the retry it would have been entered three times. No clock, no wall-time
+  assertion, no reflection over the chain — the numbers differ by construction. This is modelled on
+  `AddFmpTests.cs:316`, which uses the same 5xx-upstream setup for the reservoir claim.
+- the same shape proves the ordering claim's cost: the consumer handler observes one entry for a call
+  that took three attempts, which is the documented behaviour rather than a defect
 - `ConfigurePrimaryHttpMessageHandler` on the bulk client reaches the bulk client only
 - `UseBucketRegistry` makes a container and a factory-built client share a pair
 
@@ -522,6 +596,22 @@ different caps produce a warning and defined first-writer-wins behaviour. Someon
 gets the other registration's cap. The alternative — throwing at first resolve — was judged worse for a
 condition this recoverable, but the trade is real and belongs in the doc comment as well as here.
 
-**The handler-order test is time-dependent.** It is the only one, it asserts a lower bound rather than an
-equality, and the alternative — reflecting over the handler chain — is barred by the repository's own
-no-reflection rule.
+**The customization surface re-enables a failure this SDK has already been burned by, and this is the
+risk I would most want a second opinion on.** `FmpRetryHandler`'s doc comment records that a consumer had
+to strip `AddStandardResilienceHandler` off both clients because its retry amplified load and its circuit
+breaker "cascaded a handful of 429s into thousands of skipped symbols". `ConfigureStandardClient` makes
+adding it a one-liner again, now on top of an SDK that retries on its own — so the stacked worst case is
+`MaxAttempts × their attempts` sends, nine at both defaults.
+
+The design's answer is documentation: an explicit warning on `ConfigureStandardClient`, and examples that
+show a proxy and a test stub rather than a resilience handler. That is a weaker guarantee than the
+alternatives, and the alternatives were considered and rejected as worse:
+
+- *refusing to expose the standard client* would also block the legitimate cases (proxy, tracing, test
+  stubbing) that motivated item 3 in the first place;
+- *detecting a consumer-added retry handler* means inspecting the chain, which needs reflection, which
+  the repository forbids;
+- *making 429 handling immune to a nested retry* is a change to #44's design, out of scope here.
+
+If that trade is judged wrong, the honest response is to cut item 3 rather than to weaken the warning —
+the surface is the hazard, and documentation only mitigates it.
