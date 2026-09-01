@@ -232,10 +232,9 @@ public sealed class StatementEndpoints(FmpTransport transport)
     public async Task<FinancialScores?> GetScoresAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/financial-scores").With("symbol", symbol),
             FmpJsonContext.Default.ListFinancialScores, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Period-over-period growth of one income statement, newest first. From
@@ -329,10 +328,9 @@ public sealed class StatementEndpoints(FmpTransport transport)
     public async Task<KeyMetricsTtm?> GetKeyMetricsTtmAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/key-metrics-ttm").With("symbol", symbol),
             FmpJsonContext.Default.ListKeyMetricsTtm, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Trailing-twelve-month financial ratios for one symbol, or null when FMP has none. From
@@ -349,10 +347,9 @@ public sealed class StatementEndpoints(FmpTransport transport)
     public async Task<RatiosTtm?> GetRatiosTtmAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/ratios-ttm").With("symbol", symbol),
             FmpJsonContext.Default.ListRatiosTtm, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>One symbol's income statements exactly as filed, newest first. From

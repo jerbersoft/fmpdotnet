@@ -57,6 +57,41 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
         => ReadListAsync(request, (body, token) => JsonSerializer.DeserializeAsync(body, typeInfo, token), ct);
 
+    /// <summary>GETs a path that answers a <b>one-element array</b> and hands back that element, or
+    /// <see langword="null"/> when the array is empty.
+    ///
+    /// <para><b>Not a different request — the same one, with the unwrap in one place instead of eighteen.</b>
+    /// A large family of FMP paths take a single <c>symbol</c> and answer <c>[{…}]</c> rather than <c>{…}</c>:
+    /// <c>profile</c>, <c>ratings-snapshot</c>, <c>price-target-summary</c>, <c>quote</c>,
+    /// <c>exchange-market-hours</c> and the rest. Before #55 each caller wrote
+    /// <c>rows.Count &gt; 0 ? rows[0] : null</c> for itself, at eighteen sites across nine endpoint classes, and
+    /// a site that had drifted — throwing on empty, say — would have looked exactly like the others.</para>
+    ///
+    /// <para><b>Empty means null, and null is an answer rather than a failure.</b> FMP reports an unknown symbol
+    /// as <c>[]</c> under HTTP 200, so there is nothing to raise: the caller asked whether FMP has a row and the
+    /// answer is no. This is the SDK-wide rule that <see cref="GetListAsync"/> states at length — every failure
+    /// is an exception and null is never one of them.</para>
+    ///
+    /// <para><b>A second row is discarded, not rejected</b>, which is why this is <c>Single</c> and not
+    /// <c>Only</c>. These paths are documented to answer one row and measured answering one, but a second
+    /// arriving would be FMP widening a response rather than the caller making a mistake — and throwing would
+    /// cost them the first row too. That is the behaviour every one of the eighteen open-coded sites already
+    /// had, so it is preserved rather than decided again here.</para>
+    ///
+    /// <para>Distinct from <see cref="GetObjectAsync"/>, which is for a path whose body genuinely IS a JSON
+    /// object. This one is an array on the wire and the error test is <see cref="GetListAsync"/>'s.</para></summary>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    /// <exception cref="FmpApiException">FMP reported an error — in the body of a 200, on a non-success status,
+    /// or in a body that is not JSON at all.</exception>
+    public async Task<T?> GetSingleAsync<T>(
+        FmpRequest request, JsonTypeInfo<List<T>> typeInfo, CancellationToken ct = default)
+        where T : class
+    {
+        var rows = await GetListAsync(request, typeInfo, ct).ConfigureAwait(false);
+        return rows.Count > 0 ? rows[0] : null;
+    }
+
     /// <summary>Sends the request, classifies the body, and deserialises it — all while the response is still
     /// alive.
     ///

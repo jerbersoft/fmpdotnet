@@ -72,10 +72,9 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     public async Task<ExchangeMarketHours?> GetExchangeAsync(string exchange, CancellationToken ct = default)
     {
         ThrowIfNotOneExchange(exchange);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/exchange-market-hours").With("exchange", exchange),
             FmpJsonContext.Default.ListExchangeMarketHours, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>The days an exchange is closed or closes early, over a required date range, from

@@ -122,10 +122,9 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
     public async Task<EtfInfo?> GetEtfInfoAsync(string symbol, CancellationToken ct = default)
     {
         ThrowIfNotOneSymbol(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/etf/info").With("symbol", symbol),
             FmpJsonContext.Default.ListEtfInfo, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>An ETF's sector breakdown, from <c>stable/etf/sector-weightings</c>.

@@ -170,10 +170,9 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/grades-consensus").With("symbol", symbol),
             FmpJsonContext.Default.ListGradeConsensus, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Monthly snapshots of analyst ratings for one symbol, newest first, from
@@ -221,10 +220,9 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/price-target-consensus").With("symbol", symbol),
             FmpJsonContext.Default.ListPriceTargetConsensus, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Analyst price-target activity on one symbol over four windows, from
@@ -249,10 +247,9 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/price-target-summary").With("symbol", symbol),
             FmpJsonContext.Default.ListPriceTargetSummary, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>FMP's current letter rating for one symbol, from <c>stable/ratings-snapshot</c>. Returns
@@ -272,10 +269,9 @@ public sealed class AnalystEndpoints(FmpTransport transport)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
 
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/ratings-snapshot").With("symbol", symbol),
             FmpJsonContext.Default.ListCompanyRating, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>FMP's rating for one symbol over time, newest first, from <c>stable/ratings-historical</c>.

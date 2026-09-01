@@ -17,10 +17,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     public async Task<CompanyProfile?> GetProfileAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/profile").With("symbol", symbol),
             FmpJsonContext.Default.ListCompanyProfile, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Company profile for one SEC Central Index Key — <c>stable/profile-cik</c>. Returns
@@ -44,10 +43,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     public async Task<CompanyProfile?> GetProfileByCikAsync(string cik, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cik);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/profile-cik").With("cik", cik),
             FmpJsonContext.Default.ListCompanyProfile, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Public float and shares outstanding for one symbol, or null when FMP knows no such symbol.
@@ -63,10 +61,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     public async Task<SharesFloat?> GetSharesFloatAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/shares-float").With("symbol", symbol),
             FmpJsonContext.Default.ListSharesFloat, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>One page of <c>stable/shares-float-all</c> — the same float and share-count rows as
@@ -193,10 +190,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     public async Task<MarketCapitalization?> GetMarketCapAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/market-capitalization").With("symbol", symbol),
             FmpJsonContext.Default.ListMarketCapitalization, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Latest market capitalisation for several symbols in one call —

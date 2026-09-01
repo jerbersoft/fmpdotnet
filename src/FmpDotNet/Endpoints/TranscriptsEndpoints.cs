@@ -56,11 +56,10 @@ public sealed class TranscriptsEndpoints(FmpTransport transport)
         string symbol, int year, int quarter, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/earning-call-transcript")
                 .With("symbol", symbol).With("year", year).With("quarter", quarter),
             FmpJsonContext.Default.ListEarningsTranscript, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Every quarter one symbol has a transcript for, newest first —
