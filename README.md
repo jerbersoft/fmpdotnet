@@ -952,8 +952,9 @@ on a `FromCsv` mapper without re-downloading it.
 { "Fmp": { "DeveloperBulkCacheDirectory": ".fmp-bulk-cache" } }
 ```
 
-Delete the directory to refetch. Entries are keyed by the request URL with the API key stripped, so rotating your
-key does not orphan the cache.
+Delete the directory to refetch. Entries are keyed by the request URL, which never carries the API key — it
+travels as a request header — so rotating your key does not orphan the cache. Moving the key off the URL (#59)
+did, once: an entry written before that is refetched the first time it is asked for.
 
 Every bulk model in this repository was written against a response captured this way and verified by streaming
 the whole of it through the mapper, not a sample. Across the milestone that is **3.2 million rows and roughly
