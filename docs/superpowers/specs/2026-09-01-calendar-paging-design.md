@@ -164,8 +164,11 @@ different canned body per request, so a multi-page walk is expressible without n
 | undated rows are dropped across the whole walk, not per page | a filter applied at the wrong level |
 | `clampToRange` on the earnings method clamps the concatenation | same |
 
-The fixtures are the real captured shapes, trimmed: a 4000-row page is expressed as a page at whatever cap the
-test injects rather than by shipping 4000 rows, since the cap is a constant the walk reads.
+**A full page is generated in the test, not checked in, and the walk reads the real cap.** The alternative —
+an internal knob that lowers the page size so a 3-row fixture counts as full — is production code that exists
+only for tests, and it would let the suite pass against a walk that compares to the wrong number. A page of
+4000 minimal rows is a few lines of `string.Join` and costs nothing to build; the captured fixtures stay what
+they are, real rows for the binding tests that already use them.
 
 **Live**, in the smoke sweep: both methods already appear there. The sweep assertion gains the property that a
 walked result's `RowsReturned` is at least its page-0 count — which is the whole claim, and is true of a
