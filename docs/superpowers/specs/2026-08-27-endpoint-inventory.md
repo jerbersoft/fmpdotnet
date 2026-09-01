@@ -7,8 +7,12 @@ nothing else. It is **243**.
 ## Provenance, and why two sources
 
 **Source A — FMP's own documentation.** `site.financialmodelingprep.com/developer/docs` printed to PDF on
-2026-08-27 (213 pages), text-extracted, every `/stable/<path>` collected. The docs site returns **HTTP 403 to
-automated fetching**, so a print-out is the only way to read it mechanically; there is no published OpenAPI spec.
+2026-08-27 (213 pages), text-extracted, every `/stable/<path>` collected. The docs site answered **HTTP 403 to
+automated fetching**, so a print-out was the only way to read it mechanically; there is no published OpenAPI spec.
+
+> **The 403 was User-Agent filtering, not a block on automation — corrected 2026-09-01 (#55).** See *Source C*
+> below. The PDF route is kept in this section because it is what produced the original count and because the
+> TipRanks trap under *Method* is specific to it, but nobody needs to print anything again.
 
 **Source B — an independent third-party client.** `fmpsdk-20260824.0`, a Python SDK published 2026-08-24,
 read from its `endpoints/` modules. Neither source derives from the other.
@@ -36,6 +40,28 @@ sends a documented query parameter this SDK never sends on 26 of them, with no p
 That is a real gap in this client and is tracked in #46 — note that Source B validates nothing it sends, so
 some fraction of those parameters will turn out to be accepted-and-ignored by FMP, which #46 treats as a
 finding to record rather than a dead end.
+
+**Source C — FMP's machine-readable documentation, found 2026-09-01 (#55).**
+`https://site.financialmodelingprep.com/api-docs.md` answers **HTTP 200** with **635 KB** of
+`text/markdown; charset=UTF-8` given an ordinary browser `User-Agent`. The 403 recorded above is User-Agent
+filtering; it is not a block on automation, and the PDF route was never necessary. The file is structured per
+endpoint — an `**Endpoint:**` line carrying the URL, a `**Parameters**` table marking required arguments with
+`*`, and an `**Example Response**` JSON block — which makes it a source for the parameter surface and the
+response shape, not only for the path list. See *Method* for the parse.
+
+**It confirms 243 independently.** The file carries **278 endpoint entries** over **245 distinct URLs**; 2 of
+those are `wss://` socket addresses rather than `/stable/` paths, leaving **243**. The 33-entry surplus is
+re-documentation, not extra endpoints: **12 paths** appear under more than one section — `quote`, `quote-short`,
+`historical-price-eod/light`, `historical-price-eod/full`, `historical-chart/1min`, `/5min` and `/1hour` five
+times each, and `batch-{commodity,crypto,forex,index}-quotes` and `earnings-transcript-list` twice each. That is
+(7 × 4) + (5 × 1) = 33, and it is the same asset-class re-filing Source A recorded. **The denominator is
+unchanged, now on three independent sources.**
+
+One caution learned immediately. Where a path is documented more than once, the entries can list **different**
+parameters: `historical-chart/1min`, `/5min` and `/1hour` carry `extended` and `nonadjusted` under *Chart* and
+neither under *Indexes*, *Commodity*, *Crypto* or *Forex*. A parse that keeps the first entry per path silently
+takes whichever section came first — and for these three, four of the five entries are the short list. Union the
+parameter lists across duplicate entries; do not take one.
 
 ## One section is not buyable at any tier
 
@@ -158,6 +184,34 @@ child carries the exact path list for its group, so nobody re-derives it.
 two a trading consumer needs, so they are the natural next slices rather than long-tail work.
 
 ## Method, repeatable
+
+**Current — Source C.** No print-out, no PDF library, no credential anywhere near it:
+
+```
+curl -sS -H 'User-Agent: Mozilla/5.0' \
+  https://site.financialmodelingprep.com/api-docs.md -o api-docs.md
+
+python3 - <<'EOF'
+import re, collections
+recs, section, title = [], None, None
+for line in open('api-docs.md', encoding='utf-8'):
+    line = line.rstrip('\n')
+    if line.startswith('# '):    section = line[2:].strip()
+    elif line.startswith('### '): title = line[4:].strip()
+    elif line.startswith('**Endpoint:**'):
+        url = re.search(r'`([^`]+)`', line).group(1)
+        if '/stable/' not in url: continue          # the two wss:// socket entries
+        recs.append((url.split('/stable/', 1)[1].split('?')[0], section, title))
+paths = collections.Counter(p for p, _, _ in recs)
+print(len(recs), 'entries', len(paths), 'paths')    # 276 entries, 243 paths
+EOF
+```
+
+Read the `**Parameters**` table and `**Example Response**` block under each `**Endpoint:**` line the same way to
+get the parameter surface and the response shape. **Union parameters across duplicate entries** — see the caution
+under *Source C*.
+
+**Original — Source A**, kept because it produced the first count and because the trap below is specific to it:
 
 ```
 python3 - <<'EOF'

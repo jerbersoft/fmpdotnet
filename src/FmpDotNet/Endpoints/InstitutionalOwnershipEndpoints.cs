@@ -233,11 +233,10 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         ThrowIfQuarterOutOfRange(quarter);
 
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/institutional-ownership/symbol-positions-summary")
                 .With("symbol", symbol).With("year", year).With("quarter", quarter),
             FmpJsonContext.Default.ListSymbolPositions, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>The largest page <see cref="GetLatestFilingsAsync"/> and

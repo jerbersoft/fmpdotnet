@@ -335,9 +335,8 @@ public sealed class QuoteEndpoints(FmpTransport transport)
         where T : class
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest(path).With("symbol", symbol), typeInfo, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>Builds a <c>symbols=</c> request, rejecting a list that would reach FMP empty.

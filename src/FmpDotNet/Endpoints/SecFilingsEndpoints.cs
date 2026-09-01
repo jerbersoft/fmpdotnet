@@ -49,10 +49,9 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     public async Task<SecProfile?> GetProfileAsync(string symbol, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/sec-profile").With("symbol", symbol),
             FmpJsonContext.Default.ListSecProfile, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>The EDGAR registrant profile for one Central Index Key, or <see langword="null"/> when FMP knows
@@ -72,10 +71,9 @@ public sealed class SecFilingsEndpoints(FmpTransport transport)
     public async Task<SecProfile?> GetProfileByCikAsync(string cik, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cik);
-        var rows = await transport.GetListAsync(
+        return await transport.GetSingleAsync(
             new FmpRequest("stable/sec-profile").With("cik", cik),
             FmpJsonContext.Default.ListSecProfile, ct).ConfigureAwait(false);
-        return rows.Count > 0 ? rows[0] : null;
     }
 
     /// <summary>The largest page any of the five filing paths will serve, measured rather than documented.

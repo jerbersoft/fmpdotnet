@@ -316,4 +316,63 @@ public class FmpTransportTests
                 new FmpRequest("stable/economic-calendar"),
                 FmpJsonContext.Default.ListEconomicRelease));
     }
+
+    [Fact]
+    public async Task GetSingleAsync_returns_the_row_from_a_one_element_array()
+    {
+        var (transport, handler) = Build(StubHandler.Json("""[{"symbol":"AAPL","marketCap":4551611624400}]"""));
+
+        var row = await transport.GetSingleAsync(
+            new FmpRequest("stable/profile").With("symbol", "AAPL"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.NotNull(row);
+        Assert.Equal("AAPL", row.Symbol);
+        Assert.Single(handler.Requests);
+    }
+
+    [Fact]
+    public async Task GetSingleAsync_reads_an_empty_array_as_null_rather_than_throwing()
+    {
+        // The whole reason this method exists rather than callers writing `rows[0]`. FMP answers "no such
+        // symbol" with an empty array under HTTP 200, which is an answer and not a failure — so it is null,
+        // not an exception. Eighteen call sites open-coded this and every one of them had to get it right.
+        var (transport, _) = Build(StubHandler.Json("[]"));
+
+        var row = await transport.GetSingleAsync(
+            new FmpRequest("stable/profile"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Null(row);
+    }
+
+    [Fact]
+    public async Task GetSingleAsync_takes_the_first_row_and_discards_the_rest_without_complaint()
+    {
+        // Deliberate, and the reason the name is Single rather than Only. These paths are documented by FMP to
+        // answer one row and are measured answering one, but a second row arriving is FMP widening a response,
+        // not the caller making a mistake — and throwing would cost them the first row as well. The open-coded
+        // `rows[0]` this replaces behaved exactly this way at all eighteen sites, so the behaviour is preserved
+        // rather than chosen afresh.
+        var (transport, _) = Build(StubHandler.Json(
+            """[{"symbol":"AAPL"},{"symbol":"MSFT"}]"""));
+
+        var row = await transport.GetSingleAsync(
+            new FmpRequest("stable/profile"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Equal("AAPL", row?.Symbol);
+    }
+
+    [Fact]
+    public async Task GetSingleAsync_raises_the_same_errors_GetListAsync_does()
+    {
+        // It delegates, so this is a guard against a future rewrite that stops delegating and quietly loses the
+        // error-envelope test — a 200 carrying {"Error Message": …} would then bind to an empty list and be
+        // reported to the caller as null, which reads as "no such symbol".
+        var (transport, _) = Build(StubHandler.Json(
+            """{"Error Message":"Invalid API KEY."}"""));
+
+        var thrown = await Assert.ThrowsAsync<FmpApiException>(
+            () => transport.GetSingleAsync(new FmpRequest("stable/profile"), FmpJsonContext.Default.ListCompanyProfile));
+
+        Assert.Contains("Invalid API KEY", thrown.Message, StringComparison.Ordinal);
+    }
 }
