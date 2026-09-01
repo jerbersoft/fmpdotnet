@@ -142,7 +142,7 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
     /// read.</b> A 4000-row response used to mean "rows are gone". Now it means "there is another page", and
     /// <see cref="PagesFetched"/> says whether it was fetched — so a walk that ended on a short page is not at
     /// the cap however many rows it gathered. What still fires this is a walk stopped by
-    /// <c>MaxCalendarPages</c>, or by a page repeating its predecessor,
+    /// <see cref="Endpoints.CalendarEndpoints.MaxCalendarPages"/>, or by a page repeating its predecessor,
     /// with a full page as the last one appended.</para>
     ///
     /// <para>Always <see langword="false"/> where <see cref="RowCap"/> is null. Exact at the cap and blind

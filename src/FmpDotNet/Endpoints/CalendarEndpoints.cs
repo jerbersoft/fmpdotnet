@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 using NodaTime;
@@ -55,6 +56,86 @@ namespace FmpDotNet.Endpoints;
 /// </list></summary>
 public sealed class CalendarEndpoints(FmpTransport transport)
 {
+    /// <summary>The most pages <see cref="GetEarningsCalendarAsync"/> and
+    /// <see cref="GetDividendsCalendarAsync"/> will fetch for one call.
+    ///
+    /// <para><b>A guard, not a measurement, and it is the one number here with no probe behind it.</b> Neither
+    /// path has a page ceiling: measured 2026-09-01, <c>page=101</c> and <c>page=1000</c> both answer <c>[]</c>
+    /// under HTTP 200, so a walk that stops on a short page provably terminates and this bound is never
+    /// reached in practice. It exists because a sibling path already breaks that reasoning —
+    /// <c>ipos-calendar</c> serves <c>page=5</c> byte-identically to <c>page=0</c>, every page full, so a walk
+    /// there would never end. 100 pages is 400,000 rows, about fourteen years of dividends at the measured
+    /// 28,104 rows a year.</para>
+    ///
+    /// <para>Reaching it is reported rather than thrown: the rows already fetched are real, and this SDK
+    /// reports rather than fails. A walk stopped here ends with a full page as its last, so
+    /// <see cref="Models.CalendarResult{T}.AtRowCap"/> fires.</para></summary>
+    public const int MaxCalendarPages = 100;
+
+    /// <summary>Walks <c>page=0, 1, 2, …</c> until a page comes back short, and hands back the concatenation
+    /// with the evidence gathered between pages.
+    ///
+    /// <para><b>Rows are concatenated in walk order and otherwise untouched</b> — not sorted, not
+    /// de-duplicated. A row arriving on both sides of a seam is FMP's row, served twice by FMP; removing one
+    /// would be a guess about which of two identical rows is real, and FMP's own data carries genuine
+    /// duplicate rows. The count goes to
+    /// <see cref="Models.CalendarResult{T}.SeamDuplicateRows"/> instead, where it doubles as the count of
+    /// rows the walk never saw.</para>
+    ///
+    /// <para><b>Three terminators.</b> A short page is the last page — measured on four walks, none of which
+    /// produced a short page followed by a full one. A page whose distinct rows are exactly its predecessor's
+    /// is that predecessor served again, which is what <c>ipos-calendar</c> does today; it is discarded rather
+    /// than appended. And <see cref="MaxCalendarPages"/> bounds the loop whatever FMP does.</para>
+    ///
+    /// <para>Internal rather than private so the terminators can be tested at their own level. Reaching the
+    /// page ceiling through a calendar method would need 100 full pages — 400,000 rows at the real cap — for
+    /// one assertion; <c>CalendarWalkTests</c> reaches it with <c>rowCap: 2</c>. Nothing here branches on being
+    /// under test.</para></summary>
+    internal async Task<(List<T> Rows, Models.CalendarWalk Walk)> WalkAsync<T>(
+        Func<int, FmpRequest> buildRequest,
+        JsonTypeInfo<List<T>> typeInfo,
+        int rowCap,
+        CancellationToken ct)
+    {
+        var all = new List<T>();
+        var pages = 0;
+        var seamDuplicates = 0;
+        var lastPageRowCount = 0;
+        HashSet<T>? previous = null;
+
+        for (var page = 0; page < MaxCalendarPages; page++)
+        {
+            var rows = await transport.GetListAsync(buildRequest(page), typeInfo, ct).ConfigureAwait(false);
+
+            // Distinct rows, because the seam is measured between SETS: a row FMP sends twice within one page
+            // is not a paging artefact and must not be counted as one. The models are records, so this is
+            // structural equality and costs one hash pass per page.
+            var current = new HashSet<T>(rows);
+
+            if (previous is not null)
+            {
+                var shared = 0;
+                foreach (var row in current)
+                    if (previous.Contains(row)) shared++;
+
+                // Every row already seen and nothing new: this page IS the previous one. Stop before appending
+                // it, or a path that ignores `page` returns the same rows MaxCalendarPages times.
+                if (shared == current.Count && shared == previous.Count) break;
+
+                seamDuplicates += shared;
+            }
+
+            all.AddRange(rows);
+            pages++;
+            lastPageRowCount = rows.Count;
+            previous = current;
+
+            if (rows.Count < rowCap) break;
+        }
+
+        return (all, new Models.CalendarWalk(all.Count, pages, lastPageRowCount, seamDuplicates));
+    }
+
     /// <summary>Earnings dates for one symbol, <b>newest first</b>, from <c>stable/earnings</c>.
     ///
     /// <para><b>The row at index 0 is normally an event that has not happened yet.</b> This is the trap on this
@@ -173,15 +254,19 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     {
         DateRange.ThrowIfBackwards(from, to);
 
-        var request = new FmpRequest("stable/earnings-calendar")
-            .With("from", from)
-            .With("to", to)
-            // Sent only when true. The measured plain request omits the parameter rather than sending false, and
-            // there is no evidence about how FMP reads an explicit false.
-            .With("includeReportTimes", includeReportTimes ? true : (bool?)null);
-
-        var rows = await transport.GetListAsync(request, FmpJsonContext.Default.ListEarningsCalendarEntry, ct)
-            .ConfigureAwait(false);
+        var (rows, walk) = await WalkAsync(
+            page => new FmpRequest("stable/earnings-calendar")
+                .With("from", from)
+                .With("to", to)
+                // Sent only when true. The measured plain request omits the parameter rather than sending
+                // false, and there is no evidence about how FMP reads an explicit false.
+                .With("includeReportTimes", includeReportTimes ? true : (bool?)null)
+                // Omitted on page 0, where it was measured byte-identical to sending nothing: the first
+                // request of a walk is the request this method made before it walked.
+                .With("page", page == 0 ? (int?)null : page),
+            FmpJsonContext.Default.ListEarningsCalendarEntry,
+            EarningsCalendarResult.RowCap,
+            ct).ConfigureAwait(false);
 
         // Both truncation tells are taken from the raw response, before the filter below can move either of them.
         LocalDate? earliest = null;
@@ -196,7 +281,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
             kept.Add(row);
         }
 
-        return new EarningsCalendarResult(kept, CalendarWalk.Single(rows.Count), from, to, earliest);
+        return new EarningsCalendarResult(kept, walk, from, to, earliest);
     }
 
     /// <summary>Every dividend FMP holds for one symbol, newest first, from <c>stable/dividends</c>.

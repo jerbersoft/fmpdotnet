@@ -385,20 +385,133 @@ public class CalendarEndpointsTests
         Assert.Equal(16, rows.Count(r => r.Date == Day(2026, 5, 17)));
     }
 
-    // ---- the 4000-row cap ----
+    // ---- the 4000-row cap, and the walk past it (#49) -----------------------------------------------------
 
     [Fact]
-    public async Task The_truncation_signal_fires_at_exactly_four_thousand_rows()
+    public async Task A_full_page_is_followed_by_the_next_one_and_the_two_are_returned_as_one_list()
     {
-        var (endpoints, _) = Build(SyntheticCalendar(4000, Day(2026, 5, 13)));
+        // Measured 2026-09-01: from=2026-05-13&to=2026-05-19 answers 4000 rows on page 0, 2496 on page 1 and
+        // 0 on page 2 -- 6496 in total, of which this method used to return 4000.
+        var (endpoints, handler) = BuildPages(
+            SyntheticCalendar(4000, Day(2026, 5, 13)),
+            SyntheticCalendar(2496, Day(2026, 5, 13), startIndex: 4000));
+
+        var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        Assert.Equal(6496, rows.Count);
+        Assert.Equal(2, handler.Requests.Count);
+        var result = Assert.IsType<EarningsCalendarResult>(rows);
+        Assert.Equal(2, result.PagesFetched);
+        Assert.Equal(6496, result.RowsReturned);
+        Assert.False(result.AtRowCap);              // the walk ended on a short page
+        Assert.False(result.LikelyTruncated);
+    }
+
+    [Fact]
+    public async Task The_walk_omits_page_on_the_first_request_and_numbers_the_rest_from_one()
+    {
+        // page=0 was measured byte-identical to sending no page at all, so the first request of a walk is the
+        // request this method already made. That keeps every single-page caller's URL, cache key and log line
+        // exactly as they were.
+        var (endpoints, handler) = BuildPages(
+            SyntheticCalendar(4000, Day(2026, 5, 13)),
+            SyntheticCalendar(4000, Day(2026, 5, 13), startIndex: 4000),
+            SyntheticCalendar(7, Day(2026, 5, 13), startIndex: 8000));
+
+        await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19&apikey=k", handler.Requests[0].Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=1&apikey=k", handler.Requests[1].Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=2&apikey=k", handler.Requests[2].Query);
+    }
+
+    [Fact]
+    public async Task A_range_that_fits_in_one_page_costs_exactly_one_request()
+    {
+        // The common case, and the one a walk must not make more expensive. 3999 rows is one below the cap.
+        var (endpoints, handler) = BuildPages(SyntheticCalendar(3999, Day(2026, 5, 13)));
 
         var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 14));
 
-        Assert.Equal(4000, rows.Count);
-        Assert.True(EarningsCalendarResult.IsLikelyTruncated(rows));
+        Assert.Equal(3999, rows.Count);
+        Assert.Single(handler.Requests);
         var result = Assert.IsType<EarningsCalendarResult>(rows);
-        Assert.True(result.AtRowCap);
-        Assert.Equal(4000, result.RowsReturned);
+        Assert.Equal(1, result.PagesFetched);
+        Assert.False(result.AtRowCap);
+        Assert.False(EarningsCalendarResult.IsLikelyTruncated(rows));
+    }
+
+    [Fact]
+    public async Task An_empty_page_ends_the_walk_and_contributes_nothing()
+    {
+        // Measured: page 2 of the earnings week answers [] rather than an error, and page 101 and page 1000
+        // answer [] too. There is no ceiling response to handle on this family.
+        var (endpoints, handler) = BuildPages(SyntheticCalendar(4000, Day(2026, 5, 13)), "[]");
+
+        var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        Assert.Equal(4000, rows.Count);
+        Assert.Equal(2, handler.Requests.Count);
+        var result = Assert.IsType<EarningsCalendarResult>(rows);
+        Assert.Equal(2, result.PagesFetched);
+        Assert.Equal(0, result.SeamDuplicateRows);
+    }
+
+    [Fact]
+    public async Task A_page_that_repeats_its_predecessor_ends_the_walk_and_is_not_appended()
+    {
+        // ipos-calendar does exactly this today: page=1 and page=5 are byte-identical to page=0, every page
+        // full, no page ever short. Without this terminator such a path walks to MaxCalendarPages and returns
+        // the same rows a hundred times. StubHandler repeating its last response reproduces the shape exactly.
+        var (endpoints, handler) = BuildPages(SyntheticCalendar(4000, Day(2026, 5, 13)));
+
+        var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        Assert.Equal(4000, rows.Count);                 // once, not twice and not a hundred times
+        Assert.Equal(2, handler.Requests.Count);        // the repeat was fetched, recognised and discarded
+        var result = Assert.IsType<EarningsCalendarResult>(rows);
+        Assert.Equal(1, result.PagesFetched);
+        Assert.True(result.AtRowCap);                   // stopped with a full page in hand
+        Assert.True(result.LikelyTruncated);
+    }
+
+    [Fact]
+    public async Task Rows_shared_across_a_seam_are_counted_and_left_in_the_list()
+    {
+        // Measured 2026-09-01: an overlapping seam duplicates and loses the same number of rows. The SDK
+        // reports rather than repairs -- removing a duplicate would be guessing which of two identical rows
+        // is the real one, and FMP's own data carries genuine duplicate rows.
+        var (endpoints, _) = BuildPages(
+            SyntheticCalendar(4000, Day(2026, 5, 13)),
+            SyntheticCalendar(2496, Day(2026, 5, 13), startIndex: 3900));   // 100 rows on both sides
+
+        var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        Assert.Equal(6496, rows.Count);                                     // nothing removed
+        var result = Assert.IsType<EarningsCalendarResult>(rows);
+        Assert.Equal(100, result.SeamDuplicateRows);
+        Assert.False(result.AtRowCap);                                      // ended on a short page
+        Assert.True(result.LikelyTruncated);                                // and is still missing ~100 rows
+    }
+
+    [Fact]
+    public async Task Undated_rows_are_dropped_across_the_whole_walk_and_the_raw_count_still_says_so()
+    {
+        var (endpoints, _) = BuildPages(
+            SyntheticCalendar(4000, Day(2026, 5, 13)),
+            """
+            [{"symbol":"BAD.X","date":"","epsActual":1,"epsEstimated":null,
+              "revenueActual":1,"revenueEstimated":1,"lastUpdated":"2026-08-17"},
+             {"symbol":"GFH.AE","date":"2026-05-17","epsActual":0.03708,"epsEstimated":0.08026,
+              "revenueActual":350977000,"revenueEstimated":638486100,"lastUpdated":"2026-08-17"}]
+            """);
+
+        var rows = await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
+
+        var result = Assert.IsType<EarningsCalendarResult>(rows);
+        Assert.Equal(4002, result.RowsReturned);        // raw, both pages
+        Assert.Equal(4001, result.Count);               // the undated row is gone
     }
 
     [Fact]
@@ -420,9 +533,9 @@ public class CalendarEndpointsTests
     {
         // This is a live bug in the consumer this SDK replaces: it clamps first, then tests rows.Count >= 4000.
         // Clamping removes the overshoot rows, so a genuinely truncated response reaches the test already under
-        // the cap and is judged complete. Here 12 of the 4000 rows fall outside the range, the clamp takes the
-        // count to 3988, and the signal must still fire.
-        var (endpoints, _) = Build(SyntheticCalendar(4000, Day(2026, 5, 13), overshootRows: 12));
+        // the cap and is judged complete. Here page 1 repeats page 0, so the walk stops with a full page in
+        // hand; 12 of the 4000 rows fall outside the range and the clamp takes the count to 3988.
+        var (endpoints, _) = BuildPages(SyntheticCalendar(4000, Day(2026, 5, 13), overshootRows: 12));
 
         var rows = await endpoints.GetEarningsCalendarAsync(
             Day(2026, 5, 13), Day(2026, 5, 14), clampToRange: true);
@@ -576,7 +689,8 @@ public class CalendarEndpointsTests
     /// <summary>A calendar payload of a given size. Synthetic on purpose — the cap needs 4000 rows to exercise and
     /// nothing about those rows matters except how many there are and which dates they carry, so shipping a 4000-row
     /// fixture would add a megabyte of noise and prove nothing the captures do not.</summary>
-    private static string SyntheticCalendar(int rowCount, LocalDate day, int overshootRows = 0)
+    private static string SyntheticCalendar(
+        int rowCount, LocalDate day, int overshootRows = 0, int startIndex = 0)
     {
         var json = new StringBuilder("[");
         for (var i = 0; i < rowCount; i++)
@@ -585,8 +699,22 @@ public class CalendarEndpointsTests
             var date = i < overshootRows ? day.PlusDays(2) : day;
             if (i > 0) json.Append(',');
             json.Append(CultureInfo.InvariantCulture,
-                $$"""{"symbol":"S{{i}}","date":"{{date:uuuu-MM-dd}}","epsActual":1,"epsEstimated":1,"revenueActual":1,"revenueEstimated":1,"lastUpdated":"2026-08-26"}""");
+                $$"""{"symbol":"S{{startIndex + i}}","date":"{{date:uuuu-MM-dd}}","epsActual":1,"epsEstimated":1,"revenueActual":1,"revenueEstimated":1,"lastUpdated":"2026-08-26"}""");
         }
         return json.Append(']').ToString();
+    }
+
+    // A response per page, in order. StubHandler repeats its last response once the queue runs dry, which is
+    // the ipos-calendar shape and is what the walk's repeat terminator exists for -- so a test that wants the
+    // walk to STOP must end its queue with a short page.
+    private static (CalendarEndpoints Endpoints, StubHandler Handler) BuildPages(params string[] pages)
+    {
+        var handler = new StubHandler([.. pages.Select(p => StubHandler.Json(p))]);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new CalendarEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))), handler);
     }
 }
