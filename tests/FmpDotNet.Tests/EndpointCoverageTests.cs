@@ -37,7 +37,14 @@ public partial class EndpointCoverageTests
     /// third-party client, which reconcile exactly; see
     /// <c>docs/superpowers/specs/2026-08-27-endpoint-inventory.md</c> for the per-section table, the provenance and
     /// the method. This number was <c>230</c> from the project's start, carried on a prose comment and no evidence,
-    /// and it was an undercount by 13.</para></summary>
+    /// and it was an undercount by 13.</para>
+    ///
+    /// <para><b>Confirmed a third time on 2026-09-01 (#55), and this one is reproducible in a shell.</b> FMP
+    /// publishes <c>site.financialmodelingprep.com/api-docs.md</c> — machine-readable, 635 KB, and answered with
+    /// HTTP 200 given an ordinary browser <c>User-Agent</c>. It carries <b>276</b> endpoint entries over
+    /// <b>243</b> distinct <c>stable/</c> paths, the surplus being twelve paths the asset-class sections
+    /// re-document. The inventory's original method — printing the docs site to PDF, because it answered 403 to
+    /// automated fetching — is no longer necessary; the 403 was User-Agent filtering.</para></summary>
     private const int DocumentedPaths = 243;
 
     private const string BeginMarker = "<!-- BEGIN GENERATED: endpoint coverage -->";
