@@ -178,11 +178,17 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// <c>stable/institutional-ownership/holder-performance-summary</c>.
     ///
     /// <para><b>No <c>year</c> and no <c>quarter</c>, and that is the endpoint's shape rather than a choice
-    /// made here.</b> It answers the filer's whole history, newest first — 53 rows for Berkshire, measured
-    /// 2026-08-28, one per quarter in <see cref="GetFilingDatesAsync"/>. There is no per-quarter variant to
-    /// offer.</para>
+    /// made here.</b> It answers the filer's whole history, newest first, in one response — one row per quarter
+    /// in <see cref="GetFilingDatesAsync"/>: 53 for Berkshire, measured 2026-08-28, and 110 for FMR
+    /// (<c>0000315066</c>), measured 2026-09-01, each matching its <c>dates</c> count exactly. Across 299
+    /// filers measured 2026-09-01 (#53) the largest answer was <b>110 rows, about 131 KB</b>, and the earliest
+    /// quarter anywhere <b>1998-09-30</b>; Berkshire's 53 is where Berkshire's history begins at FMP (2013 Q2,
+    /// shared by eleven other filers in that sample), not how far the endpoint reaches. There is no
+    /// per-quarter variant to offer.</para>
     ///
-    /// <para>No <c>limit</c> either: the endpoint ignores it.</para>
+    /// <para>No <c>limit</c> either: the endpoint ignores it, alone (<c>limit=5</c> answered all 110 of FMR's
+    /// rows) and beside <c>page</c> (<c>page=100&amp;limit=5</c> answered 10 — the offset applied, the limit
+    /// not).</para>
     ///
     /// <para><b>No <c>page</c>, and this one is a deliberate omission rather than an absent parameter — FMP reads
     /// <c>page</c> here as a ROW OFFSET, not a page index.</b> Measured 2026-09-01 (#46) on the same Berkshire
@@ -190,7 +196,14 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// last. So <c>page=n</c> skips <i>n</i> rows and returns everything after them, and a caller looping pages
     /// the ordinary way re-reads 52 of the 53 rows page 0 already gave them, accumulating <i>n</i>(<i>n</i>+1)/2
     /// duplicates instead of reaching more data. Offering it under the name FMP uses would be worse than
-    /// offering nothing. See #53.</para></summary>
+    /// offering nothing.</para>
+    ///
+    /// <para><b>Nor under an honest name.</b> Measured 2026-09-01 (#53) at the far end, on FMR's 110 rows:
+    /// <c>page=n</c> answers exactly the plain response's rows <i>n</i> onward — equal row for row at 1, 50 and
+    /// 109 — and 110, 111 and 1000 answer <c>[]</c> with HTTP 200. The offset reaches nothing the plain call
+    /// does not already return, and the whole history arrives in one response every time, so there is nothing
+    /// to page: <c>Skip(n)</c> on the returned list is the identical operation without the second request.
+    /// See <c>docs/superpowers/specs/2026-09-01-holder-performance-paging-measurements.md</c>.</para></summary>
     /// <param name="cik">The institutional filer's Central Index Key, padded or unpadded.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every quarter the filer has reported, newest first. Never <see langword="null"/>.</returns>

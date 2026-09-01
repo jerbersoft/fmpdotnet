@@ -168,6 +168,13 @@ more.
 53 rows `page=0` already returned, so a caller looping pages the ordinary way gets *n*·(*n*+1)/2 duplicates
 rather than more data. Modelling it as `page` would be worse than not modelling it.
 
+> **Measured at the far end and left unmodelled under any name — settled 2026-09-01 (#53).** The 53 rows above
+> are Berkshire's history at FMP, not the endpoint's reach: across 299 filers the largest answer is **110 rows**
+> (FMR, `0000315066`, every quarter since 1999 Q1, 131 KB in one response), and `page=n` is exactly the plain
+> answer's rows *n* onward, `[]` with 200 past the end. A history that always arrives whole has nothing to page,
+> so no `skip` or `offset` either; `.Skip(n)` on the result is the same operation. See
+> [the holder-performance paging measurements](2026-09-01-holder-performance-paging-measurements.md).
+
 #### Paging does not generalise, so the other two "cannot page" claims were re-probed
 
 Finding a working cursor where the docs denied one makes every other such claim suspect. Both were checked
