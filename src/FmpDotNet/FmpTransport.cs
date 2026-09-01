@@ -270,7 +270,11 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     private async Task<HttpResponseMessage> SendAsync(
         FmpRequest request, HttpCompletionOption completion, CancellationToken ct)
     {
-        using var message = new HttpRequestMessage(HttpMethod.Get, request.Build(_options.ApiKey));
+        // The key travels as a header, never on the URI, so what the handlers see in RequestUri — and put into
+        // exception text and the developer cache's filenames — is the same string ToString() renders.
+        // Measured 2026-09-01: FMP answers `apikey:` as a header identically to `?apikey=`.
+        using var message = new HttpRequestMessage(HttpMethod.Get, request.ToString());
+        message.Headers.Add("apikey", _options.ApiKey);
         var response = await http.SendAsync(message, completion, ct).ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.TooManyRequests) return response;
 

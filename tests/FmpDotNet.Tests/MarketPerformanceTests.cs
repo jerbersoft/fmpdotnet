@@ -203,7 +203,7 @@ public class MarketPerformanceTests
     }
 
     [Fact]
-    public async Task The_movers_send_nothing_but_the_key()
+    public async Task The_movers_send_no_query_parameter()
     {
         // Measured 2026-08-29: `limit=10`, `exchange=NYSE` and `page=1` each returned a response BYTE-IDENTICAL
         // to the bare request. The three lists are fixed at 50 rows and span every exchange at once. Offering
@@ -216,7 +216,7 @@ public class MarketPerformanceTests
 
         await endpoints.GetBiggestGainersAsync();
 
-        Assert.Equal("?apikey=k", handler.Requests[0].Query);
+        Assert.Equal("", handler.Requests[0].Query);
     }
 
     [Fact]
@@ -281,7 +281,7 @@ public class MarketPerformanceTests
     public async Task The_industry_filter_url_encodes_an_ampersand()
     {
         // Measured 2026-08-29: `industry=Aerospace & Defense` returns rows when encoded. An unencoded
-        // ampersand would split the query string and silently drop everything after it, including the key.
+        // ampersand would split the query string and silently drop everything after it.
         var (endpoints, handler) = Build();
 
         await endpoints.GetIndustryPerformanceSnapshotAsync(

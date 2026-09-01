@@ -225,13 +225,13 @@ public class AddFmpTests
             var factory = provider.GetRequiredService<IHttpClientFactory>();
 
             var bulk = factory.CreateClient(FmpServiceCollectionExtensions.BulkClient);
-            (await bulk.GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
-            (await bulk.GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
+            (await bulk.GetAsync("stable/profile-bulk?part=0")).Dispose();
+            (await bulk.GetAsync("stable/profile-bulk?part=0")).Dispose();
             Assert.Equal(1, upstream.Sends);          // second call replayed from disk
 
             var standard = factory.CreateClient(FmpServiceCollectionExtensions.StandardClient);
-            (await standard.GetAsync("stable/profile?symbol=AAPL&apikey=k")).Dispose();
-            (await standard.GetAsync("stable/profile?symbol=AAPL&apikey=k")).Dispose();
+            (await standard.GetAsync("stable/profile?symbol=AAPL")).Dispose();
+            (await standard.GetAsync("stable/profile?symbol=AAPL")).Dispose();
             Assert.Equal(3, upstream.Sends);          // both went to the upstream
         }
         finally
@@ -278,11 +278,11 @@ public class AddFmpTests
         var factory = provider.GetRequiredService<IHttpClientFactory>();
 
         (await factory.CreateClient(FmpServiceCollectionExtensions.StandardClient)
-            .GetAsync("stable/profile?apikey=k")).Dispose();
+            .GetAsync("stable/profile")).Dispose();
         Assert.Equal(3, upstream.Sends);
 
         (await factory.CreateClient(FmpServiceCollectionExtensions.BulkClient)
-            .GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
+            .GetAsync("stable/profile-bulk?part=0")).Dispose();
         Assert.Equal(4, upstream.Sends);                       // one more, not three more
     }
 
@@ -304,7 +304,7 @@ public class AddFmpTests
         var started = System.Diagnostics.Stopwatch.StartNew();
         (await provider.GetRequiredService<IHttpClientFactory>()
             .CreateClient(FmpServiceCollectionExtensions.StandardClient)
-            .GetAsync("stable/profile?apikey=k")).Dispose();
+            .GetAsync("stable/profile")).Dispose();
         started.Stop();
 
         Assert.Equal(2, upstream.Sends);
@@ -328,7 +328,7 @@ public class AddFmpTests
 
         (await provider.GetRequiredService<IHttpClientFactory>()
             .CreateClient(FmpServiceCollectionExtensions.StandardClient)
-            .GetAsync("stable/profile?apikey=k")).Dispose();
+            .GetAsync("stable/profile")).Dispose();
 
         Assert.Equal(3, upstream.Sends);
         var now = SystemClock.Instance.GetCurrentInstant().ToUnixTimeTicks() / (double)NodaConstants.TicksPerSecond;

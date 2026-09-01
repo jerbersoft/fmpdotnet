@@ -148,10 +148,10 @@ public sealed class FmpTimeoutHandlerTests
     [Fact]
     public async Task The_api_key_is_not_in_the_timeout_message()
     {
-        // fmpdotnet#10 found this by migrating a consumer onto the SDK. FMP authenticates by query string, so the
-        // built RequestUri carries the key — and an exception message is the one place a URI reliably reaches a
-        // log. FmpRequest.ToString() is key-free precisely so a request can be logged safely, but by the time a
-        // DelegatingHandler sees the request that structure is gone, so the redaction has to happen again here.
+        // fmpdotnet#10 found this by migrating a consumer onto the SDK, when the transport still put the key on
+        // the URI — and an exception message is the one place a URI reliably reaches a log. The transport sends
+        // the key as a header now (#59); what this guards is the URI a caller built by pasting FMP's documented
+        // `?apikey=` form into an FmpRequest path.
         using var http = Client(Bounded(new StallingHandler(), Duration.FromMilliseconds(50)));
 
         var ex = await Record.ExceptionAsync(

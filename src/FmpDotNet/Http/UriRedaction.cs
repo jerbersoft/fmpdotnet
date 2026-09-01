@@ -2,15 +2,16 @@ using System.Text;
 
 namespace FmpDotNet.Http;
 
-/// <summary>Removes the API key from a request URI.
+/// <summary>Removes any <c>apikey</c> query parameter from a request URI.
 ///
-/// <para><b>Why this is shared rather than written where it is needed.</b> FMP authenticates by query string, so
-/// every built URI carries the key. <see cref="FmpRequest.ToString"/> renders without it precisely so a request
-/// can be logged safely — but that structure is gone by the time a <see cref="DelegatingHandler"/> sees the
-/// request, and only the built URI remains. Two handlers have now needed to undo that independently: the timeout
-/// handler, which puts the URI in an exception message, and the developer bulk cache, which puts it in a filename
-/// and a log line. The first of those shipped leaking the key. One implementation, tested once, is what stops the
-/// third one repeating it.</para></summary>
+/// <para><b>The SDK no longer puts the key there.</b> The transport sends it as a request header (issue #59,
+/// measured 2026-09-01), so a URI the SDK built has nothing to redact. This exists for the URI the SDK did not
+/// build: <see cref="FmpRequest"/> takes its path as a bare string precisely so an endpoint the SDK has not
+/// modelled yet is still reachable, and every example URL in FMP's documentation ends in <c>&amp;apikey=</c>. A
+/// caller who pastes one in has put a key on the URI, and three handlers render that URI: the retry handler into
+/// a log line, the timeout handler into an exception message, and the developer bulk cache into a filename and a
+/// log line. When the key was on every URI the first of those shipped leaking it. One implementation, tested
+/// once, keeps the caller-supplied case from repeating that.</para></summary>
 internal static class UriRedaction
 {
     private const string Marker = "apikey=";
@@ -26,10 +27,10 @@ internal static class UriRedaction
     /// <para><b>The match is anchored to a parameter boundary, and every occurrence is replaced. Both of those are
     /// load-bearing, and the earlier version of this method did neither.</b> Parameter names are caller-controlled
     /// — <see cref="FmpRequest"/> is public precisely so an endpoint the SDK has not modelled yet is still
-    /// reachable — and the transport appends the key LAST. So a plain substring search finds <c>apikey=</c> inside
-    /// a preceding <c>xapikey=</c> and redacts the decoy, while a search that stopped at the first match would
-    /// redact a caller's own <c>apikey</c> parameter and leave the appended one. Either way the credential
-    /// survives into whatever log, filename or exception message the caller was told was safe.</para></summary>
+    /// reachable. So a plain substring search finds <c>apikey=</c> inside a preceding <c>xapikey=</c> and redacts
+    /// the decoy, while a search that stopped at the first match would leave a second <c>apikey=</c> in place.
+    /// Either way the credential survives into whatever log, filename or exception message the caller was told
+    /// was safe.</para></summary>
     internal static string Redact(Uri? uri)
     {
         if (uri is null) return string.Empty;

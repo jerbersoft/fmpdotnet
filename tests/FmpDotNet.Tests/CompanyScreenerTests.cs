@@ -42,7 +42,7 @@ public class CompanyScreenerTests
         var (endpoints, handler) = Build();
         await endpoints.ScreenAsync(criteria);
         var parsed = HttpUtility.ParseQueryString(handler.Requests.Single().Query);
-        return parsed.AllKeys.Where(k => k is not null and not "apikey")
+        return parsed.AllKeys.Where(k => k is not null)
             .ToDictionary(k => k!, k => parsed[k]!);
     }
 

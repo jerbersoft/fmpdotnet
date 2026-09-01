@@ -305,7 +305,7 @@ public class AnalystEndpointsTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/analyst-estimates", uri.AbsolutePath);
-        Assert.Equal("?symbol=AAPL&period=annual&apikey=k", uri.Query);
+        Assert.Equal("?symbol=AAPL&period=annual", uri.Query);
     }
 
     [Fact]
@@ -317,7 +317,7 @@ public class AnalystEndpointsTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/analyst-estimates", uri.AbsolutePath);
-        Assert.Equal("?symbol=AAPL&period=quarter&limit=3&page=2&apikey=k", uri.Query);
+        Assert.Equal("?symbol=AAPL&period=quarter&limit=3&page=2", uri.Query);
     }
 
     [Theory]

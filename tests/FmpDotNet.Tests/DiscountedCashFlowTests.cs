@@ -220,7 +220,7 @@ public class DiscountedCashFlowTests
         await dcf.GetCustomLeveredValuationAsync("AAPL", new CustomLeveredDcfAssumptions());
 
         Assert.All(handler.Requests, u =>
-            Assert.Equal(["symbol", "apikey"], HttpUtility.ParseQueryString(u.Query)
+            Assert.Equal(["symbol"], HttpUtility.ParseQueryString(u.Query)
                 .AllKeys.Where(k => k is not null).Select(k => k!).ToArray()));
         Assert.Equal(handler.Requests[0].Query, handler.Requests[1].Query);
         Assert.Equal(handler.Requests[2].Query, handler.Requests[3].Query);
@@ -271,8 +271,8 @@ public class DiscountedCashFlowTests
         Assert.Equal("1.1", query["beta"]);
         Assert.Equal("4.48", query["riskFreeRate"]);
 
-        // 16 overrides plus symbol plus the key.
-        Assert.Equal(18, query.AllKeys.Length);
+        // 16 overrides plus symbol. The key is a header, not a parameter.
+        Assert.Equal(17, query.AllKeys.Length);
 
         // The response-side misspelling does NOT appear on the request side: the wire wants `costOfDebt`
         // here and sends `costofDebt` back. Both spellings are reproduced as they are.

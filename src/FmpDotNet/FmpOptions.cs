@@ -12,8 +12,10 @@ public sealed class FmpOptions
     /// <summary>Configuration section these options bind to by convention.</summary>
     public const string SectionName = "Fmp";
 
-    /// <summary>API key. FMP takes it as an <c>apikey</c> QUERY parameter on every request — never a header — so
-    /// the transport appends it and no caller ever builds a URL by hand.</summary>
+    /// <summary>API key. The transport sends it as an <c>apikey</c> request header on every request. FMP accepts
+    /// the header and the <c>?apikey=</c> query parameter its documentation shows interchangeably (measured
+    /// 2026-09-01: same status, same body); the header keeps the credential off the URI, which is what log lines,
+    /// exception messages and cache filenames quote. No caller ever builds a URL by hand.</summary>
     public string ApiKey { get; set; } = "";
 
     /// <summary>Bare host. The <c>/stable/</c> segment belongs to each request path, not to the base address, so a

@@ -938,7 +938,7 @@ public class EtfAndFundsTests
     }
 
     [Fact]
-    public async Task An_etf_method_sends_the_symbol_and_nothing_but_the_key_beside_it()
+    public async Task An_etf_method_sends_the_symbol_and_nothing_beside_it()
     {
         // Measured 2026-08-30: `limit` and `page` are ignored on all nine paths — byte-identical responses
         // with and without them, including a 17,252-row, 4.9 MB etf/holdings?symbol=BND. Offering either
@@ -948,7 +948,7 @@ public class EtfAndFundsTests
 
         await endpoints.GetEtfHoldingsAsync("QQQ");
 
-        Assert.Equal("?symbol=QQQ&apikey=k", handler.Requests[0].Query);
+        Assert.Equal("?symbol=QQQ", handler.Requests[0].Query);
     }
 
     [Fact]
@@ -1062,7 +1062,7 @@ public class EtfAndFundsTests
 
         await endpoints.GetFundDisclosureAsync("SPY", 2026, 1);
 
-        Assert.Equal("?symbol=SPY&year=2026&quarter=1&apikey=k", handler.Requests[0].Query);
+        Assert.Equal("?symbol=SPY&year=2026&quarter=1", handler.Requests[0].Query);
     }
 
     [Fact]
@@ -1072,7 +1072,7 @@ public class EtfAndFundsTests
 
         await endpoints.SearchFundsByNameAsync("Schwab");
 
-        Assert.Equal("?name=Schwab&apikey=k", handler.Requests[0].Query);
+        Assert.Equal("?name=Schwab", handler.Requests[0].Query);
     }
 
     [Theory]

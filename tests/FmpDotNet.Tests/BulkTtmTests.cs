@@ -48,7 +48,7 @@ public class BulkTtmTests
         Assert.Equal(9.926619416266979m, row.EvToSales);
         Assert.Equal(33.90307686954486m, row.EvToFreeCashFlow);
         // The endpoint takes no parameters at all.
-        Assert.Equal("?apikey=k", handler.Requests[0].Query);
+        Assert.Equal("", handler.Requests[0].Query);
     }
 
     [Fact]

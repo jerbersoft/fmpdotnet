@@ -142,7 +142,7 @@ public class CalendarEndpointsTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/earnings", uri.AbsolutePath);
-        Assert.Equal("?symbol=AAPL&limit=8&apikey=k", uri.Query);
+        Assert.Equal("?symbol=AAPL&limit=8", uri.Query);
         Assert.DoesNotContain("period", uri.Query, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -155,7 +155,7 @@ public class CalendarEndpointsTests
 
         await endpoints.GetEarningsAsync("AAPL");
 
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -421,9 +421,9 @@ public class CalendarEndpointsTests
         await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 19));
 
         Assert.Equal(3, handler.Requests.Count);
-        Assert.Equal("?from=2026-05-13&to=2026-05-19&apikey=k", handler.Requests[0].Query);
-        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=1&apikey=k", handler.Requests[1].Query);
-        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=2&apikey=k", handler.Requests[2].Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19", handler.Requests[0].Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=1", handler.Requests[1].Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-19&page=2", handler.Requests[2].Query);
     }
 
     [Fact]
@@ -617,7 +617,7 @@ public class CalendarEndpointsTests
 
         await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 13), Day(2026, 5, 13));
 
-        Assert.Equal("?from=2026-05-13&to=2026-05-13&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-05-13&to=2026-05-13", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -629,7 +629,7 @@ public class CalendarEndpointsTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/earnings-calendar", uri.AbsolutePath);
-        Assert.Equal("?from=2026-05-16&to=2026-05-17&apikey=k", uri.Query);
+        Assert.Equal("?from=2026-05-16&to=2026-05-17", uri.Query);
         Assert.DoesNotContain("includeReportTimes", uri.Query, StringComparison.Ordinal);
     }
 
@@ -642,7 +642,7 @@ public class CalendarEndpointsTests
 
         await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 16), Day(2026, 5, 17), includeReportTimes: true);
 
-        Assert.Equal("?from=2026-05-16&to=2026-05-17&includeReportTimes=true&apikey=k",
+        Assert.Equal("?from=2026-05-16&to=2026-05-17&includeReportTimes=true",
             handler.Requests.Single().Query);
     }
 
@@ -653,7 +653,7 @@ public class CalendarEndpointsTests
 
         await endpoints.GetEarningsCalendarAsync(Day(2026, 5, 16), Day(2026, 5, 17), clampToRange: true);
 
-        Assert.Equal("?from=2026-05-16&to=2026-05-17&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-05-16&to=2026-05-17", handler.Requests.Single().Query);
     }
 
     [Fact]

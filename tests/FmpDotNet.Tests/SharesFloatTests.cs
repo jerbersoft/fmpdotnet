@@ -143,7 +143,7 @@ public class SharesFloatTests
     }
 
     [Fact]
-    public async Task Hits_its_own_path_carrying_only_the_symbol_and_the_key()
+    public async Task Hits_its_own_path_carrying_only_the_symbol()
     {
         // No limit is sent, and there is no parameter to send one with: measured 2026-08-26, limit= is accepted
         // and ignored, so the endpoint returns exactly one row however it is asked.
@@ -153,6 +153,6 @@ public class SharesFloatTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/shares-float", uri.AbsolutePath);
-        Assert.Equal("?symbol=AAPL&apikey=k", uri.Query);
+        Assert.Equal("?symbol=AAPL", uri.Query);
     }
 }

@@ -15,9 +15,14 @@ internal sealed class StubHandler(params HttpResponseMessage[] responses) : Http
 
     public List<Uri> Requests { get; } = [];
 
+    /// <summary>The request headers of each dispatch, in the same order as <see cref="Requests"/>. A snapshot,
+    /// because the transport disposes the message as soon as the response is back.</summary>
+    public List<IReadOnlyDictionary<string, string[]>> Headers { get; } = [];
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
     {
         Requests.Add(request.RequestUri!);
+        Headers.Add(request.Headers.ToDictionary(h => h.Key, h => h.Value.ToArray(), StringComparer.OrdinalIgnoreCase));
         var template = responses[Math.Min(_index++, responses.Length - 1)];
         // Only a StringContent template is cloned. Any other HttpContent — the streaming payloads a couple
         // of tests hand-build to pin flat-memory behaviour — is handed back as the same instance every

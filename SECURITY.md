@@ -47,10 +47,12 @@ supported version is simply the newest one.
 This is a client library. It makes outbound HTTPS requests to Financial Modeling Prep, deserializes the responses,
 and holds an API key. Things that are **in scope**:
 
-* **API key disclosure** — the key is sent as a query parameter, so it can reach logs, exception messages and
-  cache keys. The SDK redacts it from request renderings, `FmpRequest.ToString()`, exception messages and the
-  developer cache's keys. **A path that leaks it anywhere is a vulnerability**, and one has been fixed before
-  (`fix: keep the API key out of the timeout exception message`).
+* **API key disclosure** — the key is sent as an `apikey` request header, so no URL the SDK builds carries it,
+  and `FmpRequest.ToString()`, exception messages and the developer cache's filenames are key-free by
+  construction. A key a caller pastes into a request path (`?apikey=…`, the form FMP's documentation shows) does
+  land on the URL, and the three handlers that render one still redact it. **A path that leaks it anywhere is a
+  vulnerability**, and one has been fixed before (`fix: keep the API key out of the timeout exception message`,
+  from when the key was still a query parameter).
 * **Denial of service against the consuming host** — unbounded memory on a large response, or an upstream-supplied
   value that can stall the process. `Retry-After` is clamped by `MaxRetryAfter` for exactly this reason: it is an
   upstream-controlled value that halts every FMP call in the process.
@@ -73,8 +75,9 @@ and holds an API key. Things that are **in scope**:
 
 Not a vulnerability class, but the most likely way an incident actually happens:
 
-* The key is a **query parameter** on every request, because that is the only form FMP accepts. Treat any URL as
-  sensitive.
+* The key travels as an `apikey` **request header**. FMP also accepts it as a `?apikey=` query parameter — every
+  example URL in its documentation carries one — but a key on a URL reaches logs, browser history and crash
+  reports, so do not paste that form into an `FmpRequest` path. Treat any URL that carries one as sensitive.
 * `.env` and its variants are git-ignored. Keep it that way.
 * In CI, use a secret. The live smoke workflow reads `FMP_API_KEY` from repository secrets and fails loudly when
   it is missing, rather than skipping quietly.

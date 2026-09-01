@@ -127,8 +127,9 @@ public abstract class FmpRetryHandlerBase : DelegatingHandler
             "FMP request failed with {Cause} on attempt {Attempt} of {MaxAttempts}; retrying in {Wait}: {Request}.",
             cause, attempt, _maxAttempts, wait, Describe(request));
 
-    /// <summary>Renders a request for a log line with the API key removed — the transport puts the key in the
-    /// query string, so <see cref="HttpRequestMessage.RequestUri"/> carries it.</summary>
+    /// <summary>Renders a request for a log line with any <c>apikey</c> query parameter removed. The transport
+    /// sends the key as a header, so a URI it built carries none; a caller-pasted <c>?apikey=</c> path would (see
+    /// <see cref="UriRedaction"/>).</summary>
     private static string Describe(HttpRequestMessage request)
         => request.RequestUri is null ? request.Method.ToString()
             : $"{request.Method} {UriRedaction.Redact(request.RequestUri)}";

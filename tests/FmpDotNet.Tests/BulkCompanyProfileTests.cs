@@ -240,7 +240,7 @@ public class BulkCompanyProfileTests
     // ---- the request ------------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Hits_its_own_path_carrying_the_part_and_the_key()
+    public async Task Hits_its_own_path_carrying_the_part()
     {
         var (endpoints, handler) = Build(StubHandler.Csv("\"symbol\"\n"));
 
@@ -248,7 +248,7 @@ public class BulkCompanyProfileTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/profile-bulk", uri.AbsolutePath);
-        Assert.Equal("?part=7&apikey=k", uri.Query);
+        Assert.Equal("?part=7", uri.Query);
     }
 
     [Fact]
@@ -280,7 +280,7 @@ public class BulkCompanyProfileTests
         var rows = await DrainAsync(endpoints.StreamAllProfilesAsync());
 
         Assert.Equal(new[] { "AAA", "BBB" }, rows.Select(r => r.Symbol).ToArray());
-        Assert.Equal(new[] { "?part=0&apikey=k", "?part=1&apikey=k", "?part=2&apikey=k" },
+        Assert.Equal(new[] { "?part=0", "?part=1", "?part=2" },
             handler.Requests.Select(u => u.Query).ToArray());
     }
 
@@ -379,8 +379,8 @@ public class BulkCompanyProfileTests
     [Fact]
     public async Task The_400_message_names_the_request_without_the_api_key()
     {
-        // FmpRequest.ToString() renders path and query without the key; the built URL, which carries it, must
-        // never be interpolated into a message that will be logged.
+        // The key is a header, so no rendering of the request carries it — but a message that quoted the
+        // header collection, or a caller-pasted `?apikey=` path, would. Pinned on the message and the string.
         var handler = new StubHandler(
             StubHandler.Json("Query Error: Invalid or missing query parameter - part", HttpStatusCode.BadRequest));
         var http = new HttpClient(handler)
