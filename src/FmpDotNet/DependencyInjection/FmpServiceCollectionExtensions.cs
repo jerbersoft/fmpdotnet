@@ -39,6 +39,9 @@ public static class FmpServiceCollectionExtensions
         if (Span(section[nameof(FmpOptions.RequestTimeout)]) is { } timeout) o.RequestTimeout = timeout;
         if (Span(section[nameof(FmpOptions.BulkRequestTimeout)]) is { } bulkTimeout) o.BulkRequestTimeout = bulkTimeout;
         if (Span(section[nameof(FmpOptions.MaxRetryAfter)]) is { } retry) o.MaxRetryAfter = retry;
+        if (Int32(section[nameof(FmpOptions.MaxAttempts)]) is { } attempts) o.MaxAttempts = attempts;
+        if (Int32(section[nameof(FmpOptions.BulkMaxAttempts)]) is { } bulkAttempts) o.BulkMaxAttempts = bulkAttempts;
+        if (Span(section[nameof(FmpOptions.RetryBaseDelay)]) is { } backoff) o.RetryBaseDelay = backoff;
         if (section[nameof(FmpOptions.DeveloperBulkCacheDirectory)] is { } cache)
             o.DeveloperBulkCacheDirectory = cache;
 
@@ -89,6 +92,17 @@ public static class FmpServiceCollectionExtensions
                 "Fmp:BulkRequestTimeout must be > 0 — it bounds a single bulk FMP HTTP attempt.")
             .Validate(o => o.MaxRetryAfter >= Duration.Zero,
                 "Fmp:MaxRetryAfter must be >= 0 — it caps how long one 429 may hold the shared request budget.")
+            // At 0 there is no attempt at all: the handler's loop would return nothing and the caller would meet a
+            // failure the SDK never actually tried to produce. 1 is the "no retry" setting, and it is legal.
+            .Validate(o => o.MaxAttempts >= 1,
+                "Fmp:MaxAttempts must be >= 1 — it counts SENDS, not retries, so 1 means send once and do not retry.")
+            .Validate(o => o.BulkMaxAttempts >= 1,
+                "Fmp:BulkMaxAttempts must be >= 1 — it counts SENDS, not retries, so 1 means send once and do not "
+                + "retry. 1 is the default for bulk.")
+            // At 0 every backoff step is 0 and the jitter with it, so a retry sequence becomes an unpaced burst
+            // against an upstream that is already failing.
+            .Validate(o => o.RetryBaseDelay > Duration.Zero,
+                "Fmp:RetryBaseDelay must be > 0 — it is the first step of the retry backoff, doubling per attempt.")
             .ValidateOnStart();
 
         // The API key is deliberately NOT validated. An SDK cannot know whether its caller intends to make a
@@ -100,13 +114,21 @@ public static class FmpServiceCollectionExtensions
         // TryAdd so exactly one reservoir pair exists regardless of how many times AddFmp is called — the
         // invariant is structural, not dependent on call order.
         services.TryAddSingleton(sp => new FmpBuckets(sp.GetRequiredService<IOptions<FmpOptions>>().Value));
+        services.TryAddTransient<FmpRetryHandler>();
+        services.TryAddTransient<FmpBulkRetryHandler>();
         services.TryAddTransient<FmpRateLimitHandler>();
         services.TryAddTransient<FmpBulkRateLimitHandler>();
         services.TryAddTransient<FmpTimeoutHandler>();
         services.TryAddTransient<FmpBulkTimeoutHandler>();
         services.TryAddTransient<FmpDeveloperBulkCacheHandler>();
 
+        // The retry is added FIRST, which makes it the OUTERMOST handler, and that is the point rather than a
+        // detail. FmpRateLimitHandlerBase acquires its token BEFORE delegating, so a retry placed inside it would
+        // be reached after the single token had already been drawn and every attempt after the first would bypass
+        // the reservoir entirely. Outside, each attempt re-acquires — and it is still outside the timeout, so
+        // each attempt gets a fresh RequestTimeout rather than sharing one budget.
         Configure(services.AddHttpClient<FmpTransport>(StandardClient))
+            .AddHttpMessageHandler<FmpRetryHandler>()
             .AddHttpMessageHandler<FmpRateLimitHandler>()
             .AddHttpMessageHandler<FmpTimeoutHandler>();
 
@@ -114,8 +136,12 @@ public static class FmpServiceCollectionExtensions
         // point rather than a detail: a replay must not consume a bulk token or start a timeout. A cache hit
         // therefore never reaches the rate limiter at all. It is inert unless
         // FmpOptions.DeveloperBulkCacheDirectory is set, so it costs a null check when it is off.
+        // The retry sits INSIDE the cache here, unlike the ordinary client where it is outermost: a replay must
+        // never be retried, because a cache hit cannot fail transiently and re-serving it would only multiply the
+        // work. FmpOptions.BulkMaxAttempts defaults to 1, so this link is inert unless a caller opts in.
         Configure(services.AddHttpClient<FmpBulkTransport>(BulkClient))
             .AddHttpMessageHandler<FmpDeveloperBulkCacheHandler>()
+            .AddHttpMessageHandler<FmpBulkRetryHandler>()
             .AddHttpMessageHandler<FmpBulkRateLimitHandler>()
             .AddHttpMessageHandler<FmpBulkTimeoutHandler>();
 

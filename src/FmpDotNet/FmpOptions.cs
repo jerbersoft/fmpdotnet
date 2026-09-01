@@ -42,11 +42,35 @@ public sealed class FmpOptions
     /// upstream is already refusing us.</para></summary>
     public Duration RequestTimeout { get; set; } = Duration.FromSeconds(30);
 
-    /// <summary>Ceiling on the <c>Retry-After</c> hold a single 429 may impose on the shared bucket. The header is
-    /// honoured, but not without bound: it is an upstream-controlled value that stops every FMP call in the
-    /// process, so a misparse or a hostile <c>Retry-After: 86400</c> would otherwise idle the host for a day while
-    /// its logs said only that it was waiting. Clamping is logged.</summary>
+    /// <summary>Ceiling on any wait an upstream response can impose. The header is honoured, but not without
+    /// bound: it is an upstream-controlled value, so a misparse or a hostile <c>Retry-After: 86400</c> would
+    /// otherwise idle the caller for a day while its logs said only that it was waiting. Clamping is logged.
+    ///
+    /// <para>Two things are clamped by it. A <b>429</b> holds the shared token bucket, stopping every FMP call in
+    /// the process (<see cref="Http.FmpRateLimitHandlerBase"/>); a <b>retryable failure</b> holds only the call
+    /// that met it (<see cref="Http.FmpRetryHandlerBase"/>), and the same ceiling caps its computed backoff as
+    /// well as any <c>Retry-After</c> it was given.</para></summary>
     public Duration MaxRetryAfter { get; set; } = Duration.FromSeconds(120);
+
+    /// <summary>How many times one ordinary request may be SENT before its failure is handed to the caller —
+    /// attempts, not retries, so the default of 3 means at most two re-sends and <b>1 disables retrying
+    /// entirely</b>.
+    ///
+    /// <para>Only a 5xx and a transport-level fault are retried. <b>A 429 is not</b>, deliberately: it is already
+    /// answered by draining the shared token bucket, so every caller in the process meets back-pressure rather
+    /// than the one that drew the refusal, and re-sending would amplify load exactly when FMP is refusing us. A
+    /// 4xx is not retried either — it is a stable fact about the request, and three attempts would produce three
+    /// identical refusals. See <see cref="Http.FmpRetryHandlerBase"/>.</para></summary>
+    public int MaxAttempts { get; set; } = 3;
+
+    /// <summary>First step of the retry backoff, doubling per attempt with jitter of up to one further
+    /// <see cref="RetryBaseDelay"/> on top — so the default yields waits of roughly 1-2s then 2-3s. Capped by
+    /// <see cref="MaxRetryAfter"/>, and overridden entirely when the failing response carried a
+    /// <c>Retry-After</c>.
+    ///
+    /// <para>The jitter is not decoration. Without it, every client that started together retries together, and
+    /// the upstream meets the same synchronised wave it has just failed to serve.</para></summary>
+    public Duration RetryBaseDelay { get; set; } = Duration.FromSeconds(1);
 
     /// <summary>Self-throttle for the <c>*-bulk</c> endpoints, in requests per minute. Measured 2026-08-26: bulk is
     /// limited independently of <see cref="PerMinuteCap"/> and far more tightly — a second call moments after the
@@ -60,6 +84,16 @@ public sealed class FmpOptions
     /// <c>key-metrics-ttm-bulk</c> 44 MB in a single response, which the 30 s ordinary budget will not carry on a
     /// normal connection.</summary>
     public Duration BulkRequestTimeout { get; set; } = Duration.FromMinutes(10);
+
+    /// <summary>How many times one <c>*-bulk</c> request may be SENT. <b>The default of 1 means no retry at
+    /// all</b>, which is the asymmetry with <see cref="MaxAttempts"/> and is deliberate.
+    ///
+    /// <para>Bulk is not ordinary traffic with larger payloads; its budget is a different order.
+    /// <see cref="BulkPerMinuteCap"/> defaults to 2, and the retry sits outside the throttle so that every attempt
+    /// re-acquires a token — which means one extra attempt costs thirty seconds of the bulk reservoir. FMP's own
+    /// error text on these endpoints warns that "frequent abuse on this API Endpoint may result in restrictions
+    /// placed on this API Key". Raise it if a run genuinely needs it; nobody should get it by default.</para></summary>
+    public int BulkMaxAttempts { get; set; } = 1;
 
     /// <summary>Directory in which to replay <c>*-bulk</c> responses from disk instead of calling FMP. Null or
     /// empty — the default — means every bulk call goes to the upstream.
