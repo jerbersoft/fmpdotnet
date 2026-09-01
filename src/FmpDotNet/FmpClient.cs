@@ -34,7 +34,13 @@ public sealed class FmpClient(
     /// whole-market earnings calendar.
     ///
     /// <para>Both answer dates rather than periods, which is why they are not on <see cref="Statements"/>: neither
-    /// takes a <see cref="FiscalPeriod"/>, and the calendar takes no symbol at all.</para></summary>
+    /// takes a <see cref="FiscalPeriod"/>, and the calendar takes no symbol at all.</para>
+    ///
+    /// <para><b>Two of the nine methods make more than one request.</b>
+    /// <see cref="CalendarEndpoints.GetEarningsCalendarAsync"/> and
+    /// <see cref="CalendarEndpoints.GetDividendsCalendarAsync"/> walk FMP's <c>page</c> cursor past a 4000-row
+    /// cap — a full year of dividends is 8 requests — and both report a seam defect that costs about 3% of a wide
+    /// range. Read either method before asking for a range wider than a page.</para></summary>
     public CalendarEndpoints Calendar { get; } = calendar;
 
     /// <summary>Forward consensus — what analysts expect rather than what was reported.</summary>

@@ -24,7 +24,7 @@ public class CalendarResultTests
     private static CalendarResult<string> Result(
         int rowsReturned, LocalDate from, LocalDate to, LocalDate? earliest,
         int? rowCap = null, int? lookback = null, IReadOnlyList<string>? rows = null) =>
-        new(rows ?? [], rowsReturned, from, to, earliest, rowCap, lookback);
+        new(rows ?? [], CalendarWalk.Single(rowsReturned), from, to, earliest, rowCap, lookback);
 
     // ---- it is a list first -------------------------------------------------------------------------------
 
@@ -174,5 +174,62 @@ public class CalendarResultTests
     public void The_static_helper_refuses_null()
     {
         Assert.Throws<ArgumentNullException>(() => CalendarResult<string>.IsLikelyTruncated(null!));
+    }
+
+    // ---- the walk evidence (#49) --------------------------------------------------------------------------
+
+    [Fact]
+    public void A_one_page_result_reports_one_page_and_no_seam()
+    {
+        var result = new CalendarResult<string>(
+            ["a", "b"], CalendarWalk.Single(2), Day(2026, 1, 1), Day(2026, 1, 31), Day(2026, 1, 1),
+            rowCap: 4000, lookbackLimitDays: null);
+
+        Assert.Equal(1, result.PagesFetched);
+        Assert.Equal(0, result.SeamDuplicateRows);
+        Assert.Equal(2, result.RowsReturned);
+    }
+
+    [Fact]
+    public void AtRowCap_reads_the_LAST_page_fetched_and_not_the_total()
+    {
+        // The whole point of the change. Before #49 a 4000-row response meant "rows are gone". After it, a
+        // 4000-row page 0 means "there is another page", and the walk fetched it, so a walk that ended on a
+        // short page is NOT at the cap however many rows it gathered in total.
+        var walked = new CalendarResult<string>(
+            [], new CalendarWalk(RowsReturned: 9325, PagesFetched: 3, LastPageRowCount: 1325, SeamDuplicateRows: 0),
+            Day(2026, 5, 1), Day(2026, 5, 31), Day(2026, 5, 1), rowCap: 4000, lookbackLimitDays: null);
+
+        Assert.False(walked.AtRowCap);
+        Assert.False(walked.LikelyTruncated);
+    }
+
+    [Fact]
+    public void AtRowCap_fires_when_the_walk_stopped_with_a_full_page_in_hand()
+    {
+        // The walk hit its page ceiling, or a repeat, while the last page it appended was still full: rows
+        // are still behind it, which is exactly what AtRowCap has always meant.
+        var result = new CalendarResult<string>(
+            [], new CalendarWalk(RowsReturned: 400_000, PagesFetched: 100, LastPageRowCount: 4000, SeamDuplicateRows: 0),
+            Day(2016, 1, 1), Day(2026, 1, 1), Day(2016, 1, 1), rowCap: 4000, lookbackLimitDays: null);
+
+        Assert.True(result.AtRowCap);
+        Assert.True(result.LikelyTruncated);
+    }
+
+    [Fact]
+    public void An_overlapping_seam_is_truncation_even_when_the_walk_ended_cleanly()
+    {
+        // Measured 2026-09-01 over seven seams: an overlapping seam loses exactly as many rows as it
+        // duplicates -- 381/381, 174/174, 315/315 -- and a clean seam loses none. So a walk that ran to a
+        // short page and still overlapped somewhere is missing rows, and no row count can see it.
+        var result = new CalendarResult<string>(
+            [], new CalendarWalk(RowsReturned: 28_104, PagesFetched: 8, LastPageRowCount: 104, SeamDuplicateRows: 913),
+            Day(2025, 1, 1), Day(2025, 12, 31), Day(2025, 1, 1), rowCap: 4000, lookbackLimitDays: null);
+
+        Assert.False(result.AtRowCap);
+        Assert.False(result.MissesStartOfRange);
+        Assert.True(result.LikelyTruncated);
+        Assert.Equal(913, result.SeamDuplicateRows);
     }
 }

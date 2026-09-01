@@ -111,8 +111,9 @@ internal static class LiveApi
     ///
     /// <para>Over seven days the same five answered 1652, 40, 34, 764 and 8. Seven and not fourteen because of
     /// the other direction: <c>dividends-calendar</c> caps at 4000 rows and answered 3249 over a fortnight —
-    /// 81% of the cap — against 1652 over a week. A baseline recorded from a truncated response would normalise
-    /// truncation as that endpoint's healthy state.</para>
+    /// 81% of the cap — against 1652 over a week. Since #49 <c>GetDividendsCalendarAsync</c> walks the cursor
+    /// past that cap, so a fortnight is no longer truncated — it is one request more expensive, and seven days
+    /// keeps this baseline to a single request.</para>
     ///
     /// <para>Not used for <c>GetEarningsCalendarAsync</c> or for the economic calendar; both measured a 7-day
     /// window as unsafe on their own endpoints and keep <see cref="SettledWeekday"/>.</para></summary>

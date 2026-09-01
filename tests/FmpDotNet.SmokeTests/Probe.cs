@@ -272,11 +272,12 @@ internal static class Probe
     /// and this would not see it. Every public property across the models was re-classified on 2026-08-31,
     /// superseding a count of 1775 that this slice's own two hundred and twelve new nullable properties had
     /// already outgrown: 1987 are nullable, 26 are <c>string</c> defaulting to <c>""</c> and 4 are
-    /// collection-typed defaulting to empty, all of which this reads correctly. <b>Nineteen</b> are
-    /// non-nullable value types. Eight are on
+    /// collection-typed defaulting to empty, all of which this reads correctly. <b>Twenty-three</b> are
+    /// non-nullable value types. Ten are on
     /// <see cref="Models.CalendarResult{T}"/> — <c>AtRowCap</c>, <c>Count</c>, <c>ExceedsLookbackLimit</c>,
-    /// <c>LikelyTruncated</c>, <c>MissesStartOfRange</c>, <c>RequestedFrom</c>, <c>RequestedTo</c>,
-    /// <c>RowsReturned</c> — and seven of those same names on <see cref="Models.EarningsCalendarResult"/>, which
+    /// <c>LikelyTruncated</c>, <c>MissesStartOfRange</c>, <c>PagesFetched</c>, <c>RequestedFrom</c>,
+    /// <c>RequestedTo</c>, <c>RowsReturned</c>, <c>SeamDuplicateRows</c> — and nine of those same names on
+    /// <see cref="Models.EarningsCalendarResult"/>, which
     /// has no <c>ExceedsLookbackLimit</c>; both are list wrappers built by an internal constructor rather than
     /// deserialised, and neither is ever inspected here. <see cref="Models.AnalystEstimate.Period"/> carries
     /// <c>[JsonIgnore]</c> — the SDK sets it from the request, so it is not a field FMP sends and there is
@@ -462,9 +463,10 @@ internal static class Probe
         // CalendarEndpoints, on the METHOD NAME, because RangeStart's ninety days is not one safe width for
         // every date-ranged endpoint — it is safe only for the endpoints that were measured to tolerate it, and
         // "the endpoints that were measured to tolerate it" turns out to need three answers rather than two.
-        // CalendarEndpoints.GetEarningsCalendarAsync's own doc records day-at-a-time as "the only chunk width
-        // measured to be safe": a 31-day window in a heavy month silently truncated at exactly 4000 rows,
-        // eating the front of the range with no signal in the body. EconomicsEndpoints.GetEconomicCalendarAsync's
+        // CalendarEndpoints.GetEarningsCalendarAsync's own doc used to record day-at-a-time as "the only chunk
+        // width measured to be safe"; since #49 the method walks the cursor past its cap instead, so a wider
+        // window here is no longer wrong, only an extra request per 4000 rows on every run — which is why this
+        // probe still keeps it narrow. EconomicsEndpoints.GetEconomicCalendarAsync's
         // own doc measured a 6-month window returning 535 rows — FEWER than the 3-month window it wholly
         // contains — and a −3-to-+12-month window returning 0; "the widest range verified intact here is one
         // week." A 91-day `from` is guaranteed truncated on the first and lands in non-monotonic, unverified
@@ -498,9 +500,11 @@ internal static class Probe
                     => LiveApi.SettledWeekday,
 
                 // The earnings calendar is the deliberate exception among the Calendar methods, and this arm
-                // MUST come before the general one below. Its own doc records day-at-a-time as "the only chunk
-                // width measured to be safe": a 7-day peak-season window returned 3676 rows against a 4000-row
-                // cap, and a 31-day window returned exactly 4000. Narrowing it was the previous slice's fix.
+                // MUST come before the general one below. Its own doc used to record day-at-a-time as "the
+                // only chunk width measured to be safe". Since #49 the method walks the cursor instead, so a
+                // wider window is no longer WRONG -- it is expensive. A 7-day peak-season window measured 3676
+                // rows, and a week that crossed the cap would cost the sweep an extra request per 4000 rows on
+                // every run. One day keeps the sweep to one request.
                 "from" when parameter.Member.DeclaringType == typeof(Endpoints.CalendarEndpoints)
                     && parameter.Member.Name == nameof(Endpoints.CalendarEndpoints.GetEarningsCalendarAsync)
                     => LiveApi.SettledWeekday,

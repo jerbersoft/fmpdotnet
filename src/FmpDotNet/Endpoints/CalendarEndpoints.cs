@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization.Metadata;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 using NodaTime;
@@ -55,6 +56,91 @@ namespace FmpDotNet.Endpoints;
 /// </list></summary>
 public sealed class CalendarEndpoints(FmpTransport transport)
 {
+    /// <summary>The most pages <see cref="GetEarningsCalendarAsync"/> and
+    /// <see cref="GetDividendsCalendarAsync"/> will fetch for one call.
+    ///
+    /// <para><b>A guard, not a measurement, and it is the one number here with no probe behind it.</b> Neither
+    /// path has a page ceiling: measured 2026-09-01, <c>page=101</c> and <c>page=1000</c> both answer <c>[]</c>
+    /// under HTTP 200, so a walk that stops on a short page provably terminates and this bound is never
+    /// reached in practice. It exists because a sibling path already breaks that reasoning —
+    /// <c>ipos-calendar</c> serves <c>page=5</c> byte-identically to <c>page=0</c>, every page full, so a walk
+    /// there would never end. 100 pages is 400,000 rows, about fourteen years of dividends at the measured
+    /// 28,104 rows a year.</para>
+    ///
+    /// <para>Reaching it is reported rather than thrown: the rows already fetched are real, and this SDK
+    /// reports rather than fails. A walk stopped here ends with a full page as its last, so
+    /// <see cref="Models.CalendarResult{T}.AtRowCap"/> fires.</para></summary>
+    public const int MaxCalendarPages = 100;
+
+    /// <summary>FMP's undocumented hard cap on one <c>stable/dividends-calendar</c> page. Measured 2026-08-28
+    /// and again 2026-09-01: a request for the whole of 2025 answers exactly 4000 rows, and
+    /// <c>limit=10000</c> is accepted and ignored. <c>page</c> is what escapes it.</summary>
+    private const int DividendsCalendarRowCap = 4000;
+
+    /// <summary>Walks <c>page=0, 1, 2, …</c> until a page comes back short, and hands back the concatenation
+    /// with the evidence gathered between pages.
+    ///
+    /// <para><b>Rows are concatenated in walk order and otherwise untouched</b> — not sorted, not
+    /// de-duplicated. A row arriving on both sides of a seam is FMP's row, served twice by FMP; removing one
+    /// would be a guess about which of two identical rows is real, and FMP's own data carries genuine
+    /// duplicate rows. The count goes to
+    /// <see cref="Models.CalendarResult{T}.SeamDuplicateRows"/> instead, where it doubles as the count of
+    /// rows the walk never saw.</para>
+    ///
+    /// <para><b>Three terminators.</b> A short page is the last page — measured on four walks, none of which
+    /// produced a short page followed by a full one. A page whose distinct rows are exactly its predecessor's
+    /// is that predecessor served again, which is what <c>ipos-calendar</c> does today; it is discarded rather
+    /// than appended. And <see cref="MaxCalendarPages"/> bounds the loop whatever FMP does.</para>
+    ///
+    /// <para>Internal rather than private so the terminators can be tested at their own level. Reaching the
+    /// page ceiling through a calendar method would need 100 full pages — 400,000 rows at the real cap — for
+    /// one assertion; <c>CalendarWalkTests</c> reaches it with <c>rowCap: 2</c>. Nothing here branches on being
+    /// under test.</para></summary>
+    internal async Task<(List<T> Rows, Models.CalendarWalk Walk)> WalkAsync<T>(
+        Func<int, FmpRequest> buildRequest,
+        JsonTypeInfo<List<T>> typeInfo,
+        int rowCap,
+        CancellationToken ct)
+    {
+        var all = new List<T>();
+        var pages = 0;
+        var seamDuplicates = 0;
+        var lastPageRowCount = 0;
+        HashSet<T>? previous = null;
+
+        for (var page = 0; page < MaxCalendarPages; page++)
+        {
+            var rows = await transport.GetListAsync(buildRequest(page), typeInfo, ct).ConfigureAwait(false);
+
+            // Distinct rows, because the seam is measured between SETS: a row FMP sends twice within one page
+            // is not a paging artefact and must not be counted as one. The models are records, so this is
+            // structural equality and costs one hash pass per page.
+            var current = new HashSet<T>(rows);
+
+            if (previous is not null)
+            {
+                var shared = 0;
+                foreach (var row in current)
+                    if (previous.Contains(row)) shared++;
+
+                // Every row already seen and nothing new: this page IS the previous one. Stop before appending
+                // it, or a path that ignores `page` returns the same rows MaxCalendarPages times.
+                if (shared == current.Count && shared == previous.Count) break;
+
+                seamDuplicates += shared;
+            }
+
+            all.AddRange(rows);
+            pages++;
+            lastPageRowCount = rows.Count;
+            previous = current;
+
+            if (rows.Count < rowCap) break;
+        }
+
+        return (all, new Models.CalendarWalk(all.Count, pages, lastPageRowCount, seamDuplicates));
+    }
+
     /// <summary>Earnings dates for one symbol, <b>newest first</b>, from <c>stable/earnings</c>.
     ///
     /// <para><b>The row at index 0 is normally an event that has not happened yet.</b> This is the trap on this
@@ -103,8 +189,9 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
     /// <summary>Every earnings event FMP has in a date range, from <c>stable/earnings-calendar</c>.
     ///
-    /// <para>Two upstream behaviours make this endpoint harder to use correctly than its signature suggests, and
-    /// both were measured on 2026-08-26 rather than read from the documentation.</para>
+    /// <para>Three upstream behaviours make this endpoint harder to use correctly than its signature suggests.
+    /// The cap and the re-dating were measured on 2026-08-26; the walk that escapes the cap, and what it costs,
+    /// was measured 2026-09-01 (#49) — none of it read from the documentation.</para>
     ///
     /// <para><b>1. The response is silently capped at 4000 rows, and the truncation eats the front of the
     /// range.</b> One day (05-13) answers 2039 rows on its own. Ask for 05-13 to 05-14 together and the answer is
@@ -116,21 +203,25 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="EarningsCalendarResult.IsLikelyTruncated(IReadOnlyList{EarningsCalendarEntry})"/> reads it. The
     /// signal is computed on the raw response <b>before</b> any clamping, which matters: clamp first and a
     /// truncated 4000-row response can reach a row-count test already reduced below 4000 and pass it.
-    /// <b>Day-at-a-time is the only chunk width measured to be safe</b> — a 31-day window in a heavy month returned
-    /// exactly 4000, a 7-day peak-season window returned 3676, and an unchunked 15-month request returned 7 rows.</para>
+    /// <b>The cap is escapable and this method now escapes it</b> — see below. What the cap still costs is a
+    /// request per 4000 rows: measured 2026-09-01, the first half of 2025 is 45,765 rows over 12 requests.</para>
     ///
-    /// <para><b>There IS a cursor, this method does not use it, and so it is still returning a fraction of a busy
-    /// range. An earlier version of this note said no cursor existed; that was wrong, and it was wrong because
-    /// the conclusion was drawn from <c>limit</c> alone.</b> Measured 2026-09-01 (#46): <c>page</c> is honoured on
-    /// this path even though <c>limit</c> is not. The same <c>from=2026-05-13&amp;to=2026-05-19</c> request answers
-    /// 4000 rows on page 0, <b>2497 more on page 1</b> and 0 on page 2 — <b>6497 in total, of which this method
-    /// returns 62%</b>. The pages are a clean partition, checked by comparing <c>(date, symbol)</c> sets rather
-    /// than assumed: page 0 ∩ page 1 is <b>empty</b>. And page 1 is precisely the missing front of the range —
-    /// 2038 rows dated 2026-05-13, the day page 0 omits entirely, against the 2039 that day answers on its own.
-    /// Fixing this changes the method's contract and the meaning of its truncation signal, so it is tracked
-    /// separately: see #49.</para>
+    /// <para><b>2. This method walks the cursor, and the walk is not lossless.</b> Measured 2026-09-01 (#49):
+    /// <c>page</c> is honoured here even though <c>limit</c> is not, so <c>from=2026-05-13&amp;to=2026-05-19</c>
+    /// answers 4000 rows on page 0, 2496 on page 1 and 0 on page 2 — <b>6496 in total, where this method used
+    /// to return 4000</b>. It now fetches all of them, at one request per page.</para>
     ///
-    /// <para><b>2. <paramref name="includeReportTimes"/> re-dates some rows past the end of the range; it does not
+    /// <para><b>But a page seam loses rows, and the loss is reported rather than repaired.</b> FMP orders
+    /// these responses by <c>date</c> and by nothing else, and a seam always falls <i>inside</i> a date — all
+    /// 22 measured. So some rows arrive on both sides of a seam and an equal number of different rows arrive
+    /// on neither: measured over the first half of 2025, 1,166 rows across 7 of 11 seams, deterministic across
+    /// re-fetches. <see cref="EarningsCalendarResult.SeamDuplicateRows"/> counts them, and seven seams
+    /// re-checked a day at a time put that count at exactly the number of rows lost — 381/381, 174/174,
+    /// 315/315, and three clean seams losing none. <b>A range narrow enough to fit one page has no seam and
+    /// cannot lose anything</b>, which is what to fall back on when
+    /// <see cref="EarningsCalendarResult.LikelyTruncated"/> fires.</para>
+    ///
+    /// <para><b>3. <paramref name="includeReportTimes"/> re-dates some rows past the end of the range; it does not
     /// add them.</b> The plain and flagged requests for 05-13 return the <b>identical 2039-symbol set</b>, but 51 of
     /// those rows report <c>2026-05-14</c> when the flag is on. None of those 51 symbols appear in the
     /// <c>from=2026-05-14&amp;to=2026-05-14</c> request at all. So selection happens on the un-shifted date and only
@@ -147,8 +238,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// also appears in the following chunk was <i>inferred</i> from it and never tested; tested on 2026-08-26, it
     /// is false.</para></summary>
     /// <param name="from">First day of the range, inclusive.</param>
-    /// <param name="to">Last day of the range, inclusive. May equal <paramref name="from"/>, and day-at-a-time is
-    /// the recommended and only measured-safe usage.</param>
+    /// <param name="to">Last day of the range, inclusive. May equal <paramref name="from"/>, and a range narrow
+    /// enough to fit one page is the only width that cannot lose rows at a seam.</param>
     /// <param name="includeReportTimes">Sends <c>includeReportTimes=true</c>, which populates
     /// <see cref="EarningsCalendarEntry.ReportTime"/> and the four other extras — and re-dates a small fraction of
     /// rows one day forward, as above. Omitted from the query entirely when false, matching the request that was
@@ -173,15 +264,19 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     {
         DateRange.ThrowIfBackwards(from, to);
 
-        var request = new FmpRequest("stable/earnings-calendar")
-            .With("from", from)
-            .With("to", to)
-            // Sent only when true. The measured plain request omits the parameter rather than sending false, and
-            // there is no evidence about how FMP reads an explicit false.
-            .With("includeReportTimes", includeReportTimes ? true : (bool?)null);
-
-        var rows = await transport.GetListAsync(request, FmpJsonContext.Default.ListEarningsCalendarEntry, ct)
-            .ConfigureAwait(false);
+        var (rows, walk) = await WalkAsync(
+            page => new FmpRequest("stable/earnings-calendar")
+                .With("from", from)
+                .With("to", to)
+                // Sent only when true. The measured plain request omits the parameter rather than sending
+                // false, and there is no evidence about how FMP reads an explicit false.
+                .With("includeReportTimes", includeReportTimes ? true : (bool?)null)
+                // Omitted on page 0, where it was measured byte-identical to sending nothing: the first
+                // request of a walk is the request this method made before it walked.
+                .With("page", page == 0 ? (int?)null : page),
+            FmpJsonContext.Default.ListEarningsCalendarEntry,
+            EarningsCalendarResult.RowCap,
+            ct).ConfigureAwait(false);
 
         // Both truncation tells are taken from the raw response, before the filter below can move either of them.
         LocalDate? earliest = null;
@@ -196,7 +291,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
             kept.Add(row);
         }
 
-        return new EarningsCalendarResult(kept, rows.Count, from, to, earliest);
+        return new EarningsCalendarResult(kept, walk, from, to, earliest);
     }
 
     /// <summary>Every dividend FMP holds for one symbol, newest first, from <c>stable/dividends</c>.
@@ -252,19 +347,23 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// This method reports the truncation — which is what <see cref="CalendarResult{T}"/> is for, and the returned
     /// list is one.</para>
     ///
-    /// <para><b>There IS a cursor, this method does not use it, and an earlier version of this note said
-    /// otherwise.</b> Measured 2026-09-01 (#46): <c>page</c> is honoured here even though <c>limit</c> is not, and
-    /// the earlier conclusion was drawn from <c>limit</c> alone. May 2026 answers 4000 rows on page 0,
-    /// <b>4000 more on page 1 and 1332 on page 2</b> — <b>9332 in total, of which this method returns 43%</b>. The
-    /// pages are a clean partition, checked rather than assumed: adjacent pages share <b>no</b> <c>(date, symbol)</c>
-    /// pair and their union is exactly 4000 + 4000 + 1332, so nothing is served twice and nothing is dropped at a
-    /// seam. Order is date-descending and contiguous across it — page 0 ends 2026-05-21 and page 1 opens on
-    /// 2026-05-21. Tracked as #49.</para>
+    /// <para><b>This method walks the cursor, and the walk is not lossless.</b> Measured 2026-09-01 (#49):
+    /// <c>page</c> is honoured here even though <c>limit</c> is not. May 2026 answers 4000 rows on page 0,
+    /// 4000 on page 1 and 1325 on page 2 — <b>9325 where this method used to return 4000</b> — and the whole
+    /// of 2025 is <b>28,104 rows over 8 requests</b> against the same 4000. All of them are now fetched.</para>
+    ///
+    /// <para><b>A page seam loses rows.</b> Over that 2025 walk, 913 rows arrived on both sides of a seam and
+    /// 913 different rows arrived on neither, deterministically — re-fetching the year's first two pages
+    /// minutes later returned byte-identical responses carrying the identical 381-row overlap.
+    /// <see cref="CalendarResult{T}.SeamDuplicateRows"/> counts them and, measured, that count is the number
+    /// lost. A range that fits one page has no seam; that is the remedy when
+    /// <see cref="CalendarResult{T}.LikelyTruncated"/> fires.</para>
     ///
     /// <para><b>A safe width cannot be read off the calendar.</b> Density measured 340 rows on 2025-11-20, 673
     /// on 2025-03-14 and 876 on 2025-06-02, so the cap falls somewhere between five and eleven days depending on
     /// the season. A six-day window returned 2147 rows and was complete; a thirty-day window was not. That
-    /// season-dependence is exactly why this method reports rather than guesses a chunk size.</para>
+    /// season-dependence is why this method walks rather than guesses a chunk size, and reports the seam rather
+    /// than hiding it.</para>
     ///
     /// <code>
     /// var rows = await fmp.Calendar.GetDividendsCalendarAsync(from, to);
@@ -289,9 +388,15 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     {
         DateRange.ThrowIfBackwards(from, to);
 
-        var rows = await transport.GetListAsync(
-            new FmpRequest("stable/dividends-calendar").With("from", from).With("to", to),
-            FmpJsonContext.Default.ListDividend, ct).ConfigureAwait(false);
+        var (rows, walk) = await WalkAsync(
+            page => new FmpRequest("stable/dividends-calendar")
+                .With("from", from)
+                .With("to", to)
+                // Omitted on page 0, where it was measured byte-identical to sending nothing.
+                .With("page", page == 0 ? (int?)null : page),
+            FmpJsonContext.Default.ListDividend,
+            DividendsCalendarRowCap,
+            ct).ConfigureAwait(false);
 
         // Taken from the raw response, before the filter below can move it.
         LocalDate? earliest = null;
@@ -304,7 +409,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
         // rowCap 4000, lookbackLimitDays null: the cap always fires first at 340-876 rows a day, so no window
         // limit is observable on this path and asserting one would be inventing evidence.
-        return new CalendarResult<Dividend>(kept, rows.Count, from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
+        return new CalendarResult<Dividend>(
+            kept, walk, from, to, earliest, rowCap: DividendsCalendarRowCap, lookbackLimitDays: null);
     }
 
     /// <summary>Every split FMP holds for one symbol, newest first, from <c>stable/splits</c>.
@@ -363,7 +469,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <para><b><c>page</c> does not rescue this one, and that is worth knowing because it rescues its two
     /// siblings.</b> Measured 2026-09-01 (#46): <c>page</c> is a working cursor on
     /// <see cref="GetEarningsCalendarAsync"/> and <see cref="GetDividendsCalendarAsync"/>, where it pages past
-    /// their 4000-row cap (#49). Here it answers nothing to page past. <c>from=2026-01-01&amp;to=2026-08-28</c>
+    /// their 4000-row cap, which those two methods now walk (#49). Here it answers nothing to page past.
+    /// <c>from=2026-01-01&amp;to=2026-08-28</c>
     /// returned 944 rows whose earliest was 2026-05-31 — the 90-day edge, 89 days before <c>to</c>, not a row
     /// cap — and <c>page=1</c> answered <b>0 rows</b> rather than the missing January-to-May. The limit on this
     /// path is a lookback window, and no cursor reaches outside it.</para>
@@ -405,7 +512,8 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
         // The opposite of the dividend calendar: no cap was measured here, and the clamp is a flat 90-day
         // window from `to`.
-        return new CalendarResult<StockSplit>(kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+        return new CalendarResult<StockSplit>(
+            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
 
     /// <summary>Every offering FMP has scheduled or priced in a date range, from <c>stable/ipos-calendar</c>.
@@ -416,6 +524,15 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// 2015-01-01, the earliest row returned was 90 days before <c>to</c> every time. A request for the whole of
     /// 2024 answered Q4 of 2024, at <b>358 rows</b> — no cap was reached and none was measured on this path, so
     /// <see cref="CalendarResult{T}.MissesStartOfRange"/> is what catches it.</para>
+    ///
+    /// <para><b><c>page</c> is accepted here and does nothing at all</b>, which is worth stating precisely
+    /// because the other three date-ranged calendars each do something different with it. Measured 2026-09-01
+    /// (#49): <c>from=2026-01-01&amp;to=2026-08-31</c> answers 439 rows, and <c>page=1</c> and <c>page=5</c>
+    /// answer the <b>same 439 rows, byte-identically</b>. Compare <c>splits-calendar</c>, where <c>page=1</c>
+    /// is an empty array, and <see cref="GetEarningsCalendarAsync"/> and
+    /// <see cref="GetDividendsCalendarAsync"/>, where it is a working cursor those two methods walk. A walk
+    /// here would never terminate — every page is full and every page is the first — so this method makes one
+    /// request and the limit stays the 90-day window.</para>
     ///
     /// <para><b>Most rows are unpriced.</b> <see cref="IpoCalendarEntry.PriceRange"/> was null on 441 of 450
     /// rows, <see cref="IpoCalendarEntry.Shares"/> on 349 and <see cref="IpoCalendarEntry.MarketCap"/> on 354.
@@ -450,7 +567,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
             if (row is { Date: not null }) kept.Add(row);
 
         return new CalendarResult<IpoCalendarEntry>(
-            kept, rows.Count, from, to, earliest, rowCap: null, lookbackLimitDays: 90);
+            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: null, lookbackLimitDays: 90);
     }
 
     /// <summary>Effectiveness filings for registrations in a date range, from <c>stable/ipos-disclosure</c>.

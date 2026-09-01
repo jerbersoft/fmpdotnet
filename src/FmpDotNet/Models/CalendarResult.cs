@@ -16,7 +16,7 @@ namespace FmpDotNet.Models;
 /// if (rows is CalendarResult&lt;StockSplit&gt; { LikelyTruncated: true }) { /* narrow the range and retry */ }
 /// </code>
 ///
-/// <para><b>Two different mechanisms, measured 2026-08-28, and they need different tells.</b></para>
+/// <para><b>Three different mechanisms, and they need different tells.</b></para>
 ///
 /// <list type="bullet">
 /// <item><description><c>dividends-calendar</c> caps at <b>4000 rows</b>. A request for the whole of 2025
@@ -30,6 +30,11 @@ namespace FmpDotNet.Models;
 /// whole of 2024 answered Q4 of 2024 — <b>737 and 358 rows</b>, nowhere near any cap, which is why
 /// <see cref="AtRowCap"/> is blind to it. <see cref="LookbackLimitDays"/> is 90 and <see cref="RowCap"/> is
 /// null.</description></item>
+/// <item><description><c>dividends-calendar</c> also has a <b>cursor with an unstable seam</b>, measured
+/// 2026-09-01. Walking it past the cap recovers most of a wide range — 28,104 rows for 2025 against the 4000
+/// one request answers — but a seam falls inside a date, so some rows arrive twice and an equal number never
+/// arrive. <see cref="SeamDuplicateRows"/> is the tell, and it is the only one of the three that a row count
+/// and a date comparison both miss.</description></item>
 /// </list>
 ///
 /// <para><b>Everything here is measured on the raw response, before the SDK clamps or drops anything.</b> That
@@ -45,10 +50,11 @@ namespace FmpDotNet.Models;
 public sealed class CalendarResult<T> : IReadOnlyList<T>
 {
     private readonly IReadOnlyList<T> _rows;
+    private readonly CalendarWalk _walk;
 
     internal CalendarResult(
         IReadOnlyList<T> rows,
-        int rowsReturned,
+        CalendarWalk walk,
         LocalDate requestedFrom,
         LocalDate requestedTo,
         LocalDate? earliestReturnedDate,
@@ -56,7 +62,7 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
         int? lookbackLimitDays)
     {
         _rows = rows;
-        RowsReturned = rowsReturned;
+        _walk = walk;
         RequestedFrom = requestedFrom;
         RequestedTo = requestedTo;
         EarliestReturnedDate = earliestReturnedDate;
@@ -76,9 +82,44 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    /// <summary>How many rows FMP's response actually carried, counted before the SDK dropped anything. This,
-    /// and not <see cref="Count"/>, is what the truncation tells are computed from.</summary>
-    public int RowsReturned { get; }
+    /// <summary>How many rows FMP's responses actually carried, counted before the SDK dropped anything and
+    /// summed over every page kept. This, and not <see cref="Count"/>, is what the truncation tells are
+    /// computed from.</summary>
+    public int RowsReturned => _walk.RowsReturned;
+
+    /// <summary>How many pages of rows this result was assembled from. <b>1 on a path that does not page</b>,
+    /// never 0. It is pages kept rather than requests spent — a walk that ends by recognising a repeated page
+    /// pays for that page without counting it.
+    ///
+    /// <para>Only <c>dividends-calendar</c> walks among the three paths that return this type — measured
+    /// 2026-09-01, a full year of dividends is 8 requests and 28,104 rows against the 4000 a single request
+    /// answers. <c>splits-calendar</c> answers <c>page=1</c> with an empty array and <c>ipos-calendar</c>
+    /// ignores <c>page</c> altogether, serving page 5 byte-identically to page 0, so neither is walked and
+    /// both report 1 here.</para></summary>
+    public int PagesFetched => _walk.PagesFetched;
+
+    /// <summary>Rows that arrived on both sides of a page seam — <b>a count of rows lost, not of rows
+    /// duplicated</b>.
+    ///
+    /// <para>FMP orders these responses by <c>date</c> and by nothing else, and a page seam always falls
+    /// <i>inside</i> a date rather than between two — true of all 22 seams measured on 2026-09-01. So the
+    /// offset that cuts page <i>n+1</i> is applied to an ordering page <i>n</i> was not cut from: some rows
+    /// are served on both sides, and an equal number of different rows are served on neither.</para>
+    ///
+    /// <para><b>The equality is measured, not assumed.</b> Seven seams were re-requested a day at a time — a
+    /// single-day request fits one page and so has no seam — and compared against what the walk held for that
+    /// date: 381 duplicated / 381 missing, 174/174, 315/315, and three clean seams losing nothing. Not one row
+    /// appeared in a walk that the single-day request did not have, so rows are exchanged one for one rather
+    /// than invented.</para>
+    ///
+    /// <para><b>It is an estimator with a known bias, not a proof.</b> FMP's own data carries byte-identical
+    /// duplicate rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and
+    /// such a pair straddling a seam would be counted here with no loss behind it. No such case appeared in 22
+    /// seams.</para>
+    ///
+    /// <para>The remedy is a narrower range: one that fits in a single page has no seam and cannot lose
+    /// anything.</para></summary>
+    public int SeamDuplicateRows => _walk.SeamDuplicateRows;
 
     /// <summary>The <c>from</c> that was asked for.</summary>
     public LocalDate RequestedFrom { get; }
@@ -99,12 +140,21 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
     /// <c>dividends-calendar</c>, whose row cap always fires first.</summary>
     public int? LookbackLimitDays { get; }
 
-    /// <summary>The response came back at or above <see cref="RowCap"/>, so it is almost certainly cut short.
+    /// <summary>The <b>last page fetched</b> came back at or above <see cref="RowCap"/>, so the walk stopped
+    /// with a full page in hand and something is still behind it.
     ///
-    /// <para>Always <see langword="false"/> where <see cref="RowCap"/> is null. Exact at the cap and blind just
-    /// under it, so a false reading here is "complete" and never "truncated";
-    /// <see cref="MissesStartOfRange"/> is the tell that covers the near-cap case.</para></summary>
-    public bool AtRowCap => RowCap is { } cap && RowsReturned >= cap;
+    /// <para><b>This reads the last page, not the total, and before #49 there was only ever one page for it to
+    /// read.</b> A 4000-row response used to mean "rows are gone". Now it means "there is another page", and
+    /// <see cref="PagesFetched"/> says whether it was fetched — so a walk that ended on a short page is not at
+    /// the cap however many rows it gathered. What still fires this is a walk stopped by
+    /// <see cref="Endpoints.CalendarEndpoints.MaxCalendarPages"/>, or by a page repeating its predecessor,
+    /// with a full page as the last one appended.</para>
+    ///
+    /// <para>Always <see langword="false"/> where <see cref="RowCap"/> is null. Blind just under the cap: a
+    /// walk that stopped one row short of it reads exactly the same as one nowhere near it.
+    /// <see cref="MissesStartOfRange"/> and <see cref="SeamDuplicateRows"/> are the tells that cover what a row
+    /// count alone cannot see.</para></summary>
+    public bool AtRowCap => RowCap is { } cap && _walk.LastPageRowCount >= cap;
 
     /// <summary>The requested range is wider than this path will serve, so its front was dropped.
     ///
@@ -129,14 +179,19 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
     /// whereas the opposite loses rows.</para></summary>
     public bool MissesStartOfRange => EarliestReturnedDate is { } earliest && earliest > RequestedFrom;
 
-    /// <summary>Any tell fired, so treat these rows as incomplete and narrow the range.
+    /// <summary>Any tell fired, so these rows are not all of them.
     ///
-    /// <para><b>Safe widths, measured 2026-08-28.</b> <c>dividends-calendar</c> ran 340–876 rows a day, so the
-    /// cap falls somewhere between five and eleven days depending on the season — a six-day window returned 2147
-    /// and was complete, a thirty-day window was not. <c>splits-calendar</c> and <c>ipos-calendar</c> are flat
-    /// 90 days regardless of season. The SDK reports rather than chunks: see the remarks on the methods that
-    /// return this type.</para></summary>
-    public bool LikelyTruncated => AtRowCap || ExceedsLookbackLimit || MissesStartOfRange;
+    /// <para><b>Three mechanisms, three tells.</b> <see cref="AtRowCap"/> catches a walk that stopped with a
+    /// full page in hand. <see cref="ExceedsLookbackLimit"/> and <see cref="MissesStartOfRange"/> catch the
+    /// 90-day window clamp on <c>splits-calendar</c> and <c>ipos-calendar</c>, which no row count can see.
+    /// <see cref="SeamDuplicateRows"/> catches the one that only appears once a path is walked: a page seam
+    /// that dropped as many rows as it duplicated.</para>
+    ///
+    /// <para><b>The remedy depends on which fired.</b> A window clamp is answered by moving <c>to</c>; an
+    /// unstable seam by narrowing the range until it fits one page, which is the only width measured
+    /// lossless. See the remarks on the method that returned this.</para></summary>
+    public bool LikelyTruncated =>
+        AtRowCap || ExceedsLookbackLimit || MissesStartOfRange || SeamDuplicateRows > 0;
 
     /// <summary>Whether a calendar result should be treated as cut short, for callers holding it as a plain
     /// <see cref="IReadOnlyList{T}"/>.

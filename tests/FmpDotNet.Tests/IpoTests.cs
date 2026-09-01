@@ -365,4 +365,19 @@ public class IpoTests
         }
         return json.Append(']').ToString();
     }
+
+    [Fact]
+    public async Task The_ipo_calendar_does_not_walk_because_page_does_nothing_here()
+    {
+        // The reason the walk needs a repeat terminator at all. Measured 2026-09-01:
+        // ipos-calendar?from=2026-01-01&to=2026-08-31 answers 439 rows, and page=1 and page=5 answer the SAME
+        // 439 rows, SHA-256 identical. Every page is full and every page is the first, so a walk that stopped
+        // only on a short page would never stop. This path is left un-walked deliberately.
+        var (endpoints, handler) = Build(Binding.Fixture("ipos-calendar.head.json"));
+
+        await endpoints.GetIpoCalendarAsync(Day(2026, 6, 1), Day(2026, 8, 28));
+
+        Assert.Single(handler.Requests);
+        Assert.DoesNotContain("page", handler.Requests[0].Query, StringComparison.Ordinal);
+    }
 }
