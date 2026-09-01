@@ -262,8 +262,15 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <summary>Every line of one Senator's financial disclosures — <c>stable/senate-net-worth</c>.
     ///
     /// <para>One row per disclosed asset, income source or liability, across every report filed. Measured
-    /// 2026-08-29, <c>H000601</c> answered 250 rows and <c>limit</c> was ignored, so none is
-    /// offered.</para></summary>
+    /// 2026-08-29, <c>H000601</c> answered 250 rows and <c>limit</c> was ignored, so none is offered.</para>
+    ///
+    /// <para><b><c>page</c> is inert here too, which is worth stating because it is honoured on this group's
+    /// four trade paths.</b> Re-measured 2026-09-01 (#46) on <c>M001243</c>, which also answers 250:
+    /// <c>limit=5</c>, <c>limit=1</c>, <c>page=1</c> and <c>page=2</c> each returned the full 250 rows in a body
+    /// byte-identical to the request without them. Meanwhile <c>senate-trades-by-id</c> pages properly —
+    /// 100, 45, 0 across pages 0 to 2. So paging on this group is per-path and cannot be reasoned about from a
+    /// sibling. 250 looks like a round number but is not a cap: nothing here answered more than the filer
+    /// held.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -285,7 +292,14 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <c>stable/senate-net-worth-aggregated</c>.
     ///
     /// <para>One row per reporting year. Measured 2026-08-29, <c>H000601</c> answered six, 2019 through
-    /// 2024 — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by line.</para></summary>
+    /// 2024 — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by line.</para>
+    ///
+    /// <para><b>No <c>totalsCol</c>: it is accepted and ignored.</b> <c>fmpsdk</c> sends one, so this is recorded
+    /// rather than left to be re-opened by the next parameter diff. Measured 2026-09-01 (#46) on <c>M001243</c>,
+    /// which answers three rows: <c>totalsCol=total</c>, <c>=stock</c>, <c>=1</c> and <c>=true</c> each returned
+    /// a body byte-identical to the request without it. Four values rather than one because a single wrong value
+    /// cannot tell "ignored" from "unrecognised" — if there is a working vocabulary here, none of a column name,
+    /// a category name, an index and a boolean is in it.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>

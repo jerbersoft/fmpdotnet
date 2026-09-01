@@ -110,14 +110,25 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// range.</b> One day (05-13) answers 2039 rows on its own. Ask for 05-13 to 05-14 together and the answer is
     /// <b>exactly 4000</b>, of which only 1969 are dated 05-13 — 70 rows of a day that was complete a moment ago
     /// are simply gone, and the cut does not respect day boundaries. Ask for 05-13 to 05-19 and the answer is again
-    /// exactly 4000, this time with <b>no 05-13 row at all</b>. <c>limit=6000</c> is accepted and ignored. There is
-    /// no cursor, so the SDK cannot page around this; it can only detect it, which is what
+    /// exactly 4000, this time with <b>no 05-13 row at all</b>. <c>limit=6000</c> is accepted and ignored. This
+    /// method detects the truncation, which is what
     /// <see cref="EarningsCalendarResult"/> is for — the returned list is one, and
     /// <see cref="EarningsCalendarResult.IsLikelyTruncated(IReadOnlyList{EarningsCalendarEntry})"/> reads it. The
     /// signal is computed on the raw response <b>before</b> any clamping, which matters: clamp first and a
     /// truncated 4000-row response can reach a row-count test already reduced below 4000 and pass it.
     /// <b>Day-at-a-time is the only chunk width measured to be safe</b> — a 31-day window in a heavy month returned
     /// exactly 4000, a 7-day peak-season window returned 3676, and an unchunked 15-month request returned 7 rows.</para>
+    ///
+    /// <para><b>There IS a cursor, this method does not use it, and so it is still returning a fraction of a busy
+    /// range. An earlier version of this note said no cursor existed; that was wrong, and it was wrong because
+    /// the conclusion was drawn from <c>limit</c> alone.</b> Measured 2026-09-01 (#46): <c>page</c> is honoured on
+    /// this path even though <c>limit</c> is not. The same <c>from=2026-05-13&amp;to=2026-05-19</c> request answers
+    /// 4000 rows on page 0, <b>2497 more on page 1</b> and 0 on page 2 — <b>6497 in total, of which this method
+    /// returns 62%</b>. The pages are a clean partition, checked by comparing <c>(date, symbol)</c> sets rather
+    /// than assumed: page 0 ∩ page 1 is <b>empty</b>. And page 1 is precisely the missing front of the range —
+    /// 2038 rows dated 2026-05-13, the day page 0 omits entirely, against the 2039 that day answers on its own.
+    /// Fixing this changes the method's contract and the meaning of its truncation signal, so it is tracked
+    /// separately: see #49.</para>
     ///
     /// <para><b>2. <paramref name="includeReportTimes"/> re-dates some rows past the end of the range; it does not
     /// add them.</b> The plain and flagged requests for 05-13 return the <b>identical 2039-symbol set</b>, but 51 of
@@ -238,8 +249,17 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// rows whose earliest date was <b>2025-12-29</b> — a request for a year, answered with its last three days,
     /// and a caller reading <c>rows[0]</c> is handed December believing they hold January. One month behaves the
     /// same way: June 2025 answered 4000 rows starting 2025-06-26. <c>limit=10000</c> was accepted and ignored.
-    /// There is no cursor, so the SDK cannot page around it and can only report it — which is what
-    /// <see cref="CalendarResult{T}"/> is for, and the returned list is one.</para>
+    /// This method reports the truncation — which is what <see cref="CalendarResult{T}"/> is for, and the returned
+    /// list is one.</para>
+    ///
+    /// <para><b>There IS a cursor, this method does not use it, and an earlier version of this note said
+    /// otherwise.</b> Measured 2026-09-01 (#46): <c>page</c> is honoured here even though <c>limit</c> is not, and
+    /// the earlier conclusion was drawn from <c>limit</c> alone. May 2026 answers 4000 rows on page 0,
+    /// <b>4000 more on page 1 and 1332 on page 2</b> — <b>9332 in total, of which this method returns 43%</b>. The
+    /// pages are a clean partition, checked rather than assumed: adjacent pages share <b>no</b> <c>(date, symbol)</c>
+    /// pair and their union is exactly 4000 + 4000 + 1332, so nothing is served twice and nothing is dropped at a
+    /// seam. Order is date-descending and contiguous across it — page 0 ends 2026-05-21 and page 1 opens on
+    /// 2026-05-21. Tracked as #49.</para>
     ///
     /// <para><b>A safe width cannot be read off the calendar.</b> Density measured 340 rows on 2025-11-20, 673
     /// on 2025-03-14 and 876 on 2025-06-02, so the cap falls somewhere between five and eleven days depending on
@@ -339,6 +359,14 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// against the <c>from</c> that was asked for. That is a different mechanism from
     /// <see cref="GetDividendsCalendarAsync"/>, which is row-capped instead, and the returned type reports which
     /// one applies.</para>
+    ///
+    /// <para><b><c>page</c> does not rescue this one, and that is worth knowing because it rescues its two
+    /// siblings.</b> Measured 2026-09-01 (#46): <c>page</c> is a working cursor on
+    /// <see cref="GetEarningsCalendarAsync"/> and <see cref="GetDividendsCalendarAsync"/>, where it pages past
+    /// their 4000-row cap (#49). Here it answers nothing to page past. <c>from=2026-01-01&amp;to=2026-08-28</c>
+    /// returned 944 rows whose earliest was 2026-05-31 — the 90-day edge, 89 days before <c>to</c>, not a row
+    /// cap — and <c>page=1</c> answered <b>0 rows</b> rather than the missing January-to-May. The limit on this
+    /// path is a lookback window, and no cursor reaches outside it.</para>
     ///
     /// <para>Note that a span of <i>exactly</i> 90 days reads
     /// <see cref="CalendarResult{T}.ExceedsLookbackLimit"/> as <see langword="false"/> and still loses a day —

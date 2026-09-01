@@ -104,7 +104,16 @@ public sealed class SearchEndpoints(FmpTransport transport)
     ///
     /// <para>This is the useful direction for CIK: <c>search-exchange-variants</c> returns one only for a
     /// symbol's primary listing, and <see cref="DirectoryEndpoints.StreamCikListAsync"/> is a 52-request walk of
-    /// the whole registry.</para></summary>
+    /// the whole registry.</para>
+    ///
+    /// <para><b>Takes no <c>limit</c>, and the reason is that the path cannot return a second row to bound.</b>
+    /// Recorded because <c>fmpsdk</c> sends one here and a later parameter diff will raise it again. Despite the
+    /// name, this is an exact lookup rather than a search — measured 2026-09-01 (#46), the prefixes <c>1</c>,
+    /// <c>32</c> and <c>320</c> each answered <b>0 rows</b>, a non-numeric value answered <b>400 <c>Query Error:
+    /// Invalid or missing query parameter - cik</c></b>, and <c>limit=1</c> on a full CIK answered a body
+    /// byte-identical to the request without it. So the verdict is decorative, but the cause is the shape of the
+    /// endpoint rather than FMP discarding the parameter, and it says nothing about <c>limit</c>
+    /// elsewhere.</para></summary>
     /// <param name="cik">The Central Index Key, padded or bare. Required and non-blank.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The matching listings. Empty for an unknown CIK. Never <see langword="null"/>.</returns>
