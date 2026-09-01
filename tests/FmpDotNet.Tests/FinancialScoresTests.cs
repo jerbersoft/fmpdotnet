@@ -213,7 +213,7 @@ public class FinancialScoresTests
     }
 
     [Fact]
-    public async Task Hits_its_own_path_carrying_only_the_symbol_and_the_key()
+    public async Task Hits_its_own_path_carrying_only_the_symbol()
     {
         // Deliberately not routed through the shared periodic query shape: measured 2026-08-26, this endpoint
         // takes neither period nor limit, and sending either would be sending FMP a parameter it does not accept.
@@ -223,7 +223,7 @@ public class FinancialScoresTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/financial-scores", uri.AbsolutePath);
-        Assert.Equal("?symbol=AAPL&apikey=k", uri.Query);
+        Assert.Equal("?symbol=AAPL", uri.Query);
         Assert.DoesNotContain("period=", uri.Query);
         Assert.DoesNotContain("limit=", uri.Query);
     }

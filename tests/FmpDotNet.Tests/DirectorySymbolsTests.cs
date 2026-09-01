@@ -176,7 +176,7 @@ public class DirectorySymbolsTests
 
     [Theory]
     [MemberData(nameof(Calls))]
-    public async Task Sends_the_api_key_and_nothing_else(
+    public async Task Sends_no_query_parameter_at_all(
         string path, Func<DirectoryEndpoints, Task<IReadOnlyList<CompanySymbol>>> call)
     {
         var (endpoints, handler) = Build();
@@ -188,7 +188,7 @@ public class DirectorySymbolsTests
         // Equality rather than Contains, and load-bearing here: `limit` is accepted and then ignored by both
         // endpoints — measured, `limit=5` still returned all 68,869 and 91,845 rows — so sending one would look
         // like a sampling call while transferring megabytes. There is no page or limit parameter to send.
-        Assert.Equal("?apikey=k", uri.Query);
+        Assert.Equal("", uri.Query);
     }
 
     [Fact]

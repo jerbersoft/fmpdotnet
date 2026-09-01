@@ -129,7 +129,7 @@ public class IpoTests
         await endpoints.GetIpoCalendarAsync(Day(2026, 6, 1), Day(2026, 8, 28));
 
         Assert.Equal("stable/ipos-calendar", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?from=2026-06-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-06-01&to=2026-08-28", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public class IpoTests
         await endpoints.GetIpoDisclosuresAsync(Day(2026, 8, 1), Day(2026, 8, 28));
 
         Assert.Equal("stable/ipos-disclosure", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?from=2026-08-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-08-01&to=2026-08-28", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -335,7 +335,7 @@ public class IpoTests
         await endpoints.GetIpoProspectusesAsync(Day(2026, 8, 1), Day(2026, 8, 28));
 
         Assert.Equal("stable/ipos-prospectus", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?from=2026-08-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-08-01&to=2026-08-28", handler.Requests.Single().Query);
     }
 
     [Theory]

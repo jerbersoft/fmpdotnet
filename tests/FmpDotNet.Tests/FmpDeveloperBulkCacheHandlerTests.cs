@@ -99,8 +99,9 @@ public sealed class FmpDeveloperBulkCacheHandlerTests : IDisposable
     [Fact]
     public async Task The_same_query_with_a_different_key_is_the_same_entry()
     {
-        // The key is stripped before the name is derived, so rotating it must not silently orphan the cache and
-        // send every bulk call back to the upstream.
+        // Any key on the URI is stripped before the name is derived. The transport sends the key as a header, so
+        // this is the caller-pasted `?apikey=` case — and rotating that key must not silently orphan the cache
+        // and send every bulk call back to the upstream.
         var upstream = new UpstreamHandler(Csv);
         using var http = Client(upstream, _directory);
 

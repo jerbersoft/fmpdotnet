@@ -143,7 +143,7 @@ public class DividendTests
         await endpoints.GetDividendsAsync("AAPL");
 
         Assert.Equal("stable/dividends", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public class DividendTests
 
         await endpoints.GetDividendsAsync("AAPL", limit: 5);
 
-        Assert.Equal("?symbol=AAPL&limit=5&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL&limit=5", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public class DividendTests
         await endpoints.GetDividendsCalendarAsync(Day(2026, 8, 24), Day(2026, 8, 25));
 
         Assert.Equal("stable/dividends-calendar", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?from=2026-08-24&to=2026-08-25&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-08-24&to=2026-08-25", handler.Requests.Single().Query);
     }
 
     // ---- the walk past the cap (#49) ----------------------------------------------------------------------
@@ -194,9 +194,9 @@ public class DividendTests
 
         Assert.Equal(9325, rows.Count);
         Assert.Equal(3, handler.Requests.Count);
-        Assert.Equal("?from=2026-05-01&to=2026-05-31&apikey=k", handler.Requests[0].Query);
-        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=1&apikey=k", handler.Requests[1].Query);
-        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=2&apikey=k", handler.Requests[2].Query);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31", handler.Requests[0].Query);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=1", handler.Requests[1].Query);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=2", handler.Requests[2].Query);
 
         var result = Assert.IsType<CalendarResult<Dividend>>(rows);
         Assert.Equal(3, result.PagesFetched);

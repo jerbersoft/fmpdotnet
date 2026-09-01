@@ -136,9 +136,11 @@ public sealed class FmpDeveloperBulkCacheHandler(
 
     /// <summary>A file name that a developer can recognise and that cannot collide.
     ///
-    /// <para>The API key is stripped BEFORE the name is derived. It would otherwise land in a filename on disk and
-    /// in every log line quoting the path — the same leak the timeout handler had, arriving by a different
-    /// route.</para></summary>
+    /// <para>Any <c>apikey</c> query parameter is stripped BEFORE the name is derived. The transport sends the key
+    /// as a header, so a URI it built carries none; a caller-pasted <c>?apikey=</c> path would otherwise land in a
+    /// filename on disk and in every log line quoting the path — the leak the timeout handler had, by a different
+    /// route. The hash input is the redacted URI, and it changed when the key left the URI: an entry written
+    /// before that hashed <c>…&amp;apikey=[redacted]</c>, so it misses once and is downloaded again.</para></summary>
     private static string FileName(Uri uri)
     {
         var safe = UriRedaction.Redact(uri);

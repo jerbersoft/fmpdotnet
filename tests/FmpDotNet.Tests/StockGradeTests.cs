@@ -83,7 +83,7 @@ public class StockGradeTests
         await endpoints.GetGradesAsync("AAPL");
 
         Assert.Equal("stable/grades", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     // ---- grades-consensus ---------------------------------------------------------------------------------
@@ -197,7 +197,7 @@ public class StockGradeTests
         await endpoints.GetGradeHistoryAsync("AAPL");
 
         Assert.Equal("stable/grades-historical", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -207,7 +207,7 @@ public class StockGradeTests
 
         await endpoints.GetGradeHistoryAsync("AAPL", limit: 5);
 
-        Assert.Equal("?symbol=AAPL&limit=5&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL&limit=5", handler.Requests.Single().Query);
     }
 
     [Fact]

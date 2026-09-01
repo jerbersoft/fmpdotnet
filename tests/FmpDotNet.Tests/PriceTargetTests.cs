@@ -155,7 +155,7 @@ public class PriceTargetTests
         await endpoints.GetPriceTargetConsensusAsync("AAPL");
 
         Assert.Equal("stable/price-target-consensus", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     // ---- price-target-summary -----------------------------------------------------------------------------
@@ -211,7 +211,7 @@ public class PriceTargetTests
         await endpoints.GetPriceTargetSummaryAsync("AAPL");
 
         Assert.Equal("stable/price-target-summary", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     // ---- validation ---------------------------------------------------------------------------------------

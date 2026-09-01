@@ -23,15 +23,70 @@ public class FmpTransportTests
     }
 
     [Fact]
-    public async Task Appends_the_api_key_to_every_request()
+    public async Task Sends_the_api_key_as_an_apikey_header_on_every_request()
     {
+        // Measured 2026-09-01: FMP accepts the key as an `apikey` request header and answers the same body it
+        // does for `?apikey=`. A header stays out of the URI, so it cannot reach a log line, an exception
+        // message or a cache filename by way of the request.
         var (transport, handler) = Build(StubHandler.Json("[]"));
 
         await transport.GetListAsync(new FmpRequest("stable/profile").With("symbol", "AAPL"),
             FmpJsonContext.Default.ListCompanyProfile);
 
-        Assert.Contains("apikey=test-key", handler.Requests[0].Query);
-        Assert.Contains("symbol=AAPL", handler.Requests[0].Query);
+        Assert.Equal(["test-key"], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
+    }
+
+    [Fact]
+    public async Task The_request_uri_carries_the_query_and_never_the_api_key()
+    {
+        var (transport, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await transport.GetListAsync(new FmpRequest("stable/profile").With("symbol", "AAPL"),
+            FmpJsonContext.Default.ListCompanyProfile);
+        await transport.GetListAsync(new FmpRequest("stable/available-sectors"),
+            FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Equal("?symbol=AAPL", handler.Requests[0].Query);
+        Assert.Equal("", handler.Requests[1].Query);
+    }
+
+    [Fact]
+    public async Task The_bulk_transport_authenticates_the_same_way_because_it_inherits_the_send_path()
+    {
+        // FmpBulkTransport is a subclass that adds nothing but a type for DI to key its own HttpClient on. It does
+        // not build its own requests — issue #59 said it did — so there is one send site, and this pins that
+        // the bulk pipeline gets the header and the clean URI from it.
+        var handler = new StubHandler(StubHandler.Csv("\"symbol\",\"date\",\"open\",\"low\",\"high\",\"close\",\"adjClose\",\"volume\"\n"));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        var transport = new FmpBulkTransport(http, Options.Create(new FmpOptions { ApiKey = "test-key" }));
+
+        await foreach (var _ in transport.StreamCsvAsync(
+            new FmpRequest("stable/eod-bulk").With("date", "2025-10-22"), BulkEndOfDayPrice.FromCsv)) { }
+
+        Assert.Equal(["test-key"], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
+        Assert.Equal("?date=2025-10-22", handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task An_unset_key_is_sent_as_an_empty_header_so_fmp_answers_401_and_not_the_transport()
+    {
+        // ApiKey is deliberately not validated (README: a missing key is FMP's 401 to report, with its own
+        // message). The default "" must therefore reach the wire, not throw in HttpRequestHeaders.Add.
+        var handler = new StubHandler(StubHandler.Json("[]"));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        var transport = new FmpTransport(http, Options.Create(new FmpOptions()));
+
+        await transport.GetListAsync(new FmpRequest("stable/profile"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Equal([""], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
     }
 
     [Fact]

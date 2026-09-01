@@ -291,7 +291,7 @@ public class EconomicsEndpointsTests
     }
 
     [Fact]
-    public async Task Hits_its_own_path_carrying_from_to_and_the_key()
+    public async Task Hits_its_own_path_carrying_from_and_to()
     {
         // Equality, not Contains: there is no country, impact, page or limit parameter on this endpoint, and an
         // invented one would be accepted silently by FMP rather than rejected. Dates go out in FMP's yyyy-MM-dd.
@@ -301,7 +301,7 @@ public class EconomicsEndpointsTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/economic-calendar", uri.AbsolutePath);
-        Assert.Equal("?from=2026-08-25&to=2026-09-01&apikey=k", uri.Query);
+        Assert.Equal("?from=2026-08-25&to=2026-09-01", uri.Query);
     }
 
     // ---- the three paths added in #40 --------------------------------------------------------------------
@@ -448,11 +448,11 @@ public class EconomicsEndpointsTests
         await treasury.GetTreasuryRatesAsync();
 
         Assert.Equal("/stable/market-risk-premium", handler.Requests[0].AbsolutePath);
-        Assert.Equal("", handler.Requests[0].Query.Replace("?apikey=k", ""));
+        Assert.Equal("", handler.Requests[0].Query);
         Assert.Equal("/stable/treasury-rates", treasuryHandler.Requests[0].AbsolutePath);
         // Asserted on both, not just the first: `treasury-rates` takes an optional range, so this is also the
         // guard that a null `from`/`to` stays off the wire rather than going out empty.
-        Assert.Equal("", treasuryHandler.Requests[0].Query.Replace("?apikey=k", ""));
+        Assert.Equal("", treasuryHandler.Requests[0].Query);
     }
 
     [Fact]

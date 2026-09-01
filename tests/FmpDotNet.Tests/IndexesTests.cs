@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Text.Json;
-using System.Web;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Serialization;
 using Microsoft.Extensions.Options;
@@ -331,7 +330,7 @@ public class IndexesTests
     }
 
     [Fact]
-    public async Task None_of_the_six_sends_a_query_parameter_except_the_key()
+    public async Task None_of_the_six_sends_a_query_parameter()
     {
         // Measured 2026-08-30: on all six paths, limit, page, symbol and an unknown wibble=42 each returned
         // a response BYTE-IDENTICAL to the bare request, and on the three historical paths so did
@@ -346,11 +345,7 @@ public class IndexesTests
         await endpoints.GetSp500ConstituentChangesAsync();
         await endpoints.GetNasdaqConstituentChangesAsync();
 
-        Assert.All(handler.Requests, uri =>
-        {
-            var query = HttpUtility.ParseQueryString(uri.Query);
-            Assert.Equal(["apikey"], query.AllKeys.Where(k => k is not null).Select(k => k!).ToArray());
-        });
+        Assert.All(handler.Requests, uri => Assert.Equal("", uri.Query));
     }
 
     [Fact]

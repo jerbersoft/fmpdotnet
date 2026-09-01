@@ -252,7 +252,7 @@ public class IndustryClassificationTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/standard-industrial-classification-list", uri.AbsolutePath);
-        Assert.Equal("?apikey=k", uri.Query);
+        Assert.Equal("", uri.Query);
     }
 
     [Fact]

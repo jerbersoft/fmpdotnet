@@ -51,8 +51,9 @@ public sealed class FmpApiException : FmpException
     }
 
     /// <summary>The upstream's own error text: unwrapped from the JSON envelope when the body was one, and the
-    /// body's own text — trimmed and length-capped — when it was not. Never carries the API key: the request is
-    /// rendered through <see cref="FmpRequest.ToString"/>, which omits it.</summary>
+    /// body's own text — trimmed and length-capped — when it was not. Never carries the API key: the key travels as
+    /// a header, and the request is rendered through <see cref="FmpRequest.ToString"/>, which is path and query
+    /// only.</summary>
     public string ErrorMessage { get; }
 
     /// <summary>The HTTP status the failing response carried, or <see langword="null"/> when the error arrived on a

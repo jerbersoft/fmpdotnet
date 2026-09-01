@@ -128,7 +128,7 @@ public class StockSplitTests
         await endpoints.GetSplitsAsync("AAPL");
 
         Assert.Equal("stable/splits", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -138,7 +138,7 @@ public class StockSplitTests
 
         await endpoints.GetSplitsAsync("AAPL", limit: 5);
 
-        Assert.Equal("?symbol=AAPL&limit=5&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL&limit=5", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -160,7 +160,7 @@ public class StockSplitTests
         await endpoints.GetSplitsCalendarAsync(Day(2026, 6, 1), Day(2026, 8, 28));
 
         Assert.Equal("stable/splits-calendar", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?from=2026-06-01&to=2026-08-28&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?from=2026-06-01&to=2026-08-28", handler.Requests.Single().Query);
     }
 
     // ---- validation ---------------------------------------------------------------------------------------

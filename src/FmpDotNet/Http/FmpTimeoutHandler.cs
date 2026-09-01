@@ -41,12 +41,13 @@ public abstract class FmpTimeoutHandlerBase(Duration timeout) : DelegatingHandle
         }
     }
 
-    /// <summary>Renders a request for an exception message with the API key removed.
+    /// <summary>Renders a request for an exception message with any <c>apikey</c> query parameter removed.
     ///
-    /// <para><b>This is not defensive tidiness; without it this handler leaks the key.</b> The transport puts the
-    /// key in the query string, because that is how FMP authenticates, so <c>RequestUri</c> carries it — and an
-    /// exception message is the one place a URI reliably escapes into a log, a crash report or an error surfaced
-    /// to a user.</para></summary>
+    /// <para><b>This is not defensive tidiness.</b> An exception message is the one place a URI reliably escapes
+    /// into a log, a crash report or an error surfaced to a user, and this handler shipped leaking the key while
+    /// the transport still put it on the URI. The transport sends it as a header now, so a URI it built carries
+    /// none — a caller who pastes FMP's documented <c>?apikey=</c> form into an <see cref="FmpRequest"/> path puts
+    /// one back (see <see cref="UriRedaction"/>).</para></summary>
     private static string Describe(HttpRequestMessage request)
         => request.RequestUri is null ? request.Method.ToString()
             : $"{request.Method} {UriRedaction.Redact(request.RequestUri)}";

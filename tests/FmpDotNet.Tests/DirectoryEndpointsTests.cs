@@ -121,7 +121,7 @@ public class DirectoryEndpointsTests
 
     [Theory]
     [MemberData(nameof(Calls))]
-    public async Task Sends_the_api_key_and_nothing_else(
+    public async Task Sends_no_query_parameter_at_all(
         string path, Func<DirectoryEndpoints, Task<IReadOnlyList<string>>> call)
     {
         var (endpoints, handler) = Build();
@@ -132,7 +132,7 @@ public class DirectoryEndpointsTests
         Assert.Equal($"/{path}", uri.AbsolutePath);
         // Equality, not Contains: these endpoints take no arguments at all, and a query parameter invented here
         // would be accepted silently by FMP rather than rejected.
-        Assert.Equal("?apikey=k", uri.Query);
+        Assert.Equal("", uri.Query);
     }
 
     [Fact]

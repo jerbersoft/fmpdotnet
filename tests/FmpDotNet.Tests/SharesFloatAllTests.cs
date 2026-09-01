@@ -134,7 +134,7 @@ public class SharesFloatAllTests
     }
 
     [Fact]
-    public async Task Hits_its_own_path_carrying_the_page_the_limit_and_the_key()
+    public async Task Hits_its_own_path_carrying_the_page_and_the_limit()
     {
         var (endpoints, handler) = Build(StubHandler.Json("[]"));
 
@@ -142,7 +142,7 @@ public class SharesFloatAllTests
 
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/shares-float-all", uri.AbsolutePath);
-        Assert.Equal("?page=3&limit=1000&apikey=k", uri.Query);
+        Assert.Equal("?page=3&limit=1000", uri.Query);
     }
 
     [Fact]

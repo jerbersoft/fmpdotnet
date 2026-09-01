@@ -326,10 +326,7 @@ public class MarketHoursTests
         await endpoints.GetAllExchangesAsync();
         await endpoints.GetExchangeAsync("NASDAQ");
 
-        Assert.Equal(
-            ["apikey"],
-            HttpUtility.ParseQueryString(handler.Requests[0].Query)
-                .AllKeys.Where(k => k is not null).Select(k => k!).ToArray());
+        Assert.Equal("", handler.Requests[0].Query);
         Assert.Equal("NASDAQ", HttpUtility.ParseQueryString(handler.Requests[1].Query)["exchange"]);
     }
 

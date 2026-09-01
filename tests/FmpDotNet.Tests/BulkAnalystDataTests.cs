@@ -55,7 +55,7 @@ public class BulkAnalystDataTests
         Assert.Equal(259, aapl.AllTimeCount);
         Assert.Equal(232.31m, aapl.AllTimeAvgPriceTarget);
         // The endpoint takes no parameters at all.
-        Assert.DoesNotContain("&", handler.Requests[0].Query.TrimStart('?').Replace("apikey=k", ""));
+        Assert.Equal("", handler.Requests[0].Query);
     }
 
     [Fact]

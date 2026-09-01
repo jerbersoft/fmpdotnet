@@ -6,8 +6,8 @@ namespace FmpDotNet;
 
 /// <summary>A path on the FMP API plus its query parameters.
 ///
-/// <para>Callers never build a URL string. The API key is not part of this type — the transport appends it — so a
-/// request can be logged, compared or cached without carrying a credential.</para></summary>
+/// <para>Callers never build a URL string. The API key is not part of this type — the transport sends it as a
+/// request header — so a request can be logged, compared or cached without carrying a credential.</para></summary>
 public sealed class FmpRequest
 {
     private readonly List<KeyValuePair<string, string>> _query = [];
@@ -42,10 +42,9 @@ public sealed class FmpRequest
     /// <summary>Adds a boolean query parameter as lowercase <c>true</c>/<c>false</c>.</summary>
     public FmpRequest With(string name, bool? value) => With(name, value is null ? null : value.Value ? "true" : "false");
 
-    /// <summary>Renders path and query without the API key — safe to log.</summary>
-    public override string ToString() => Build(apiKey: null);
-
-    internal string Build(string? apiKey)
+    /// <summary>Renders path and query — exactly the relative URI the transport sends. The API key is never part
+    /// of it, so the rendering is safe to log.</summary>
+    public override string ToString()
     {
         var sb = new StringBuilder(Path);
         var first = true;
@@ -55,8 +54,6 @@ public sealed class FmpRequest
               .Append(Uri.EscapeDataString(value));
             first = false;
         }
-        if (apiKey is not null)
-            sb.Append(first ? '?' : '&').Append("apikey=").Append(Uri.EscapeDataString(apiKey));
         return sb.ToString();
     }
 }

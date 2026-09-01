@@ -109,7 +109,7 @@ public class CompanyRatingTests
         await endpoints.GetRatingHistoryAsync("AAPL");
 
         Assert.Equal("stable/ratings-historical", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&limit=100&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL&limit=100", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -119,7 +119,7 @@ public class CompanyRatingTests
 
         await endpoints.GetRatingHistoryAsync("AAPL", limit: 5);
 
-        Assert.Equal("?symbol=AAPL&limit=5&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL&limit=5", handler.Requests.Single().Query);
     }
 
     [Fact]
@@ -147,7 +147,7 @@ public class CompanyRatingTests
         await endpoints.GetRatingAsync("AAPL");
 
         Assert.Equal("stable/ratings-snapshot", handler.Requests.Single().AbsolutePath.TrimStart('/'));
-        Assert.Equal("?symbol=AAPL&apikey=k", handler.Requests.Single().Query);
+        Assert.Equal("?symbol=AAPL", handler.Requests.Single().Query);
     }
 
     [Fact]

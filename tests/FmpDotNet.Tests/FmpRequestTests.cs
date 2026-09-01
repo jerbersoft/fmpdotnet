@@ -40,21 +40,4 @@ public class FmpRequestTests
         Assert.Equal("stable/earnings-calendar?from=2026-05-13&to=2026-05-19&includeReportTimes=true",
             request.ToString());
     }
-
-    [Fact]
-    public void ToString_never_carries_the_api_key_so_a_request_is_safe_to_log()
-    {
-        var request = new FmpRequest("stable/profile").With("symbol", "AAPL");
-
-        Assert.DoesNotContain("apikey", request.ToString(), StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("apikey=secret", request.Build("secret"));
-    }
-
-    [Fact]
-    public void Appends_the_key_with_the_right_separator_whether_or_not_a_query_exists()
-    {
-        Assert.Equal("stable/available-sectors?apikey=k", new FmpRequest("stable/available-sectors").Build("k"));
-        Assert.Equal("stable/profile?symbol=AAPL&apikey=k",
-            new FmpRequest("stable/profile").With("symbol", "AAPL").Build("k"));
-    }
 }
