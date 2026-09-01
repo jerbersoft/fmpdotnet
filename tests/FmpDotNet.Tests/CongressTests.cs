@@ -306,9 +306,11 @@ public class CongressTests
     [Fact]
     public void Every_money_field_on_the_aggregate_binds_whether_or_not_it_carries_a_decimal_point()
     {
-        // 8 of the 14 money fields changed representation across only six measured rows; the other 6 stayed
-        // integral, which proves nothing about the seventh. All fourteen are decimal?, and this test asserts
-        // one of each kind so typing any of them `int` fails here.
+        // Measured 2026-08-29, 8 of the 14 money fields then modelled changed representation across only six
+        // rows; re-measured 2026-09-01 across all 3,425 rows, 18 of the 25 numeric keys do, and the seven that
+        // never do include five income fields that are zero everywhere. All 24 are decimal?, and this test
+        // asserts one of each kind so typing any of them `int` fails here. The fixture is H000601's two rows
+        // and carries none of the eleven keys added by #57; the census fixture in the next test does.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("congress-senate-net-worth-aggregated.json"),
             FmpJsonContext.Default.ListSenateNetWorthSummary)!;
@@ -331,6 +333,57 @@ public class CongressTests
         Assert.Equal(825001m, rows[0].OtherAssets);
         Assert.Equal(0m, rows[0].PensionAndRetirementAssets);
         Assert.Equal(0m, rows[0].Trusts);
+    }
+
+    [Fact]
+    public void The_eleven_categories_one_member_never_showed_bind_from_the_census_fixture()
+    {
+        // The shipped record was modelled from H000601's six rows, which carry exactly 16 of the 27 keys FMP
+        // sends on this path. Measured 2026-09-01 across all 535 members, the other eleven are on 3,130 of
+        // 3,425 rows. This fixture is nine real rows from six members, chosen so every one of the eleven
+        // appears — and is non-zero wherever the population ever has it non-zero. A test that asserted 0m
+        // alone could pass against a property that binds nothing.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth-aggregated-all-keys.json"),
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        Assert.Equal(9, rows.Count);
+
+        // G000581 carries 21 keys — the most of any member — and the six he lacks are exactly these. A
+        // property absent from this list is one that bound; a property missing from the record altogether
+        // would not appear here either, which is why the value assertions below are not optional.
+        Assert.Equal("G000581", rows[0].SenateId);
+        Assert.Equal(2024, rows[0].Year);
+        Assert.Equal(
+            ["AssetBackedSecurities", "BusinessLiabilities", "InvestmentAndCapitalGains", "Options",
+             "SalaryAndWages", "SpousalIncome"],
+            Binding.Unbound(rows[0]));
+
+        Assert.Equal(32000m, rows[0].Other);                          // asset on this row: total reconciles
+        Assert.Equal(0m, rows[0].BusinessAndSelfEmployment);          // income: zero on every row measured
+        Assert.Equal(0m, rows[0].PensionAndRetirementIncome);
+        Assert.Equal(0m, rows[0].OtherIncome);                        // income: zero on every row measured
+        Assert.Equal(0m, rows[0].PersonalLiabilities);
+        Assert.Equal(0m, rows[0].EducationLiabilities);
+        Assert.Equal(0m, rows[0].OtherLiabilities);
+
+        Assert.Equal(37500000m, rows[1].PersonalLiabilities);         // G000581 2023
+        Assert.Equal(175000m, rows[2].OtherLiabilities);              // G000581 2022
+        Assert.Equal(75000m, rows[3].EducationLiabilities);           // G000581 2017
+
+        Assert.Equal(15325011m, rows[4].AssetBackedSecurities);       // K000375 2021 — on 42 rows in the census
+        Assert.Equal(193523m, rows[4].Other);
+
+        Assert.Equal(48500m, rows[5].Options);                        // M001160 2021 — on 66 rows
+
+        Assert.Equal(0m, rows[6].SpousalIncome);                      // Q000023 2024 — never non-zero, on 153 rows
+        Assert.DoesNotContain("SpousalIncome", Binding.Unbound(rows[6]));
+
+        Assert.Equal(0m, rows[7].InvestmentAndCapitalGains);          // C001061 2024 — never non-zero, on 100 rows
+        Assert.DoesNotContain("InvestmentAndCapitalGains", Binding.Unbound(rows[7]));
+
+        Assert.Equal(289473.83m, rows[8].PensionAndRetirementIncome); // S001145 2018 — one of four non-zero rows
+        Assert.Equal(8000m, rows[8].Other);                           // liability on this row: -169999 needs it subtracted
     }
 
     // ---- the request surface -----------------------------------------------------------------------------
