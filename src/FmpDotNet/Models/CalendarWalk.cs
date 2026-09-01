@@ -5,12 +5,12 @@ namespace FmpDotNet.Models;
 /// <para>Three of these four numbers cannot be recovered from the concatenated rows, which is why they travel
 /// as a group rather than being recomputed later. <see cref="LastPageRowCount"/> is gone the moment the pages
 /// are joined; <see cref="SeamDuplicateRows"/> is defined between two pages and has no meaning inside one; and
-/// <see cref="PagesFetched"/> is the request count, which the rows never carried.</para>
+/// <see cref="PagesFetched"/> is a count of pages the rows themselves never carried.</para>
 ///
 /// <para>Internal because it is plumbing between <see cref="Endpoints.CalendarEndpoints"/> and the two result
 /// types. Its numbers reach callers as properties on <see cref="CalendarResult{T}"/> and
 /// <see cref="EarningsCalendarResult"/>.</para></summary>
-/// <param name="RowsReturned">Rows across every page fetched, counted raw — before undated rows are dropped
+/// <param name="RowsReturned">Rows across every page kept, counted raw — before undated rows are dropped
 /// and before any clamp.</param>
 /// <param name="PagesFetched">Pages of rows kept. 1 on a path that does not page, never 0. A walk can spend
 /// one request more than this: a page that merely repeats its predecessor is fetched, recognised and discarded

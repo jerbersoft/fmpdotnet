@@ -73,7 +73,7 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
     /// <summary>How many rows FMP's responses actually carried, counted before the SDK dropped anything and
-    /// summed over every page fetched. This, and not <see cref="Count"/>, is what the truncation tells are
+    /// summed over every page kept. This, and not <see cref="Count"/>, is what the truncation tells are
     /// computed from.</summary>
     public int RowsReturned => _walk.RowsReturned;
 
