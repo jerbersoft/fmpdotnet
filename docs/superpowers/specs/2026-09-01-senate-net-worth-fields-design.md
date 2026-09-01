@@ -150,10 +150,11 @@ separates constants per endpoint for precisely this reason (`InsiderNameQuery`, 
   doc names all six he lacks, so the next reader knows what the probe cannot see.
 - `Probe.cs` gains the arm `"senateId" when parameter.Member.Name == nameof(GetNetWorthSummaryAsync)`.
 - The baseline is re-recorded, and the diff is read against this expectation before it is accepted: seven new
-  `set` lines for the seven he carries; `unset` for `Options`, `AssetBackedSecurities`, `SpousalIncome` and
-  `InvestmentAndCapitalGains`; `SalaryAndWages` and `BusinessLiabilities` flipping from `set` to `unset`; and
-  **`unset UnmappedFields`** — the sweep's `Populated` treats an empty collection as unset. That last line is
-  the detector: the day FMP adds a bucket, it flips to `set`, and the diff says so.
+  `set` lines for the seven he carries; `null` lines for `Options`, `AssetBackedSecurities`, `SpousalIncome`
+  and `InvestmentAndCapitalGains`; `SalaryAndWages` and `BusinessLiabilities` flipping from `set` to `null`;
+  and **`null UnmappedFields`** — the sweep's `Populated` treats an empty collection as not populated, and the
+  baseline spells that `null`. That last line is the detector: the day FMP adds a bucket, it flips to `set`,
+  and the diff says so.
 
 ## Documentation to correct
 
