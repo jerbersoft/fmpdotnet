@@ -85,7 +85,7 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
 
     /// <summary>How many pages of rows this result was assembled from, and it is no longer always 1.
     ///
-    /// <para>Measured 2026-09-01: <c>from=2026-05-13&amp;to=2026-05-19</c> is 3 requests and 6,496 rows against
+    /// <para>Measured 2026-09-01: <c>from=2026-05-13&amp;to=2026-05-19</c> is 2 requests and 6,496 rows against
     /// the 4000 one request answers, and the first half of 2025 is 12 requests and 45,765 rows against the same
     /// 4000. A range that fits in one page costs one request, exactly as before. It is pages kept rather than
     /// requests spent — a walk that ends by recognising a repeated page pays for that page without counting
@@ -106,10 +106,10 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// appeared in a walk that the single-day request did not have, so rows are exchanged one for one rather
     /// than invented.</para>
     ///
-    /// <para><b>It over-reports rather than under-reports.</b> FMP's own data carries byte-identical duplicate
-    /// rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and such a pair
-    /// straddling a seam would be counted here with no loss behind it. No such case appeared in 22 seams, and
-    /// the bias runs the safe direction.</para>
+    /// <para><b>It is an estimator with a known bias, not a proof.</b> FMP's own data carries byte-identical
+    /// duplicate rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and
+    /// such a pair straddling a seam would be counted here with no loss behind it. No such case appeared in 22
+    /// seams.</para>
     ///
     /// <para>The remedy is a narrower range: one that fits in a single page has no seam and cannot lose
     /// anything.</para></summary>

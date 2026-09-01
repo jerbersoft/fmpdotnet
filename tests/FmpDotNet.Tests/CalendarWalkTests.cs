@@ -106,6 +106,28 @@ public class CalendarWalkTests
     }
 
     [Fact]
+    public async Task A_row_duplicated_within_one_page_is_not_counted_as_a_seam_duplicate()
+    {
+        // Pins the distinct-vs-multiset choice in WalkAsync (`new HashSet<T>(rows)`). Page 0 carries S1 TWICE --
+        // FMP's own duplicate, within one page, not a paging artefact -- and page 1 carries S1 once more, so the
+        // two pages share exactly one DISTINCT row. A multiset-style count that matches each physical occurrence
+        // of S1 in page 0 against page 1's single S1 would report 2; the distinct-set intersection this method
+        // actually uses must report 1.
+        string Row(int i) =>
+            $$"""{"symbol":"S{{i}}","date":"2026-05-13","epsActual":1,"epsEstimated":1,"revenueActual":1,"revenueEstimated":1,"lastUpdated":"2026-08-26"}""";
+        var page0 = $"[{Row(0)},{Row(1)},{Row(1)}]"; // S0, S1, S1 -- S1 duplicated within the page
+        var page1 = $"[{Row(1)},{Row(2)}]";           // S1, S2 -- shares only S1 (one distinct row) with page 0
+        var (endpoints, handler) = Build(page0, page1);
+
+        var (rows, walk) = await RunWalkAsync(endpoints, rowCap: 3);
+
+        Assert.Equal(5, rows.Count);              // 3 + 2, nothing removed
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(1, walk.SeamDuplicateRows);  // one DISTINCT row shared, not two physical occurrences
+        Assert.Equal(2, walk.LastPageRowCount);
+    }
+
+    [Fact]
     public async Task An_empty_first_page_costs_one_request_and_reports_one_page()
     {
         var (endpoints, handler) = Build("[]");

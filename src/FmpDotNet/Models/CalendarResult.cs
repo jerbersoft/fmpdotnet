@@ -112,10 +112,10 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
     /// appeared in a walk that the single-day request did not have, so rows are exchanged one for one rather
     /// than invented.</para>
     ///
-    /// <para><b>It over-reports rather than under-reports.</b> FMP's own data carries byte-identical duplicate
-    /// rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and such a pair
-    /// straddling a seam would be counted here with no loss behind it. No such case appeared in 22 seams, and
-    /// the bias runs the safe direction.</para>
+    /// <para><b>It is an estimator with a known bias, not a proof.</b> FMP's own data carries byte-identical
+    /// duplicate rows — one page of the measured dividends year held 4000 rows and 3999 distinct ones — and
+    /// such a pair straddling a seam would be counted here with no loss behind it. No such case appeared in 22
+    /// seams.</para>
     ///
     /// <para>The remedy is a narrower range: one that fits in a single page has no seam and cannot lose
     /// anything.</para></summary>
@@ -150,10 +150,10 @@ public sealed class CalendarResult<T> : IReadOnlyList<T>
     /// <see cref="Endpoints.CalendarEndpoints.MaxCalendarPages"/>, or by a page repeating its predecessor,
     /// with a full page as the last one appended.</para>
     ///
-    /// <para>Always <see langword="false"/> where <see cref="RowCap"/> is null. Exact at the cap and blind
-    /// just under it, so a false reading here is "complete" and never "truncated";
-    /// <see cref="MissesStartOfRange"/> and <see cref="SeamDuplicateRows"/> are the tells that cover what it
-    /// cannot see.</para></summary>
+    /// <para>Always <see langword="false"/> where <see cref="RowCap"/> is null. Blind just under the cap: a
+    /// walk that stopped one row short of it reads exactly the same as one nowhere near it.
+    /// <see cref="MissesStartOfRange"/> and <see cref="SeamDuplicateRows"/> are the tells that cover what a row
+    /// count alone cannot see.</para></summary>
     public bool AtRowCap => RowCap is { } cap && _walk.LastPageRowCount >= cap;
 
     /// <summary>The requested range is wider than this path will serve, so its front was dropped.

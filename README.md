@@ -627,15 +627,19 @@ Measured against the live API on 2026-08-26 unless noted.
   (`2026-05-13`) answers 2039 rows; `from=05-13&to=05-14` answers exactly 4000, of which only 1969 fall on 05-13
   — 70 rows of a day that was complete on its own just vanish, mid-day. A one-week request came back with an
   entire requested day absent. `limit=6000` is accepted and ignored. The SDK reports the truncation: the returned
-  list is an `EarningsCalendarResult` carrying `RowsReturned`, `AtRowCap`, `MissesStartOfRange` and
-  `LikelyTruncated`. **Day-at-a-time is the only chunk width measured to be safe** — a 7-day peak-season window
-  measured 3676 rows, 92% of the cap without crossing it.
-- **`page` escapes that cap, and the SDK does not yet send it — so busy ranges come back short today.** Measured
-  2026-09-01: `from=2026-05-13&to=2026-05-19` answers 4000 rows on page 0 and **2497 more on page 1**, and page 1
-  is exactly the front of the range page 0 dropped — 2038 rows dated `2026-05-13`. `dividends-calendar` behaves
-  the same way: May 2026 runs 4000 + 4000 + 1332. Adjacent pages share no `(date, symbol)` pair, so the pages
-  partition the answer rather than overlapping. An earlier version of this note said no cursor existed; that was
-  inferred from `limit` alone, which is inert here. Tracked as
+  list is an `EarningsCalendarResult` carrying `RowsReturned`, `AtRowCap`, `MissesStartOfRange`, `PagesFetched`,
+  `SeamDuplicateRows` and `LikelyTruncated`. **The SDK now walks the `page` cursor past the cap instead of
+  stopping at it** — see the next bullet for what that recovers and what it still loses. A range narrow enough
+  to fit a single page is the only width that cannot lose rows at a seam.
+- **`page` escapes that cap, and the SDK now walks it instead of stopping at the first page.** Measured
+  2026-09-01: `GetEarningsCalendarAsync(2026-05-13, 2026-05-19)` recovers **6,496 rows over 2 pages** — no seam
+  loss, `LikelyTruncated` false — against the 4000 a single request answers.
+  `GetDividendsCalendarAsync(2025-01-01, 2025-12-31)` recovers **28,104 rows over 8 requests** against that same
+  4000, but `LikelyTruncated` comes back true: **a page seam is not a clean partition.** FMP sorts by `date` and
+  nothing else, so rows sharing the seam date have no defined order, and a seam loses roughly as many rows as it
+  duplicates — `SeamDuplicateRows` reports the count. The remedy is unchanged: a range narrow enough to fit a
+  single page has no seam and cannot lose anything. An earlier version of this note said no cursor existed at
+  all; that was inferred from `limit` alone, which is inert here. Tracked as
   [#49](https://github.com/jerbersoft/fmpdotnet/issues/49). Not every calendar is like this — `splits-calendar` is
   bounded by a 90-day lookback that no cursor reaches outside, and `economic-calendar` ignores `page` outright
   (identical 7301 rows across pages 0, 1 and 2). Paging behaviour on this API is per-path and does not

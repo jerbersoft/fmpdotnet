@@ -189,8 +189,9 @@ public sealed class CalendarEndpoints(FmpTransport transport)
 
     /// <summary>Every earnings event FMP has in a date range, from <c>stable/earnings-calendar</c>.
     ///
-    /// <para>Two upstream behaviours make this endpoint harder to use correctly than its signature suggests, and
-    /// both were measured on 2026-08-26 rather than read from the documentation.</para>
+    /// <para>Three upstream behaviours make this endpoint harder to use correctly than its signature suggests.
+    /// The cap and the re-dating were measured on 2026-08-26; the walk that escapes the cap, and what it costs,
+    /// was measured 2026-09-01 (#49) — none of it read from the documentation.</para>
     ///
     /// <para><b>1. The response is silently capped at 4000 rows, and the truncation eats the front of the
     /// range.</b> One day (05-13) answers 2039 rows on its own. Ask for 05-13 to 05-14 together and the answer is
@@ -220,7 +221,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// cannot lose anything</b>, which is what to fall back on when
     /// <see cref="EarningsCalendarResult.LikelyTruncated"/> fires.</para>
     ///
-    /// <para><b>2. <paramref name="includeReportTimes"/> re-dates some rows past the end of the range; it does not
+    /// <para><b>3. <paramref name="includeReportTimes"/> re-dates some rows past the end of the range; it does not
     /// add them.</b> The plain and flagged requests for 05-13 return the <b>identical 2039-symbol set</b>, but 51 of
     /// those rows report <c>2026-05-14</c> when the flag is on. None of those 51 symbols appear in the
     /// <c>from=2026-05-14&amp;to=2026-05-14</c> request at all. So selection happens on the un-shifted date and only
