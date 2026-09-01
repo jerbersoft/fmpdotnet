@@ -191,7 +191,16 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
     }
 
     /// <summary>GETs a CSV payload and streams it, mapping each record as it arrives. The response is never
-    /// buffered whole.</summary>
+    /// buffered whole.
+    ///
+    /// <para><b>A fault while the rows are being enumerated is not retried, and cannot be.</b>
+    /// <see cref="Http.FmpRetryHandlerBase"/> re-sends a request that failed before a response existed — a 5xx or a
+    /// connection fault. This method reads under <see cref="HttpCompletionOption.ResponseHeadersRead"/>, so by the
+    /// time the body is moving the handler has already returned and the sequence has already started: re-sending
+    /// would hand the caller a second copy of rows it has seen. A dropped connection mid-download therefore
+    /// surfaces here as an <see cref="IOException"/>, and resuming is the caller's decision because only the
+    /// caller knows what it did with the rows it already has. (Bulk would not retry by default in any case —
+    /// <see cref="FmpOptions.BulkMaxAttempts"/> is 1.)</para></summary>
     /// <exception cref="FmpRateLimitedException">FMP answered 429.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     /// <exception cref="FmpApiException">FMP reported an error — in the body on a 200, which is how the bulk

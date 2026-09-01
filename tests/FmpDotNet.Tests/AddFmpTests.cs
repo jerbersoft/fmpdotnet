@@ -120,6 +120,11 @@ public class AddFmpTests
         Assert.Equal("https://financialmodelingprep.com", o.BaseUrl);
         Assert.Equal(660, o.PerMinuteCap);
         Assert.Equal(2, o.BulkPerMinuteCap);
+        Assert.Equal(3, o.MaxAttempts);
+        // One, not three: bulk retries are opt-in. See FmpOptions.BulkMaxAttempts.
+        Assert.Equal(1, o.BulkMaxAttempts);
+        Assert.Equal(Duration.FromSeconds(1), o.RetryBaseDelay);
+        Assert.Equal(Duration.FromSeconds(120), o.MaxRetryDelay);
     }
 
     [Fact]
@@ -136,6 +141,10 @@ public class AddFmpTests
     [InlineData("Fmp:BulkPerMinuteCap", "0")]
     [InlineData("Fmp:RequestTimeout", "0")]
     [InlineData("Fmp:BulkRequestTimeout", "0")]
+    [InlineData("Fmp:MaxAttempts", "0")]
+    [InlineData("Fmp:BulkMaxAttempts", "0")]
+    [InlineData("Fmp:RetryBaseDelay", "0")]
+    [InlineData("Fmp:MaxRetryDelay", "0")]
     public void Rejects_configuration_that_would_hang_or_throw_later(string key, string value)
     {
         using var provider = Build(("Fmp:ApiKey", "k"), (key, value));
@@ -229,6 +238,103 @@ public class AddFmpTests
         {
             if (Directory.Exists(directory)) Directory.Delete(directory, recursive: true);
         }
+    }
+
+    /// <summary>Answers every request with the same status, and counts.</summary>
+    private sealed class FailingHandler(System.Net.HttpStatusCode status) : HttpMessageHandler
+    {
+        public int Sends;
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+        {
+            Interlocked.Increment(ref Sends);
+            return Task.FromResult(new HttpResponseMessage(status)
+            {
+                Content = new StringContent("", System.Text.Encoding.UTF8, "text/plain"),
+                RequestMessage = req,
+            });
+        }
+    }
+
+    private static ServiceProvider BuildWithUpstream(HttpMessageHandler upstream, Action<FmpOptions> configure)
+    {
+        var services = new ServiceCollection().AddLogging();
+        services.AddFmp(configure);
+        services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
+        return services.BuildServiceProvider();
+    }
+
+    [Fact]
+    public async Task The_ordinary_client_retries_a_5xx_and_the_bulk_client_does_not()
+    {
+        // Two claims in one test because the asymmetry IS the design: bulk answers tens of megabytes against a
+        // reservoir of 2/min, and FMP warns it will restrict a key that abuses those endpoints.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        using var provider = BuildWithUpstream(upstream, o =>
+        {
+            o.ApiKey = "k";
+            o.RetryBaseDelay = Duration.FromMilliseconds(1);   // the policy is asserted elsewhere; keep this fast
+        });
+        var factory = provider.GetRequiredService<IHttpClientFactory>();
+
+        (await factory.CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile?apikey=k")).Dispose();
+        Assert.Equal(3, upstream.Sends);
+
+        (await factory.CreateClient(FmpServiceCollectionExtensions.BulkClient)
+            .GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
+        Assert.Equal(4, upstream.Sends);                       // one more, not three more
+    }
+
+    [Fact]
+    public async Task Holding_the_bucket_for_nothing_on_a_429_does_not_also_flatten_the_retry_backoff()
+    {
+        // MaxRetryAfter = 0 is a supported setting and means "never let a 429 hold the SHARED bucket". It must not
+        // also mean "re-send with no pacing at all", which is what sourcing the retry ceiling from it would do —
+        // turning the default three attempts into an immediate burst against an upstream already failing.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        using var provider = BuildWithUpstream(upstream, o =>
+        {
+            o.ApiKey = "k";
+            o.MaxRetryAfter = Duration.Zero;
+            o.MaxAttempts = 2;
+            o.RetryBaseDelay = Duration.FromMilliseconds(100);
+        });
+
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile?apikey=k")).Dispose();
+        started.Stop();
+
+        Assert.Equal(2, upstream.Sends);
+        Assert.True(started.ElapsedMilliseconds >= 50,
+            $"the two attempts were {started.ElapsedMilliseconds}ms apart — the backoff was flattened to nothing");
+    }
+
+    [Fact]
+    public async Task Every_retry_attempt_draws_its_own_token_because_the_retry_sits_outside_the_throttle()
+    {
+        // The correction that shaped this handler's placement. FmpRateLimitHandlerBase acquires its token BEFORE
+        // delegating, so a retry registered INSIDE it would draw one token for the whole sequence and every
+        // attempt after the first would bypass the reservoir — the opposite of what a throttle is for.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        using var provider = BuildWithUpstream(upstream, o =>
+        {
+            o.ApiKey = "k";
+            o.PerMinuteCap = 3;                                // capacity 3, so three attempts empty it exactly
+            o.RetryBaseDelay = Duration.FromMilliseconds(1);
+        });
+
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile?apikey=k")).Dispose();
+
+        Assert.Equal(3, upstream.Sends);
+        var now = SystemClock.Instance.GetCurrentInstant().ToUnixTimeTicks() / (double)NodaConstants.TicksPerSecond;
+        Assert.True(
+            provider.GetRequiredService<FmpBuckets>().Standard.Acquire(now) > Duration.Zero,
+            "the reservoir still had tokens to give — the retried attempts bypassed the throttle");
     }
 
     [Fact]

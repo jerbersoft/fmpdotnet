@@ -568,6 +568,7 @@ FMP keeps them apart, so the SDK does too.
 | Payload | kilobytes | up to **69 MB** in one response |
 | Throttle | `PerMinuteCap` (default 660) | `BulkPerMinuteCap` (default 2) |
 | Timeout | `RequestTimeout` (30 s) | `BulkRequestTimeout` (10 min) |
+| Retry | `MaxAttempts` (3) | `BulkMaxAttempts` (**1 — off**) |
 | Errors | status codes | **also HTTP 200 with a JSON error body** |
 
 `PerMinuteCap` defaults to 660 because that is ~88% of **Premium's 750/min**, the lowest paid tier this SDK
@@ -688,6 +689,19 @@ Measured against the live API on 2026-08-26 unless noted.
   SEC filings use.
 - **429 is answered, not just reported.** The shared reservoir is drained and held for `Retry-After`, clamped by
   `MaxRetryAfter` so an upstream value cannot idle the process for a day.
+- **A 5xx or a dropped connection is retried; a 429 is not.** The two look alike and are not: a 5xx is the far end
+  failing, while a 429 is the SDK exceeding its own budget — and re-sending on a 429 amplifies load at exactly the
+  moment FMP is refusing us. Three attempts by default, backing off 1-2s then 2-3s with jitter, honouring
+  `Retry-After` over the computed wait when the response carries one, capped by `MaxRetryDelay` — which is
+  deliberately *not* `MaxRetryAfter`, since that may legitimately be zero and reusing it would make "do not hold
+  the shared bucket" silently also mean "re-send with no pacing". The retry sits **outside** the throttle, so
+  every attempt re-acquires a token rather than bypassing the reservoir. **Bulk does not retry by default**
+  (`BulkMaxAttempts` is 1): its budget is 2/min and one extra attempt costs thirty seconds of it. A fault *while
+  bulk rows are streaming* is never retried — the sequence has already started, so resuming is the caller's call.
+- **Do not put a generic resilience handler in front of these clients.** `AddStandardResilienceHandler` retries
+  429s and trips a circuit breaker that then fast-fails every later request, turning a handful of 429s into
+  thousands of skipped symbols. A consumer measured this and had to strip it off both clients. The SDK's own retry
+  is a plain `DelegatingHandler`, so `RemoveAllResilienceHandlers()` leaves it intact.
 - **Timeouts sit inside the throttle,** so waiting on the rate limiter never consumes the request budget, and
   expiry raises `TimeoutException` rather than the `TaskCanceledException` callers mistake for a shutdown.
   `HttpClient.Timeout` is deliberately infinite.
@@ -807,6 +821,10 @@ steps from your code into this SDK's source at the exact commit the binary was b
     "RequestTimeout": "00:00:30",
     "BulkRequestTimeout": "00:10:00",
     "MaxRetryAfter": "00:02:00",
+    "MaxAttempts": 3,
+    "BulkMaxAttempts": 1,
+    "RetryBaseDelay": "00:00:01",
+    "MaxRetryDelay": "00:02:00",
     "DeveloperBulkCacheDirectory": null
   }
 }
