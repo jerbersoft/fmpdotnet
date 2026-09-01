@@ -183,6 +183,19 @@ Two page-size facts fall out and are worth keeping: `senate-positions` caps at *
 `senate-profile` at **500**, and `limit` can only reduce those, never raise them. `senate-profile?page=1`
 answers 35, so the profile universe is **535**.
 
+#### These two `limit`s were already documented — as ignored — and that was wrong
+
+`GetPositionsAsync` and `GetProfilesAsync` both carried "**No `limit` parameter, because FMP ignores it**",
+measured 2026-08-29 from `?limit=500` answering 300 and `?limit=1000` answering 500. Those numbers reproduce.
+The conclusion does not: **every value tried was above the page size, and no value above a cap can distinguish
+"discarded" from "clamped".** `limit=5` answers 5 on both.
+
+That is the same failure as the calendar cursor, approached from the other side — there one parameter was tested
+and the conclusion generalised to a different parameter; here one region of a parameter's range was tested and
+the conclusion generalised to the rest of its range. Both are now corrected on the members. Together they are the
+argument for the four-call protocol used throughout this audit: a single probe establishes what *that value* did,
+never what the parameter does.
+
 `totalsCol` was probed across four plausible vocabularies rather than one, because a single wrong value cannot
 tell "ignored" from "unrecognised". All four are byte-identical to the naked request. If it has a working
 vocabulary, none of a column name, a category name, an index and a boolean is in it.
