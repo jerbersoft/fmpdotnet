@@ -33,14 +33,20 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// 70 rows of a day that came back complete on its own vanish, and the truncation does not respect day
     /// boundaries. <c>limit=6000</c> was accepted and ignored: still exactly 4000.</para>
     ///
-    /// <para><b>The cap is real, but it is escapable, and this type was built believing it was not.</b> Measured
-    /// 2026-09-01 (#46): <c>page</c> is honoured on this path even though <c>limit</c> is not, so hitting
-    /// <see cref="RowCap"/> means "there is another page", not "rows are gone". <c>from=2026-05-13&amp;to=2026-05-19</c>
-    /// answers 4000 on page 0 and 2497 more on page 1, disjoint by <c>(date, symbol)</c>, with page 1 carrying the
-    /// 2038 rows of 05-13 that page 0 omits entirely. Until
-    /// <see cref="Endpoints.CalendarEndpoints.GetEarningsCalendarAsync"/> sends <c>page</c>, the detectors on this
-    /// type stay exactly as useful as they were — a capped response still means data the caller has not been given.
-    /// What changes is the remedy: narrowing the range is no longer the only one. See #49.</para></summary>
+    /// <para><b>The cap is real, it is escapable, and this type was built believing it was not.</b> Measured
+    /// 2026-09-01 (#49): <c>page</c> is honoured on this path even though <c>limit</c> is not, so hitting
+    /// <see cref="RowCap"/> means "there is another page" rather than "rows are gone" — and
+    /// <see cref="Endpoints.CalendarEndpoints.GetEarningsCalendarAsync"/> now fetches it.
+    /// <c>from=2026-05-13&amp;to=2026-05-19</c> answers 4000 on page 0, <b>2496 on page 1</b> and 0 on page 2,
+    /// with page 1 carrying the 2038 rows of 05-13 that page 0 omits entirely.</para>
+    ///
+    /// <para><b>An earlier note here called the pages a clean partition. They are not, and the correction
+    /// matters more than the figure it replaces.</b> That held on the two short windows #46 measured and fails
+    /// wherever a walk has several seams: FMP orders by <c>date</c> alone and a seam always falls inside a
+    /// date, so rows sharing it have no defined order. Over the first half of 2025, <b>1,166 rows arrived on
+    /// both sides of a seam and an equal number of different rows arrived on neither</b>.
+    /// <see cref="AtRowCap"/> therefore reads the last page fetched rather than the only one, and
+    /// <see cref="SeamDuplicateRows"/> is what a caller watches instead.</para></summary>
     public const int RowCap = 4000;
 
     private readonly IReadOnlyList<EarningsCalendarEntry> _rows;
@@ -144,14 +150,21 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// rows.</para></summary>
     public bool MissesStartOfRange => EarliestReturnedDate is { } earliest && earliest > RequestedFrom;
 
-    /// <summary>Either tell fired, so treat these rows as incomplete and narrow the range.
+    /// <summary>Any tell fired, so these rows are not all of them.
     ///
-    /// <para><b>Day-at-a-time is the only chunk width measured to be safe.</b> Nothing narrower than a day can be
-    /// asked for, and every wider window measured either truncated or came close: a 31-day window in a heavy month
-    /// returned exactly 4000; a 7-day peak-season window returned 3676; an unchunked 15-month request returned
-    /// <b>7 rows</b>, a reduction the row cap alone does not explain. Density ranges from about 60 rows a day in a
-    /// quiet month to about 525 in a peak week, so a chunk width cannot be chosen from the calendar alone — this
-    /// signal is the only thing that actually proves a given response complete.</para></summary>
+    /// <para><b>Three tells, one for each way this path loses rows.</b> <see cref="AtRowCap"/> catches a walk
+    /// that stopped with a full page in hand. <see cref="MissesStartOfRange"/> catches an entire day missing
+    /// from the front of the range, which a row count alone cannot see. <see cref="SeamDuplicateRows"/> catches
+    /// the one that only appears once a path is walked: a page seam that dropped as many rows as it
+    /// duplicated.</para>
+    ///
+    /// <para><b>A chunk width cannot be read off the calendar.</b> Nothing narrower than a day can be asked
+    /// for, and every wider window measured before this method walked either truncated or came close: a
+    /// 31-day window in a heavy month returned exactly 4000; a 7-day peak-season window returned 3676; an
+    /// unchunked 15-month request returned <b>7 rows</b>, a reduction the row cap alone does not explain.
+    /// Density ranges from about 60 rows a day in a quiet month to about 525 in a peak week. The walk now
+    /// absorbs the row cap; day-at-a-time is what is left to fall back on, because it is the one width proven
+    /// to fit inside a single page and so to have no seam to lose rows at.</para></summary>
     public bool LikelyTruncated => AtRowCap || MissesStartOfRange || SeamDuplicateRows > 0;
 
     /// <summary>Whether a calendar result should be treated as cut short, for callers holding it as a plain
@@ -161,7 +174,13 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// <see cref="EarliestReturnedDate"/> from the raw response. Handed any other list — a test double, a
     /// concatenation of several days, a list a caller has already filtered — it can only fall back to
     /// <c>Count &gt;= <see cref="RowCap"/></c>, which is why the fallback is documented rather than hidden:
-    /// concatenating chunks discards the per-response evidence that made the check exact.</para></summary>
+    /// concatenating chunks discards the per-response evidence that made the check exact.</para>
+    ///
+    /// <para><b>The fallback got weaker when this path started walking (#49).</b> A walked result is not a
+    /// multiple of <see cref="RowCap"/> — a measured week is 6,496 rows and a measured half-year 45,765 — so a
+    /// bare list of those rows reads as complete on a count test even where the walk lost rows at a seam. It
+    /// under-reports by construction. Hold the <see cref="EarningsCalendarResult"/> itself, or test each chunk
+    /// as it arrives.</para></summary>
     /// <param name="rows">The rows to judge.</param>
     public static bool IsLikelyTruncated(IReadOnlyList<EarningsCalendarEntry> rows)
     {

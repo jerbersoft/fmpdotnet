@@ -27,6 +27,13 @@ The SDK returns the first column. That is **62%** of the earnings range and **43
 - dividends-calendar page 0 ∩ page 1 = **0**, page 1 ∩ page 2 = **0**, and the union of all three is
   **9332** — exactly 4000 + 4000 + 1332, so no row is served twice and none is dropped between pages.
 
+> **The partition is clean on these two windows and not in general — corrected 2026-09-01 (#49).** Both
+> windows above were re-verified against single-day requests and do lose nothing. On a walk with more seams
+> they do: the 2025 dividends year duplicates 913 rows across 7 seams and loses 913 others, deterministically.
+> See [the calendar paging measurements](2026-09-01-calendar-paging-measurements.md). The claim is kept
+> because it was a correct reading of what it looked at, and deleting it would erase why the wrong conclusion
+> was reasonable.
+
 **And page 1 is precisely the data the existing measurement says is lost.** `GetEarningsCalendarAsync`'s
 remarks record that `from=2026-05-13&to=2026-05-19` returns 4000 rows with *no `2026-05-13` row at all*, against
 2039 that the single day answers on its own. Reproduced here — page 0's date histogram starts at `2026-05-14`.

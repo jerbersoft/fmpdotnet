@@ -181,9 +181,11 @@ public class SweepCoverageTests
         // Seven days answers 1652 / 40 / 34 / 764 / 8 -- all comfortably non-zero, and the dividend calendar at
         // 41% of its 4000-row cap rather than the 81% a fortnight would give it.
         //
-        // GetEarningsCalendarAsync is the deliberate exception and stays at one day: its own doc measures a
-        // 7-day peak-season window at 3676 rows, 92% of the same cap. Narrowing it was the previous slice's
-        // fix and widening it here would undo that.
+        // GetEarningsCalendarAsync is the deliberate exception and stays at one day. Its own doc used to
+        // record day-at-a-time as "the only chunk width measured to be safe". Since #49 the method walks the
+        // cursor instead, so a wider window is no longer WRONG -- it is expensive. A 7-day peak-season window
+        // measured 3676 rows, and a week that crossed the cap would cost the sweep an extra request per 4000
+        // rows on every run. One day keeps the sweep to one request.
         var calendar = typeof(Endpoints.CalendarEndpoints);
         var weekly = new[]
         {

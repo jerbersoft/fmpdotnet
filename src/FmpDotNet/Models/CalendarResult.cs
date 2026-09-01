@@ -16,7 +16,7 @@ namespace FmpDotNet.Models;
 /// if (rows is CalendarResult&lt;StockSplit&gt; { LikelyTruncated: true }) { /* narrow the range and retry */ }
 /// </code>
 ///
-/// <para><b>Two different mechanisms, measured 2026-08-28, and they need different tells.</b></para>
+/// <para><b>Three different mechanisms, and they need different tells.</b></para>
 ///
 /// <list type="bullet">
 /// <item><description><c>dividends-calendar</c> caps at <b>4000 rows</b>. A request for the whole of 2025
@@ -30,6 +30,11 @@ namespace FmpDotNet.Models;
 /// whole of 2024 answered Q4 of 2024 — <b>737 and 358 rows</b>, nowhere near any cap, which is why
 /// <see cref="AtRowCap"/> is blind to it. <see cref="LookbackLimitDays"/> is 90 and <see cref="RowCap"/> is
 /// null.</description></item>
+/// <item><description><c>dividends-calendar</c> also has a <b>cursor with an unstable seam</b>, measured
+/// 2026-09-01. Walking it past the cap recovers most of a wide range — 28,104 rows for 2025 against the 4000
+/// one request answers — but a seam falls inside a date, so some rows arrive twice and an equal number never
+/// arrive. <see cref="SeamDuplicateRows"/> is the tell, and it is the only one of the three that a row count
+/// and a date comparison both miss.</description></item>
 /// </list>
 ///
 /// <para><b>Everything here is measured on the raw response, before the SDK clamps or drops anything.</b> That
