@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
@@ -27,6 +29,20 @@ public class DividendTests
     }
 
     private static LocalDate Day(int y, int m, int d) => new(y, m, d);
+
+    // A response per page, in order. StubHandler repeats its last response once the queue runs dry, which is
+    // the ipos-calendar shape and is what the walk's repeat terminator exists for -- so a test that wants the
+    // walk to STOP must end its queue with a short page.
+    private static (CalendarEndpoints Endpoints, StubHandler Handler) BuildPages(params string[] pages)
+    {
+        var handler = new StubHandler([.. pages.Select(p => StubHandler.Json(p))]);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new CalendarEndpoints(new FmpTransport(http, Options.Create(new FmpOptions { ApiKey = "k" }))), handler);
+    }
 
     // ---- binding ------------------------------------------------------------------------------------------
 
@@ -160,6 +176,62 @@ public class DividendTests
 
         Assert.Equal("stable/dividends-calendar", handler.Requests.Single().AbsolutePath.TrimStart('/'));
         Assert.Equal("?from=2026-08-24&to=2026-08-25&apikey=k", handler.Requests.Single().Query);
+    }
+
+    // ---- the walk past the cap (#49) ----------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_full_page_of_dividends_is_followed_by_the_next_one()
+    {
+        // Measured 2026-09-01: May 2026 answers 4000 / 4000 / 1325 / 0 -- 9325 rows, of which this method
+        // used to return 4000. A full year is 8 requests and 28,104 rows against the same 4000.
+        var (endpoints, handler) = BuildPages(
+            SyntheticDividends(4000, Day(2026, 5, 1)),
+            SyntheticDividends(4000, Day(2026, 5, 1), startIndex: 4000),
+            SyntheticDividends(1325, Day(2026, 5, 1), startIndex: 8000));
+
+        var rows = await endpoints.GetDividendsCalendarAsync(Day(2026, 5, 1), Day(2026, 5, 31));
+
+        Assert.Equal(9325, rows.Count);
+        Assert.Equal(3, handler.Requests.Count);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31&apikey=k", handler.Requests[0].Query);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=1&apikey=k", handler.Requests[1].Query);
+        Assert.Equal("?from=2026-05-01&to=2026-05-31&page=2&apikey=k", handler.Requests[2].Query);
+
+        var result = Assert.IsType<CalendarResult<Dividend>>(rows);
+        Assert.Equal(3, result.PagesFetched);
+        Assert.Equal(9325, result.RowsReturned);
+        Assert.False(result.AtRowCap);
+    }
+
+    [Fact]
+    public async Task A_dividend_range_that_fits_in_one_page_costs_one_request()
+    {
+        var (endpoints, handler) = BuildPages(SyntheticDividends(41, Day(2026, 8, 24)));
+
+        var rows = await endpoints.GetDividendsCalendarAsync(Day(2026, 8, 24), Day(2026, 8, 25));
+
+        Assert.Equal(41, rows.Count);
+        Assert.Single(handler.Requests);
+        Assert.Equal(1, Assert.IsType<CalendarResult<Dividend>>(rows).PagesFetched);
+    }
+
+    [Fact]
+    public async Task An_overlapping_dividend_seam_is_counted_and_reported_as_truncation()
+    {
+        // Measured on the 2025 dividends year: 8 pages, 913 rows served twice, and 913 different rows served
+        // on neither side. The first seam duplicated 381 rows and lost exactly 381.
+        var (endpoints, _) = BuildPages(
+            SyntheticDividends(4000, Day(2026, 5, 1)),
+            SyntheticDividends(1325, Day(2026, 5, 1), startIndex: 3619));   // 381 rows on both sides
+
+        var rows = await endpoints.GetDividendsCalendarAsync(Day(2026, 5, 1), Day(2026, 5, 31));
+
+        var result = Assert.IsType<CalendarResult<Dividend>>(rows);
+        Assert.Equal(5325, rows.Count);          // nothing removed
+        Assert.Equal(381, result.SeamDuplicateRows);
+        Assert.False(result.AtRowCap);
+        Assert.True(result.LikelyTruncated);
     }
 
     // ---- validation ---------------------------------------------------------------------------------------
@@ -299,6 +371,21 @@ public class DividendTests
             var date = i < undatedRows ? "" : day.ToString("uuuu-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
             json.Append(System.Globalization.CultureInfo.InvariantCulture,
                 $$"""{"symbol":"S{{i}}","date":"{{date}}","dividend":1,"adjDividend":1,"yield":1,"frequency":"Annual"}""");
+        }
+        return json.Append(']').ToString();
+    }
+
+    /// <summary>A dividends-calendar payload of a given size. Synthetic on purpose — the cap needs 4000 rows
+    /// to exercise and nothing about those rows matters except how many there are, which dates they carry and
+    /// whether two pages share any. <paramref name="startIndex"/> is what decides that last one.</summary>
+    private static string SyntheticDividends(int rowCount, LocalDate day, int startIndex = 0)
+    {
+        var json = new StringBuilder("[");
+        for (var i = 0; i < rowCount; i++)
+        {
+            if (i > 0) json.Append(',');
+            json.Append(CultureInfo.InvariantCulture,
+                $$"""{"symbol":"S{{startIndex + i}}","date":"{{day:uuuu-MM-dd}}","recordDate":"{{day:uuuu-MM-dd}}","paymentDate":"{{day:uuuu-MM-dd}}","declarationDate":"","adjDividend":1,"dividend":1,"yield":1,"frequency":"Annual"}""");
         }
         return json.Append(']').ToString();
     }

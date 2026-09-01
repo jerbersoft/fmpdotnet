@@ -72,6 +72,11 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="Models.CalendarResult{T}.AtRowCap"/> fires.</para></summary>
     public const int MaxCalendarPages = 100;
 
+    /// <summary>FMP's undocumented hard cap on one <c>stable/dividends-calendar</c> page. Measured 2026-08-28
+    /// and again 2026-09-01: a request for the whole of 2025 answers exactly 4000 rows, and
+    /// <c>limit=10000</c> is accepted and ignored. <c>page</c> is what escapes it.</summary>
+    private const int DividendsCalendarRowCap = 4000;
+
     /// <summary>Walks <c>page=0, 1, 2, …</c> until a page comes back short, and hands back the concatenation
     /// with the evidence gathered between pages.
     ///
@@ -374,9 +379,15 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     {
         DateRange.ThrowIfBackwards(from, to);
 
-        var rows = await transport.GetListAsync(
-            new FmpRequest("stable/dividends-calendar").With("from", from).With("to", to),
-            FmpJsonContext.Default.ListDividend, ct).ConfigureAwait(false);
+        var (rows, walk) = await WalkAsync(
+            page => new FmpRequest("stable/dividends-calendar")
+                .With("from", from)
+                .With("to", to)
+                // Omitted on page 0, where it was measured byte-identical to sending nothing.
+                .With("page", page == 0 ? (int?)null : page),
+            FmpJsonContext.Default.ListDividend,
+            DividendsCalendarRowCap,
+            ct).ConfigureAwait(false);
 
         // Taken from the raw response, before the filter below can move it.
         LocalDate? earliest = null;
@@ -390,7 +401,7 @@ public sealed class CalendarEndpoints(FmpTransport transport)
         // rowCap 4000, lookbackLimitDays null: the cap always fires first at 340-876 rows a day, so no window
         // limit is observable on this path and asserting one would be inventing evidence.
         return new CalendarResult<Dividend>(
-            kept, CalendarWalk.Single(rows.Count), from, to, earliest, rowCap: 4000, lookbackLimitDays: null);
+            kept, walk, from, to, earliest, rowCap: DividendsCalendarRowCap, lookbackLimitDays: null);
     }
 
     /// <summary>Every split FMP holds for one symbol, newest first, from <c>stable/splits</c>.

@@ -285,4 +285,18 @@ public class StockSplitTests
         }
         return json.Append(']').ToString();
     }
+
+    [Fact]
+    public async Task The_splits_calendar_does_not_walk_because_it_has_nothing_to_walk_to()
+    {
+        // Measured 2026-09-01: splits-calendar?from=2026-01-01&to=2026-08-31 answers 940 rows whose earliest
+        // is 2026-06-02 -- the 90-day edge, not a row cap -- and page=1 answers 0. The limit here is a
+        // lookback window and no cursor reaches outside it, so a walk would spend a request to learn nothing.
+        var (endpoints, handler) = Build(Binding.Fixture("splits-calendar.head.json"));
+
+        await endpoints.GetSplitsCalendarAsync(Day(2026, 6, 1), Day(2026, 8, 28));
+
+        Assert.Single(handler.Requests);
+        Assert.DoesNotContain("page", handler.Requests[0].Query, StringComparison.Ordinal);
+    }
 }
