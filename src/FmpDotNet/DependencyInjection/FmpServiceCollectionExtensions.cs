@@ -42,6 +42,7 @@ public static class FmpServiceCollectionExtensions
         if (Int32(section[nameof(FmpOptions.MaxAttempts)]) is { } attempts) o.MaxAttempts = attempts;
         if (Int32(section[nameof(FmpOptions.BulkMaxAttempts)]) is { } bulkAttempts) o.BulkMaxAttempts = bulkAttempts;
         if (Span(section[nameof(FmpOptions.RetryBaseDelay)]) is { } backoff) o.RetryBaseDelay = backoff;
+        if (Span(section[nameof(FmpOptions.MaxRetryDelay)]) is { } maxBackoff) o.MaxRetryDelay = maxBackoff;
         if (section[nameof(FmpOptions.DeveloperBulkCacheDirectory)] is { } cache)
             o.DeveloperBulkCacheDirectory = cache;
 
@@ -103,6 +104,11 @@ public static class FmpServiceCollectionExtensions
             // against an upstream that is already failing.
             .Validate(o => o.RetryBaseDelay > Duration.Zero,
                 "Fmp:RetryBaseDelay must be > 0 — it is the first step of the retry backoff, doubling per attempt.")
+            // Unlike Fmp:MaxRetryAfter, which may be zero: that one holds the SHARED bucket and "hold it for
+            // nothing" is a coherent choice, while a zero ceiling here would flatten every backoff to an
+            // unpaced burst.
+            .Validate(o => o.MaxRetryDelay > Duration.Zero,
+                "Fmp:MaxRetryDelay must be > 0 — it caps one retry's wait, and at 0 every attempt fires immediately.")
             .ValidateOnStart();
 
         // The API key is deliberately NOT validated. An SDK cannot know whether its caller intends to make a

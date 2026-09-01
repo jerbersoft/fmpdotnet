@@ -42,14 +42,14 @@ public sealed class FmpOptions
     /// upstream is already refusing us.</para></summary>
     public Duration RequestTimeout { get; set; } = Duration.FromSeconds(30);
 
-    /// <summary>Ceiling on any wait an upstream response can impose. The header is honoured, but not without
-    /// bound: it is an upstream-controlled value, so a misparse or a hostile <c>Retry-After: 86400</c> would
-    /// otherwise idle the caller for a day while its logs said only that it was waiting. Clamping is logged.
+    /// <summary>Ceiling on the <c>Retry-After</c> hold a single 429 may impose on the shared bucket. The header is
+    /// honoured, but not without bound: it is an upstream-controlled value that stops every FMP call in the
+    /// process, so a misparse or a hostile <c>Retry-After: 86400</c> would otherwise idle the host for a day while
+    /// its logs said only that it was waiting. Clamping is logged.
     ///
-    /// <para>Two things are clamped by it. A <b>429</b> holds the shared token bucket, stopping every FMP call in
-    /// the process (<see cref="Http.FmpRateLimitHandlerBase"/>); a <b>retryable failure</b> holds only the call
-    /// that met it (<see cref="Http.FmpRetryHandlerBase"/>), and the same ceiling caps its computed backoff as
-    /// well as any <c>Retry-After</c> it was given.</para></summary>
+    /// <para><b>Zero is a legitimate setting</b> — it means a 429 drains the bucket but holds it for nothing — and
+    /// that is exactly why the retry backoff is capped by <see cref="MaxRetryDelay"/> and not by this. Sourcing
+    /// both ceilings here would make "do not hold the bucket" silently also mean "re-send with no pacing".</para></summary>
     public Duration MaxRetryAfter { get; set; } = Duration.FromSeconds(120);
 
     /// <summary>How many times one ordinary request may be SENT before its failure is handed to the caller —
@@ -65,12 +65,22 @@ public sealed class FmpOptions
 
     /// <summary>First step of the retry backoff, doubling per attempt with jitter of up to one further
     /// <see cref="RetryBaseDelay"/> on top — so the default yields waits of roughly 1-2s then 2-3s. Capped by
-    /// <see cref="MaxRetryAfter"/>, and overridden entirely when the failing response carried a
+    /// <see cref="MaxRetryDelay"/>, and overridden entirely when the failing response carried a
     /// <c>Retry-After</c>.
     ///
     /// <para>The jitter is not decoration. Without it, every client that started together retries together, and
     /// the upstream meets the same synchronised wave it has just failed to serve.</para></summary>
     public Duration RetryBaseDelay { get; set; } = Duration.FromSeconds(1);
+
+    /// <summary>Ceiling on a single retry wait — both the doubling backoff and any <c>Retry-After</c> the failing
+    /// response advised.
+    ///
+    /// <para><b>Separate from <see cref="MaxRetryAfter"/> on purpose, and the two are not interchangeable.</b>
+    /// That one bounds how long a 429 may stop <i>every</i> call in the process, where zero is a coherent choice;
+    /// this one bounds how long <i>one</i> call waits before trying again, where zero means an unpaced burst
+    /// against an upstream that is already failing. Validation reflects the difference: that may be zero, this
+    /// may not.</para></summary>
+    public Duration MaxRetryDelay { get; set; } = Duration.FromSeconds(120);
 
     /// <summary>Self-throttle for the <c>*-bulk</c> endpoints, in requests per minute. Measured 2026-08-26: bulk is
     /// limited independently of <see cref="PerMinuteCap"/> and far more tightly — a second call moments after the

@@ -99,8 +99,10 @@ public abstract class FmpRetryHandlerBase : DelegatingHandler
     /// <para>An advised <c>Retry-After</c> wins over the computed backoff — when the upstream says when to come
     /// back, guessing is strictly worse than listening, and it is the one place a blind exponential (fmpsdk's,
     /// among others) leaves information on the table. Both forms are clamped by
-    /// <see cref="FmpOptions.MaxRetryAfter"/>: the header is upstream-controlled, and the exponential would
-    /// otherwise reach hours on a long attempt chain.</para></summary>
+    /// <see cref="FmpOptions.MaxRetryDelay"/>: the header is upstream-controlled, and the exponential would
+    /// otherwise reach hours on a long attempt chain. That ceiling is deliberately NOT
+    /// <see cref="FmpOptions.MaxRetryAfter"/>, which may legitimately be zero — reusing it would make "do not hold
+    /// the shared bucket on a 429" silently also mean "re-send with no pacing".</para></summary>
     private Duration BackoffFor(int attempt, HttpResponseMessage? response)
     {
         if (response is not null
@@ -135,7 +137,7 @@ public abstract class FmpRetryHandlerBase : DelegatingHandler
 /// <summary>Retries ordinary FMP traffic under <see cref="FmpOptions.MaxAttempts"/>.</summary>
 public sealed class FmpRetryHandler(IClock clock, IOptions<FmpOptions> options, ILogger<FmpRetryHandler> logger)
     : FmpRetryHandlerBase(
-        clock, options.Value.MaxAttempts, options.Value.RetryBaseDelay, options.Value.MaxRetryAfter, logger);
+        clock, options.Value.MaxAttempts, options.Value.RetryBaseDelay, options.Value.MaxRetryDelay, logger);
 
 /// <summary>Retries the <c>*-bulk</c> endpoints under <see cref="FmpOptions.BulkMaxAttempts"/>, which defaults to
 /// 1 — no retry at all.
@@ -148,4 +150,4 @@ public sealed class FmpRetryHandler(IClock clock, IOptions<FmpOptions> options, 
 public sealed class FmpBulkRetryHandler(
     IClock clock, IOptions<FmpOptions> options, ILogger<FmpBulkRetryHandler> logger)
     : FmpRetryHandlerBase(
-        clock, options.Value.BulkMaxAttempts, options.Value.RetryBaseDelay, options.Value.MaxRetryAfter, logger);
+        clock, options.Value.BulkMaxAttempts, options.Value.RetryBaseDelay, options.Value.MaxRetryDelay, logger);

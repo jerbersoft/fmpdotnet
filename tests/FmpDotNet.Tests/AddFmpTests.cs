@@ -124,6 +124,7 @@ public class AddFmpTests
         // One, not three: bulk retries are opt-in. See FmpOptions.BulkMaxAttempts.
         Assert.Equal(1, o.BulkMaxAttempts);
         Assert.Equal(Duration.FromSeconds(1), o.RetryBaseDelay);
+        Assert.Equal(Duration.FromSeconds(120), o.MaxRetryDelay);
     }
 
     [Fact]
@@ -143,6 +144,7 @@ public class AddFmpTests
     [InlineData("Fmp:MaxAttempts", "0")]
     [InlineData("Fmp:BulkMaxAttempts", "0")]
     [InlineData("Fmp:RetryBaseDelay", "0")]
+    [InlineData("Fmp:MaxRetryDelay", "0")]
     public void Rejects_configuration_that_would_hang_or_throw_later(string key, string value)
     {
         using var provider = Build(("Fmp:ApiKey", "k"), (key, value));
@@ -282,6 +284,32 @@ public class AddFmpTests
         (await factory.CreateClient(FmpServiceCollectionExtensions.BulkClient)
             .GetAsync("stable/profile-bulk?part=0&apikey=k")).Dispose();
         Assert.Equal(4, upstream.Sends);                       // one more, not three more
+    }
+
+    [Fact]
+    public async Task Holding_the_bucket_for_nothing_on_a_429_does_not_also_flatten_the_retry_backoff()
+    {
+        // MaxRetryAfter = 0 is a supported setting and means "never let a 429 hold the SHARED bucket". It must not
+        // also mean "re-send with no pacing at all", which is what sourcing the retry ceiling from it would do —
+        // turning the default three attempts into an immediate burst against an upstream already failing.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        using var provider = BuildWithUpstream(upstream, o =>
+        {
+            o.ApiKey = "k";
+            o.MaxRetryAfter = Duration.Zero;
+            o.MaxAttempts = 2;
+            o.RetryBaseDelay = Duration.FromMilliseconds(100);
+        });
+
+        var started = System.Diagnostics.Stopwatch.StartNew();
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile?apikey=k")).Dispose();
+        started.Stop();
+
+        Assert.Equal(2, upstream.Sends);
+        Assert.True(started.ElapsedMilliseconds >= 50,
+            $"the two attempts were {started.ElapsedMilliseconds}ms apart — the backoff was flattened to nothing");
     }
 
     [Fact]
