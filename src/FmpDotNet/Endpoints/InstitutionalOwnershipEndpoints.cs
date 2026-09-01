@@ -182,7 +182,15 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// 2026-08-28, one per quarter in <see cref="GetFilingDatesAsync"/>. There is no per-quarter variant to
     /// offer.</para>
     ///
-    /// <para>No <c>limit</c> either: the endpoint ignores it.</para></summary>
+    /// <para>No <c>limit</c> either: the endpoint ignores it.</para>
+    ///
+    /// <para><b>No <c>page</c>, and this one is a deliberate omission rather than an absent parameter — FMP reads
+    /// <c>page</c> here as a ROW OFFSET, not a page index.</b> Measured 2026-09-01 (#46) on the same Berkshire
+    /// CIK: pages 0, 1, 2 and 5 answered <b>53, 52, 51 and 48</b> rows, each starting one row later than the
+    /// last. So <c>page=n</c> skips <i>n</i> rows and returns everything after them, and a caller looping pages
+    /// the ordinary way re-reads 52 of the 53 rows page 0 already gave them, accumulating <i>n</i>(<i>n</i>+1)/2
+    /// duplicates instead of reaching more data. Offering it under the name FMP uses would be worse than
+    /// offering nothing. See #53.</para></summary>
     /// <param name="cik">The institutional filer's Central Index Key, padded or unpadded.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every quarter the filer has reported, newest first. Never <see langword="null"/>.</returns>

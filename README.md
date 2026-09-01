@@ -626,10 +626,20 @@ Measured against the live API on 2026-08-26 unless noted.
 - **`earnings-calendar` truncates silently at exactly 4000 rows, dropping the *earliest* dates.** One day
   (`2026-05-13`) answers 2039 rows; `from=05-13&to=05-14` answers exactly 4000, of which only 1969 fall on 05-13
   — 70 rows of a day that was complete on its own just vanish, mid-day. A one-week request came back with an
-  entire requested day absent. `limit=6000` is accepted and ignored. There is no cursor, so the SDK cannot page
-  around it and instead reports it: the returned list is an `EarningsCalendarResult` carrying `RowsReturned`,
-  `AtRowCap`, `MissesStartOfRange` and `LikelyTruncated`. **Day-at-a-time is the only chunk width measured to be
-  safe** — a 7-day peak-season window measured 3676 rows, 92% of the cap without crossing it.
+  entire requested day absent. `limit=6000` is accepted and ignored. The SDK reports the truncation: the returned
+  list is an `EarningsCalendarResult` carrying `RowsReturned`, `AtRowCap`, `MissesStartOfRange` and
+  `LikelyTruncated`. **Day-at-a-time is the only chunk width measured to be safe** — a 7-day peak-season window
+  measured 3676 rows, 92% of the cap without crossing it.
+- **`page` escapes that cap, and the SDK does not yet send it — so busy ranges come back short today.** Measured
+  2026-09-01: `from=2026-05-13&to=2026-05-19` answers 4000 rows on page 0 and **2497 more on page 1**, and page 1
+  is exactly the front of the range page 0 dropped — 2038 rows dated `2026-05-13`. `dividends-calendar` behaves
+  the same way: May 2026 runs 4000 + 4000 + 1332. Adjacent pages share no `(date, symbol)` pair, so the pages
+  partition the answer rather than overlapping. An earlier version of this note said no cursor existed; that was
+  inferred from `limit` alone, which is inert here. Tracked as
+  [#49](https://github.com/jerbersoft/fmpdotnet/issues/49). Not every calendar is like this — `splits-calendar` is
+  bounded by a 90-day lookback that no cursor reaches outside, and `economic-calendar` ignores `page` outright
+  (identical 7301 rows across pages 0, 1 and 2). Paging behaviour on this API is per-path and does not
+  generalise.
 - **That truncation signal is computed before clamping, and the order is load-bearing.** Filtering the rows first
   and then testing `Count >= 4000` is how a truncated response gets judged complete: measured live, a two-day
   request returned 4000 raw rows that clamping reduced to 3935. `Count` is what you were handed; `RowsReturned` is

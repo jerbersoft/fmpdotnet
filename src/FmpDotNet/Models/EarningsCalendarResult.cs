@@ -31,8 +31,16 @@ public sealed class EarningsCalendarResult : IReadOnlyList<EarningsCalendarEntry
     /// <para>Measured 2026-08-26: <c>from=2026-05-13&amp;to=2026-05-13</c> answers 2039 rows, while
     /// <c>from=2026-05-13&amp;to=2026-05-14</c> answers <b>exactly 4000</b> of which only 1969 fall on 05-13 — so
     /// 70 rows of a day that came back complete on its own vanish, and the truncation does not respect day
-    /// boundaries. <c>limit=6000</c> was accepted and ignored: still exactly 4000. There is no cursor, so the SDK
-    /// cannot page around it and can only report it.</para></summary>
+    /// boundaries. <c>limit=6000</c> was accepted and ignored: still exactly 4000.</para>
+    ///
+    /// <para><b>The cap is real, but it is escapable, and this type was built believing it was not.</b> Measured
+    /// 2026-09-01 (#46): <c>page</c> is honoured on this path even though <c>limit</c> is not, so hitting
+    /// <see cref="RowCap"/> means "there is another page", not "rows are gone". <c>from=2026-05-13&amp;to=2026-05-19</c>
+    /// answers 4000 on page 0 and 2497 more on page 1, disjoint by <c>(date, symbol)</c>, with page 1 carrying the
+    /// 2038 rows of 05-13 that page 0 omits entirely. Until
+    /// <see cref="Endpoints.CalendarEndpoints.GetEarningsCalendarAsync"/> sends <c>page</c>, the detectors on this
+    /// type stay exactly as useful as they were — a capped response still means data the caller has not been given.
+    /// What changes is the remedy: narrowing the range is no longer the only one. See #49.</para></summary>
     public const int RowCap = 4000;
 
     private readonly IReadOnlyList<EarningsCalendarEntry> _rows;

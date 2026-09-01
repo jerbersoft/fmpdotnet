@@ -38,7 +38,18 @@ public sealed class InsiderTradesEndpoints(FmpTransport transport)
     ///
     /// <para><b>A distinct path from <see cref="SearchAsync"/>, not a special case of it.</b> An unfiltered
     /// search answers the same rows, but the two are separate endpoints and each is modelled as
-    /// itself.</para></summary>
+    /// itself.</para>
+    ///
+    /// <para><b>There is no <c>date</c> argument, and the reason is that FMP's <c>date</c> parameter here answers
+    /// only today and ignores every other value in silence.</b> <c>fmpsdk</c> sends one, so this is recorded
+    /// rather than left for the next parameter diff to re-open. Measured 2026-09-01 (#46), against a page holding
+    /// 89 rows dated 2026-08-31 and 11 dated 2026-09-01: <c>date=2026-09-01</c> — that day — answered exactly
+    /// those <b>11</b>. <c>date=2026-08-31</c>, <c>2026-08-30</c>, <c>2026-08-27</c> and <c>2026-01-15</c> each
+    /// answered <b>a body byte-identical to the unfiltered page</b>, same SHA-256 on all four. The 2026-08-31 case
+    /// rules out "filtered to nothing", since 89 rows of that very date were sitting in the page it returned
+    /// unchanged, and dropping <c>page</c> and <c>limit</c> changes nothing. Modelling it as a date filter would
+    /// hand a caller a silently unfiltered page for every historical date they asked for — the failure this whole
+    /// endpoint group is documented to avoid.</para></summary>
     /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
     /// error.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxInsiderTradePageSize"/>.</param>

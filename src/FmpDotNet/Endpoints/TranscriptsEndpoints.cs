@@ -33,7 +33,14 @@ public sealed class TranscriptsEndpoints(FmpTransport transport)
     /// <see cref="GetDatesAsync"/>.</para>
     ///
     /// <para><see cref="EarningsTranscript.Content"/> is the whole transcript as one string — 46,487
-    /// characters for AAPL 2025 Q3, measured 2026-08-29. This is not a small response.</para></summary>
+    /// characters for AAPL 2025 Q3, measured 2026-08-29. This is not a small response.</para>
+    ///
+    /// <para><b>No <c>limit</c>, because with all three parameters required the path answers exactly one
+    /// transcript and there is nothing for a limit to bound.</b> Recorded because <c>fmpsdk</c> sends one and a
+    /// later parameter diff will raise it again: measured 2026-09-01 (#46), <c>limit=1</c> answered a body
+    /// byte-identical to the request without it. Decorative here by the shape of the endpoint rather than by FMP
+    /// discarding it — the same verdict, and the same caveat, as
+    /// <see cref="SearchEndpoints.FindByCikAsync"/>.</para></summary>
     /// <param name="symbol">The ticker, as FMP spells it.</param>
     /// <param name="year">The fiscal year, as <see cref="TranscriptDate.FiscalYear"/> reports it.</param>
     /// <param name="quarter">The fiscal quarter as an integer, 1 to 4 — as

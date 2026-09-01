@@ -212,10 +212,15 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <see cref="CongressMemberPosition.Position"/> carries both <c>Representative</c> and
     /// <c>Senator</c>.</para>
     ///
-    /// <para><b>No <c>limit</c> parameter, because FMP ignores it.</b> Measured 2026-08-29,
-    /// <c>?limit=500</c> answered 300 — the page size — and page 1 answered a further 300 with no overlap.
-    /// Offering a <c>limit</c> the server discards would let a caller believe they had asked for
-    /// something.</para></summary>
+    /// <para><b>No <c>limit</c> parameter yet — but FMP does not ignore it, it CLAMPS it, and an earlier
+    /// version of this note drew the wrong conclusion from a correct measurement.</b> That <c>?limit=500</c>
+    /// answers 300 and <c>?limit=1000</c> answers 500 on the sibling path is true, and page 1 does answer a
+    /// further 300 with no overlap. But every value tried on 2026-08-29 was <i>above</i> the page size, and no
+    /// value above a cap can tell "discarded" from "clamped". Re-measured 2026-09-01 (#46), <c>limit=5</c>
+    /// answers <b>5</b> and <c>limit=5000</c> answers <b>300</b>: the parameter is honoured downward and
+    /// clamped upward. So the omission is now a gap rather than a deliberate refusal, and it is tracked with
+    /// the four filters this path also accepts — <c>party</c>, <c>position</c> and <c>senateID</c> all measured
+    /// honoured — as #52.</para></summary>
     /// <param name="page">Zero-based page index; 300 rows per page. A page past the end answers an empty
     /// list, not an error.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -237,8 +242,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// 2026-08-29, page 0 answered 500, page 1 answered 35 and page 2 answered none — <b>535
     /// members</b>.</para>
     ///
-    /// <para><b>No <c>limit</c> parameter, because FMP ignores it</b> — <c>?limit=1000</c> answered 500. See
-    /// <see cref="GetPositionsAsync"/>.</para>
+    /// <para><b>No <c>limit</c> parameter yet, and not because FMP ignores it.</b> <c>?limit=1000</c> answering
+    /// 500 is a clamp to the page size, not a discard: re-measured 2026-09-01 (#46), <c>limit=5</c> answers
+    /// <b>5</b>. Same correction as <see cref="GetPositionsAsync"/>, and the same follow-up — this path also
+    /// honours <c>active</c>, <c>latestParty</c>, <c>latestPosition</c> and <c>senateID</c>, none of which is
+    /// offered here. See #52.</para>
     ///
     /// <para>This is where a <c>senateID</c> for <see cref="GetHouseTradesByMemberAsync"/> or
     /// <see cref="GetNetWorthAsync"/> comes from.</para></summary>
@@ -262,8 +270,15 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <summary>Every line of one Senator's financial disclosures — <c>stable/senate-net-worth</c>.
     ///
     /// <para>One row per disclosed asset, income source or liability, across every report filed. Measured
-    /// 2026-08-29, <c>H000601</c> answered 250 rows and <c>limit</c> was ignored, so none is
-    /// offered.</para></summary>
+    /// 2026-08-29, <c>H000601</c> answered 250 rows and <c>limit</c> was ignored, so none is offered.</para>
+    ///
+    /// <para><b><c>page</c> is inert here too, which is worth stating because it is honoured on this group's
+    /// four trade paths.</b> Re-measured 2026-09-01 (#46) on <c>M001243</c>, which also answers 250:
+    /// <c>limit=5</c>, <c>limit=1</c>, <c>page=1</c> and <c>page=2</c> each returned the full 250 rows in a body
+    /// byte-identical to the request without them. Meanwhile <c>senate-trades-by-id</c> pages properly —
+    /// 100, 45, 0 across pages 0 to 2. So paging on this group is per-path and cannot be reasoned about from a
+    /// sibling. 250 looks like a round number but is not a cap: nothing here answered more than the filer
+    /// held.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -285,7 +300,14 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <c>stable/senate-net-worth-aggregated</c>.
     ///
     /// <para>One row per reporting year. Measured 2026-08-29, <c>H000601</c> answered six, 2019 through
-    /// 2024 — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by line.</para></summary>
+    /// 2024 — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by line.</para>
+    ///
+    /// <para><b>No <c>totalsCol</c>: it is accepted and ignored.</b> <c>fmpsdk</c> sends one, so this is recorded
+    /// rather than left to be re-opened by the next parameter diff. Measured 2026-09-01 (#46) on <c>M001243</c>,
+    /// which answers three rows: <c>totalsCol=total</c>, <c>=stock</c>, <c>=1</c> and <c>=true</c> each returned
+    /// a body byte-identical to the request without it. Four values rather than one because a single wrong value
+    /// cannot tell "ignored" from "unrecognised" — if there is a working vocabulary here, none of a column name,
+    /// a category name, an index and a boolean is in it.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>
