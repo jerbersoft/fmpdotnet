@@ -1,3 +1,6 @@
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using FmpDotNet.Serialization;
 using NodaTime;
@@ -177,8 +180,7 @@ public sealed record SenateNetWorthLine
 /// <c>G000581</c> carries 21, and nobody carries 27. This type was first modelled from <c>H000601</c>'s six rows
 /// and had 16 properties as a result; a 25-member sample (#57) raised that to 25; the census raised it to 27,
 /// finding <see cref="SpousalIncome"/> and <see cref="InvestmentAndCapitalGains"/> on members the sample never
-/// asked. Three samples, three undercounts, which is why a catch-all for names this type does not know follows
-/// the typed fields.</para>
+/// asked. Three samples, three undercounts, which is why <see cref="UnmappedFields"/> exists.</para>
 ///
 /// <para><b><see cref="Total"/> is assets minus liabilities, and the parts reproduce it except inside
 /// <see cref="Other"/>.</b> Summing the eleven asset fields, subtracting the six liability fields and ignoring
@@ -191,7 +193,14 @@ public sealed record SenateNetWorthLine
 /// decimal point.</b> Across the census, 18 of the 25 numeric keys flip between bare-integer and decimal-point
 /// representation on some row, and the seven that do not include five income fields that are zero on every
 /// row — an integral sample of zeros says nothing about the next row, and one fractional value under
-/// <see cref="int"/> costs the whole response rather than the field.</para></summary>
+/// <see cref="int"/> costs the whole response rather than the field.</para>
+///
+/// <para><b>Carries <see cref="SenateNetWorthSummaryJsonConverter"/>, which is what feeds
+/// <see cref="UnmappedFields"/> — and the dictionary is why this record's value equality is not meaningful.</b>
+/// A dictionary member compares by reference, so two rows byte-identical on the wire are not <c>==</c>.
+/// <see cref="AsReportedStatement"/> and <see cref="RevenueSegmentation"/> carry the same cost for the same
+/// reason, and nothing in the SDK compares rows of this type.</para></summary>
+[JsonConverter(typeof(SenateNetWorthSummaryJsonConverter))]
 public sealed record SenateNetWorthSummary
 {
     /// <summary>The member's Bioguide identifier.</summary>
@@ -295,4 +304,174 @@ public sealed record SenateNetWorthSummary
     /// 2026-09-01, non-zero on 98 — <c>K000389</c>'s 2017 row carries 6,000,000 here against a
     /// <see cref="Total"/> of −73,000.</summary>
     [JsonPropertyName("otherLiabilities")] public decimal? OtherLiabilities { get; init; }
+
+    /// <summary>Every key FMP sent that this type does not name, under its wire spelling. Never
+    /// <see langword="null"/>; empty when there was nothing unrecognised — which, measured 2026-09-01, is every
+    /// one of the 3,425 rows across all 535 members.
+    ///
+    /// <para><b>Typed <see cref="JsonElement"/> rather than <see cref="decimal"/>, because what arrives here is by
+    /// definition unmeasured.</b> A <c>decimal</c> dictionary throws on a string, and a throw costs the whole
+    /// response. The likeliest key to appear here is not a 25th money bucket but an envelope field copied from
+    /// <c>senate-net-worth</c>, where <c>formType</c>, <c>filingDate</c> and <c>link</c> are strings on all
+    /// 67,801 rows. Read a number with <c>UnmappedFields["name"].GetDecimal()</c>, and check
+    /// <see cref="JsonElement.ValueKind"/> first on a key you have not measured.</para>
+    ///
+    /// <para>This auto-property's <c>= Empty</c> initialiser is the form <see cref="AsReportedStatement.Data"/>
+    /// documents as unsafe under the generator's object-initialiser binding. It is safe here for the reason
+    /// <see cref="FinancialReport.Sections"/> gives: the type carries a <see cref="JsonConverterAttribute"/>, so
+    /// the generator emits the value-converter path and the initialiser is never bypassed.</para></summary>
+    public IReadOnlyDictionary<string, JsonElement> UnmappedFields { get; init; } =
+        ReadOnlyDictionary<string, JsonElement>.Empty;
+}
+
+/// <summary>Splits <c>stable/senate-net-worth-aggregated</c>'s flat object into the 27 members
+/// <see cref="SenateNetWorthSummary"/> names and everything else.
+///
+/// <para><b>Hand-written rather than <c>[JsonExtensionData]</c>, for the reason
+/// <see cref="FinancialReportJsonConverter"/> gives:</b> that attribute demands a public, mutable
+/// <c>Dictionary&lt;string, JsonElement&gt;</c> on a record whose other collections are read-only.</para>
+///
+/// <para><b>The named members bind exactly as they would under <see cref="FmpJsonContext"/>.</b> The context
+/// sets <c>PropertyNameCaseInsensitive</c> and <c>AllowReadingFromString</c>, and a converter bypasses both, so
+/// they are re-implemented here: a name matches regardless of case, a money field reads a JSON number or a
+/// numeric string, a null reads as <see langword="null"/>, and anything else throws <see cref="JsonException"/>
+/// as the generated binder would. No caller can tell from the typed members that a converter is present. Only
+/// a key the type does not name reaches <see cref="SenateNetWorthSummary.UnmappedFields"/>, under FMP's
+/// spelling.</para>
+///
+/// <para>Null members are skipped on write, because absence and null bind identically on read.</para></summary>
+public sealed class SenateNetWorthSummaryJsonConverter : JsonConverter<SenateNetWorthSummary>
+{
+    /// <inheritdoc/>
+    public override SenateNetWorthSummary Read(
+        ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType != JsonTokenType.StartObject)
+            throw new JsonException("A net worth summary must be a JSON object.");
+
+        // Every property, keyed as FmpJsonContext keys them — case-insensitively — so `Other` and `other`
+        // reach the same member. Dictionary keeps the key string as first inserted, so a leftover keeps FMP's
+        // spelling for UnmappedFields. ParseValue rather than a JsonDocument so nothing needs disposing and the
+        // leftovers can outlive this call.
+        var fields = new Dictionary<string, JsonElement>(StringComparer.OrdinalIgnoreCase);
+        while (reader.Read() && reader.TokenType != JsonTokenType.EndObject)
+        {
+            var name = reader.GetString()!;
+            reader.Read();
+            fields[name] = JsonElement.ParseValue(ref reader);
+        }
+
+        decimal? Money(string wireName) =>
+            fields.Remove(wireName, out var element) ? ReadMoney(element, wireName) : null;
+
+        // Object-initialiser members are evaluated in textual order, so UnmappedFields — which is whatever the
+        // 27 named lookups above it did NOT remove — must stay last.
+        return new SenateNetWorthSummary
+        {
+            SenateId = fields.Remove("senateID", out var senateId) ? ReadText(senateId, "senateID") : null,
+            Year = fields.Remove("year", out var year) ? ReadYear(year) : null,
+            Total = Money("total"),
+            RevolvingAndCreditLines = Money("revolvingAndCreditLines"),
+            SalaryAndWages = Money("salaryAndWages"),
+            BusinessLiabilities = Money("businessLiabilities"),
+            RealEstateLiabilities = Money("realEstateLiabilities"),
+            MutualFundsAndEtfs = Money("mutualFundsAndETFs"),
+            CashAndCashEquivalents = Money("cashAndCashEquivalents"),
+            OwnershipInterest = Money("ownershipInterest"),
+            Stock = Money("stock"),
+            GovernmentSecurities = Money("governmentSecurities"),
+            OtherAssets = Money("otherAssets"),
+            PensionAndRetirementAssets = Money("pensionAndRetirementAssets"),
+            RealEstate = Money("realEstate"),
+            Trusts = Money("trusts"),
+            Other = Money("Other"),
+            BusinessAndSelfEmployment = Money("businessAndSelfEmployment"),
+            PensionAndRetirementIncome = Money("pensionAndRetirementIncome"),
+            OtherIncome = Money("otherIncome"),
+            SpousalIncome = Money("spousalIncome"),
+            InvestmentAndCapitalGains = Money("investmentAndCapitalGains"),
+            Options = Money("options"),
+            AssetBackedSecurities = Money("assetBackedSecurities"),
+            PersonalLiabilities = Money("personalLiabilities"),
+            EducationLiabilities = Money("educationLiabilities"),
+            OtherLiabilities = Money("otherLiabilities"),
+            UnmappedFields = fields.Count == 0
+                ? ReadOnlyDictionary<string, JsonElement>.Empty
+                : new Dictionary<string, JsonElement>(fields, StringComparer.Ordinal),
+        };
+    }
+
+    /// <inheritdoc/>
+    public override void Write(Utf8JsonWriter writer, SenateNetWorthSummary value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+        if (value.SenateId is { } senateId) writer.WriteString("senateID", senateId);
+        if (value.Year is { } year) writer.WriteNumber("year", year);
+        WriteMoney(writer, "total", value.Total);
+        WriteMoney(writer, "revolvingAndCreditLines", value.RevolvingAndCreditLines);
+        WriteMoney(writer, "salaryAndWages", value.SalaryAndWages);
+        WriteMoney(writer, "businessLiabilities", value.BusinessLiabilities);
+        WriteMoney(writer, "realEstateLiabilities", value.RealEstateLiabilities);
+        WriteMoney(writer, "mutualFundsAndETFs", value.MutualFundsAndEtfs);
+        WriteMoney(writer, "cashAndCashEquivalents", value.CashAndCashEquivalents);
+        WriteMoney(writer, "ownershipInterest", value.OwnershipInterest);
+        WriteMoney(writer, "stock", value.Stock);
+        WriteMoney(writer, "governmentSecurities", value.GovernmentSecurities);
+        WriteMoney(writer, "otherAssets", value.OtherAssets);
+        WriteMoney(writer, "pensionAndRetirementAssets", value.PensionAndRetirementAssets);
+        WriteMoney(writer, "realEstate", value.RealEstate);
+        WriteMoney(writer, "trusts", value.Trusts);
+        WriteMoney(writer, "Other", value.Other);
+        WriteMoney(writer, "businessAndSelfEmployment", value.BusinessAndSelfEmployment);
+        WriteMoney(writer, "pensionAndRetirementIncome", value.PensionAndRetirementIncome);
+        WriteMoney(writer, "otherIncome", value.OtherIncome);
+        WriteMoney(writer, "spousalIncome", value.SpousalIncome);
+        WriteMoney(writer, "investmentAndCapitalGains", value.InvestmentAndCapitalGains);
+        WriteMoney(writer, "options", value.Options);
+        WriteMoney(writer, "assetBackedSecurities", value.AssetBackedSecurities);
+        WriteMoney(writer, "personalLiabilities", value.PersonalLiabilities);
+        WriteMoney(writer, "educationLiabilities", value.EducationLiabilities);
+        WriteMoney(writer, "otherLiabilities", value.OtherLiabilities);
+        foreach (var (name, element) in value.UnmappedFields)
+        {
+            writer.WritePropertyName(name);
+            element.WriteTo(writer);
+        }
+        writer.WriteEndObject();
+    }
+
+    private static void WriteMoney(Utf8JsonWriter writer, string name, decimal? value)
+    {
+        if (value is { } money) writer.WriteNumber(name, money);
+    }
+
+    // The three readers below are the AllowReadingFromString + case-insensitive contract of FmpJsonContext,
+    // restated for the three shapes this object carries. Each throws on a type it was not measured to carry,
+    // because the generated binder would, and a converter that is quietly more lenient than every other model
+    // would be a second binding contract nobody asked for.
+
+    private static decimal? ReadMoney(JsonElement element, string name) => element.ValueKind switch
+    {
+        JsonValueKind.Null => null,
+        JsonValueKind.Number => element.GetDecimal(),
+        JsonValueKind.String when decimal.TryParse(
+            element.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) => parsed,
+        _ => throw new JsonException($"'{name}' must be a number or a numeric string, not {element.ValueKind}."),
+    };
+
+    private static int? ReadYear(JsonElement element) => element.ValueKind switch
+    {
+        JsonValueKind.Null => null,
+        JsonValueKind.Number => element.GetInt32(),
+        JsonValueKind.String when int.TryParse(
+            element.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+        _ => throw new JsonException($"'year' must be an integer or an integral string, not {element.ValueKind}."),
+    };
+
+    private static string? ReadText(JsonElement element, string name) => element.ValueKind switch
+    {
+        JsonValueKind.Null => null,
+        JsonValueKind.String => element.GetString(),
+        _ => throw new JsonException($"'{name}' must be a string, not {element.ValueKind}."),
+    };
 }
