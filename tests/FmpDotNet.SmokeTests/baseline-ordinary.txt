@@ -583,22 +583,34 @@ set Year
 
 [Congress.GetNetWorthSummaryAsync]
 outcome rows
-set BusinessLiabilities
+set BusinessAndSelfEmployment
 set CashAndCashEquivalents
+set EducationLiabilities
 set GovernmentSecurities
 set MutualFundsAndEtfs
+set Other
 set OtherAssets
+set OtherIncome
+set OtherLiabilities
 set OwnershipInterest
 set PensionAndRetirementAssets
+set PensionAndRetirementIncome
+set PersonalLiabilities
 set RealEstate
 set RealEstateLiabilities
 set RevolvingAndCreditLines
-set SalaryAndWages
 set SenateId
 set Stock
 set Total
 set Trusts
 set Year
+null AssetBackedSecurities
+null BusinessLiabilities
+null InvestmentAndCapitalGains
+null Options
+null SalaryAndWages
+null SpousalIncome
+null UnmappedFields
 
 [Congress.GetPositionsAsync]
 outcome rows

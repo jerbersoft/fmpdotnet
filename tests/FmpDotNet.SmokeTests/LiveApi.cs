@@ -394,7 +394,12 @@ internal static class LiveApi
     ///
     /// <para><b>A Senator cannot probe the House path.</b> <c>house-trades-by-id</c> takes the same
     /// <c>senateID</c> parameter and this value answers zero rows on it, because Hagerty has never sat in the
-    /// House. See <see cref="HouseMemberId"/>.</para></summary>
+    /// House. See <see cref="HouseMemberId"/>.</para>
+    ///
+    /// <para><b>And he no longer probes <c>senate-net-worth-aggregated</c>.</b> His six rows there carry exactly
+    /// the 16 keys the record was first modelled from — because they are the rows it was modelled from — and
+    /// none of the eleven #57 added, so a sweep keyed on him stayed green through that defect. That probe uses
+    /// <see cref="NetWorthSummarySenateId"/>; this constant keeps the two paths he does answer.</para></summary>
     public const string SenateId = "H000601";
 
     /// <summary>A Representative's Bioguide identifier for <c>house-trades-by-id</c> — Nancy Pelosi,
@@ -406,6 +411,26 @@ internal static class LiveApi
     /// baseline that then matches itself green forever. Measured the same day, <c>P000197</c> answers 100
     /// rows, all of them hers.</para></summary>
     public const string HouseMemberId = "P000197";
+
+    /// <summary>A Senator's Bioguide identifier for <c>senate-net-worth-aggregated</c> alone — Chuck Grassley,
+    /// <c>G000581</c>.
+    ///
+    /// <para><b>Chosen because his rows carry 21 of the path's 27 keys, the most of any member.</b> Measured
+    /// 2026-09-01 across all 535 members, no member carries all 27, so this is a trade rather than a whole: he
+    /// carries seven of the eleven keys #57 added — including <c>Other</c>, <c>personalLiabilities</c> and
+    /// <c>educationLiabilities</c>, the three most often non-zero — and lacks <c>salaryAndWages</c> and
+    /// <c>businessLiabilities</c> of the original sixteen, which <see cref="SenateId"/> carries, as well as
+    /// <c>options</c>, <c>assetBackedSecurities</c>, <c>spousalIncome</c> and <c>investmentAndCapitalGains</c>.
+    /// A rename of any of those six is invisible to this probe.</para>
+    ///
+    /// <para><b>Its own constant rather than a new value for <see cref="SenateId"/>, because he answers zero
+    /// rows on <c>senate-trades-by-id</c>.</b> Pointing the shared constant at him would record <c>rows 0</c>
+    /// on the trade probe — the baseline that matches itself green forever. The same separation
+    /// <see cref="HouseNameQuery"/> and <see cref="FundNameQuery"/> exist for.</para>
+    ///
+    /// <para>The baseline records <c>null UnmappedFields</c> for this probe, and that line is the detector
+    /// the catch-all was added for: the day FMP sends a 28th key, it flips to <c>set</c>.</para></summary>
+    public const string NetWorthSummarySenateId = "G000581";
 
     /// <summary>A surname for <c>house-trades-by-name</c> — <c>Pelosi</c>, the member
     /// <see cref="HouseMemberId"/> identifies.
