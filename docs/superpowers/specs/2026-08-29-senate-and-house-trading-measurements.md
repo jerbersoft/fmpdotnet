@@ -90,6 +90,12 @@ Eight of the twelve paths return the same congressional-trade row. The other fou
 | net worth line | `senate-net-worth` | 17, two of them nested objects |
 | net worth aggregate | `senate-net-worth-aggregated` | 16 |
 
+> **The aggregate has 27 keys, not 16 — corrected 2026-09-01 (#57).** The 16 came from one member's six rows,
+> and the row shape on that path is per member: each carries the categories they have ever disclosed. Across
+> all 535 members the union is 27, and 91% of rows carry at least one of the eleven this count missed. See
+> [the field-set measurements](2026-09-01-senate-net-worth-fields-measurements.md). The row is kept because it
+> was a correct reading of what it looked at, and deleting it would erase why one member looked like a whole.
+
 ### `senate-latest` is the one trade feed missing a field
 
 `capitalGainsOver200USD` is present on every row of all seven other trade feeds and on **none** of
@@ -135,6 +141,11 @@ representation across only six rows:
 
 The last row is the trap, not the exemption: six rows all landing on bare integers says nothing about the
 seventh. Every money field on this record is `decimal?`.
+
+> **"14 money fields" became 24, and "8 flip" became 18 — corrected 2026-09-01 (#57).** Across the whole
+> population, 18 of the 25 numeric keys appear with a decimal point on some row. The seven that never do include
+> five income categories that are zero on every row, which is the same lesson as the last row of this table,
+> only more so. See [the field-set measurements](2026-09-01-senate-net-worth-fields-measurements.md).
 
 ## `debtDetails` carries three JSON types on one field
 

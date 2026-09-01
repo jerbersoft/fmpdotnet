@@ -24,8 +24,8 @@ Each sample was read correctly, and each conclusion was wider than its sample. T
 members is a bigger sample than one, and still a sample"* — was right about itself: the population holds two
 keys its 25 members never showed, `spousalIncome` and `investmentAndCapitalGains`.
 
-So the model is missing **eleven** fields, not nine, and the row shape is per-member: it is the union of the
-categories that member has ever disclosed. `H000601` disclosed exactly the sixteen the model has, which is why
+So the model is missing **eleven** fields, not nine, and the row shape is per-member: every row of a given member carries the same key set — checked on all 455 members with rows, and not one has
+two shapes — and that set is the categories the member has ever disclosed. `H000601` disclosed exactly the sixteen the model has, which is why
 one member looked like a whole.
 
 ## The census
@@ -230,9 +230,11 @@ on `senate-net-worth`). So the existing constant cannot simply be pointed at one
 trade probe, which is the "`rows 0` baseline that matches itself green forever" the constant's own doc warns
 about.
 
-**A fixture covering all 27 keys needs five members' rows:** `G000581` for seven, plus one row each from
-`K000375` (`assetBackedSecurities`), `M001160` (`options`), `Q000023` (`spousalIncome`) and `C001061`
-(`investmentAndCapitalGains`). Verified: that union is exactly the eleven.
+**A fixture covering all 27 keys needs five members' rows, and a sixth makes it a better fixture:** `G000581`
+for seven, plus one row each from `K000375` (`assetBackedSecurities`), `M001160` (`options`), `Q000023`
+(`spousalIncome`) and `C001061` (`investmentAndCapitalGains`). Verified: that union is exactly the eleven.
+`S001145`'s 2018 row is added for `pensionAndRetirementIncome` — one of its four non-zero rows in the
+population, and a decimal-point value, `289473.83`, where every other member's rows carry a zero.
 
 ## What was not measured
 

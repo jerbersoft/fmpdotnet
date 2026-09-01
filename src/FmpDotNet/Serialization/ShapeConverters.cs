@@ -151,11 +151,13 @@ public sealed class PublisherListJsonConverter : JsonConverter<IReadOnlyList<str
 /// <c>incomeRange</c> was an object on 136, <c>null</c> on 100 and <c>""</c> on 14.
 /// <see cref="System.Text.Json.JsonSerializer"/> cannot read a string into an object, so a plain
 /// <see cref="Models.NetWorthRange"/> property throws on those 14 — and the throw aborts the whole array
-/// rather than the row, so on that filer 14 rows cost all 250.</para>
+/// rather than the row, so on that filer 14 rows cost all 250. Re-measured 2026-09-01 across all 535 members
+/// and 67,801 rows (#57): the key still takes exactly those three forms and no fourth.</para>
 ///
 /// <para><b>Applied to <c>incomeRange</c> only.</b> Its sibling <c>valueRange</c> was an object on all 214
 /// rows where it was present and never a string; putting this converter there too would assert a wire form
-/// that was never measured.</para></summary>
+/// that was never measured. Still true at population scale — across the same 67,801 rows, <c>valueRange</c> is
+/// <c>null</c> or an object and never a string.</para></summary>
 public sealed class NetWorthRangeJsonConverter : JsonConverter<Models.NetWorthRange?>
 {
     /// <inheritdoc/>

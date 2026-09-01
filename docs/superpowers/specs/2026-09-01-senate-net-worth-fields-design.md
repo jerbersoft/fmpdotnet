@@ -183,9 +183,10 @@ corrected with the measurement behind it:
 
 ## Testing
 
-Offline, in `CongressTests`, against a new fixture assembled from real rows of five members — `G000581`,
-`K000375`, `M001160`, `Q000023`, `C001061` — which between them carry all 27 keys (verified: their union of
-unmodelled keys is exactly the eleven). The existing two-row `H000601` fixture stays for the test that already
+Offline, in `CongressTests`, against a new fixture assembled from real rows of six members — `G000581`,
+`K000375`, `M001160`, `Q000023`, `C001061`, `S001145` — which between them carry all 27 keys (verified: the
+first five's union of unmodelled keys is exactly the eleven; the sixth supplies the one non-zero,
+decimal-point `pensionAndRetirementIncome` the population offers). The existing two-row `H000601` fixture stays for the test that already
 uses it.
 
 | test | what would break it |
