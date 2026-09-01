@@ -90,8 +90,8 @@ public sealed class FmpDeveloperBulkCacheHandlerTests : IDisposable
         var upstream = new UpstreamHandler(Csv);
         using var http = Client(upstream, _directory);
 
-        await http.GetAsync("stable/profile-bulk?part=0&apikey=k");
-        await http.GetAsync("stable/profile-bulk?part=1&apikey=k");
+        await http.GetAsync("stable/profile-bulk?part=0");
+        await http.GetAsync("stable/profile-bulk?part=1");
 
         Assert.Equal(2, upstream.Sends);
     }
