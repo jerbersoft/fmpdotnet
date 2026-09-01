@@ -32,8 +32,14 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     /// dated 2026-09-01. There is no paging parameter, no country parameter and no impact parameter; a range is
     /// the entire query surface.</para>
     ///
-    /// <para><b>Wide windows are silently truncated, and the SDK cannot page around it.</b> This is the one thing
-    /// on this endpoint that will cost a caller data without telling them. Measured against the live API:</para>
+    /// <para><b>Wide windows are silently truncated, and the SDK cannot page around it — which is now measured
+    /// rather than assumed.</b> Re-probed 2026-09-01 (#46) because the same claim on
+    /// <see cref="CalendarEndpoints.GetEarningsCalendarAsync"/> turned out to be false: there, <c>page</c> is a
+    /// working cursor that had never been tried. Here it is not. <c>from=2025-01-01&amp;to=2025-12-31</c> answers
+    /// 7301 rows, and <c>page=1</c>, <c>page=2</c> and <c>limit=10000</c> each answer the identical 7301 — same
+    /// first and last row, 6741 shared <c>(date, event)</c> pairs against 6741 distinct ones. So this endpoint
+    /// really does have a range as its entire query surface. This is the one thing on it that will cost a caller
+    /// data without telling them. Measured against the live API:</para>
     /// <list type="table">
     ///   <listheader><term>range</term><description>rows returned</description></listheader>
     ///   <item><term>2026-08-01 … 2026-08-31 (1 month)</term><description>1855</description></item>

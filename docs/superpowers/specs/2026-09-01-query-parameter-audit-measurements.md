@@ -161,6 +161,23 @@ more.
 53 rows `page=0` already returned, so a caller looping pages the ordinary way gets *n*·(*n*+1)/2 duplicates
 rather than more data. Modelling it as `page` would be worse than not modelling it.
 
+#### Paging does not generalise, so the other two "cannot page" claims were re-probed
+
+Finding a working cursor where the docs denied one makes every other such claim suspect. Both were checked
+rather than left standing, and both survive — for different reasons, neither of which is the one the calendars
+had.
+
+**`economic-calendar` genuinely ignores `page`.** `from=2025-01-01&to=2025-12-31` answers 7301 rows, and
+`page=1`, `page=2` and `limit=10000` each answer the identical 7301 — same first row, same last row, 6741 shared
+`(date, event)` pairs against 6741 distinct ones. A range really is that endpoint's entire query surface.
+
+**`splits-calendar` reads `page` but has nothing to page to.** Its limit is a 90-day lookback rather than a row
+cap: `from=2026-01-01&to=2026-08-28` answers 944 rows whose earliest is `2026-05-31` — 89 days before `to` — and
+`page=1` answers **0** rather than the missing January-to-May. No cursor reaches outside a window.
+
+Three mechanisms across four calendar paths, and the parameter that escapes one does nothing on the next. That
+is the case for measuring each path rather than reasoning from a sibling.
+
 ### Group C — the Senate filter cluster
 
 The issue estimated sixteen parameters here; there are **ten**, and nine are honoured. This is the largest
