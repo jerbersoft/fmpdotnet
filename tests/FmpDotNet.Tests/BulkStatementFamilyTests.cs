@@ -36,8 +36,11 @@ public class BulkStatementFamilyTests
     [Fact]
     public async Task The_income_bulk_csv_maps_onto_the_same_model_the_per_symbol_endpoint_returns()
     {
-        // The two carry exactly the same 39 field names — compared header against [JsonPropertyName] on
-        // 2026-08-26 — so duplicating the model for the CSV path would be 39 chances to drift for no gain.
+        // The two carry exactly the same 39 field names, so duplicating the model for the CSV path would be 39
+        // chances to drift for no gain. That was a hand-comparison of the header against [JsonPropertyName],
+        // made on 2026-08-26 and asserted by nothing; BulkCsvColumnParityTests now proves it on every run, for
+        // this model and the other seventeen (#55). This test stays as it is — it checks that the VALUES bind,
+        // which is the half a column-name comparison cannot see.
         var (endpoints, _) = Build(Fixture("income-statement-bulk.head.csv"));
 
         var rows = await DrainAsync(endpoints.StreamIncomeStatementsAsync(2025, BulkFiscalPeriod.Q1));
