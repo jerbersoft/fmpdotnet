@@ -429,7 +429,9 @@ internal static class LiveApi
     /// <see cref="HouseNameQuery"/> and <see cref="FundNameQuery"/> exist for.</para>
     ///
     /// <para>The baseline records <c>null UnmappedFields</c> for this probe, and that line is the detector
-    /// the catch-all was added for: the day FMP sends a 28th key, it flips to <c>set</c>.</para></summary>
+    /// the catch-all was added for: the day FMP sends a 28th key on this member's rows, it flips to
+    /// <c>set</c>. On this member's rows only — the shape is per member, so a key that first appears on
+    /// another member's rows reaches every caller's catch-all and this probe not at all.</para></summary>
     public const string NetWorthSummarySenateId = "G000581";
 
     /// <summary>A surname for <c>house-trades-by-name</c> — <c>Pelosi</c>, the member

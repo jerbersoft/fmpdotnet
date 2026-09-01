@@ -24,9 +24,10 @@ Each sample was read correctly, and each conclusion was wider than its sample. T
 members is a bigger sample than one, and still a sample"* — was right about itself: the population holds two
 keys its 25 members never showed, `spousalIncome` and `investmentAndCapitalGains`.
 
-So the model is missing **eleven** fields, not nine, and the row shape is per-member: every row of a given member carries the same key set — checked on all 455 members with rows, and not one has
-two shapes — and that set is the categories the member has ever disclosed. `H000601` disclosed exactly the sixteen the model has, which is why
-one member looked like a whole.
+So the model is missing **eleven** fields, not nine, and the row shape is per-member: every row of a given
+member carries the same key set — checked on all 455 members with rows, and not one has two shapes — and that
+set is the categories the member has ever disclosed. `H000601` disclosed exactly the sixteen the model has,
+which is why one member looked like a whole.
 
 ## The census
 
@@ -87,9 +88,10 @@ money categories, and no category is present on every row.
 last column is why the sample ranked the eleven differently: `educationLiabilities` looked rare at 5 of 119
 and is non-zero on 306 rows of the population, the second-most consequential of the eleven.
 
-**Five of the eleven are never non-zero.** `businessAndSelfEmployment`, `otherIncome`, `spousalIncome` and
-`investmentAndCapitalGains` are zero on every row that carries them, and `pensionAndRetirementIncome` is
-non-zero on four. They are income categories, and this is a net-worth path — see *`total` reconciles* below.
+**Four of the eleven are never non-zero, and a fifth nearly so.** `businessAndSelfEmployment`, `otherIncome`,
+`spousalIncome` and `investmentAndCapitalGains` are zero on every row that carries them, and
+`pensionAndRetirementIncome` is non-zero on four. They are income categories, and this is a net-worth path —
+see *`total` reconciles* below.
 
 ## What the eleven cost
 

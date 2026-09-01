@@ -454,7 +454,8 @@ public class CongressTests
         // every attributed name — asserted in the test above, and re-asserted here on the same fixture so
         // this test stands on its own).
         var fixture = Binding.Fixture("congress-senate-net-worth-aggregated-all-keys.json");
-        var wireKeys = JsonDocument.Parse(fixture).RootElement
+        using var document = JsonDocument.Parse(fixture);
+        var wireKeys = document.RootElement
             .EnumerateArray()
             .SelectMany(row => row.EnumerateObject().Select(p => p.Name))
             .Distinct(StringComparer.Ordinal)
@@ -505,6 +506,41 @@ public class CongressTests
     }
 
     [Fact]
+    public void A_named_money_field_given_a_padded_numeric_string_throws_as_the_context_would()
+    {
+        // The generated binder's AllowReadingFromString takes JSON number grammar and nothing more: a leading
+        // sign and an exponent, no whitespace. NumberStyles.Float would have accepted " 5 " here and made the
+        // typed members the one place in the SDK that is quietly more lenient than the context.
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"stock":" 5 "}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+
+        Assert.Contains("stock", ex.Message);
+    }
+
+    [Fact]
+    public void A_row_that_is_not_an_object_throws()
+    {
+        // The converter's first guard. Reachable through the public path — FMP has never sent it, but a
+        // guard with no test is a guard nobody knows is there.
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[[]]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+    }
+
+    [Fact]
+    public void A_non_string_senateID_throws_as_the_context_would()
+    {
+        // ReadText's non-string arm. The generated binder does not coerce a number into a string? slot, and
+        // neither does this.
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[{"senateID":5,"year":2024}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+
+        Assert.Contains("senateID", ex.Message);
+    }
+
+    [Fact]
     public void A_named_key_in_a_different_case_binds_its_property_not_the_catch_all()
     {
         // PropertyNameCaseInsensitive = true on the context, re-implemented by the converter. `Other` is the
@@ -531,7 +567,7 @@ public class CongressTests
         // Null members are skipped on write because absence and null bind identically on read, so the
         // comparison is on values rather than on bytes.
         var original = JsonSerializer.Deserialize(
-            """[{"senateID":"X000001","year":2024,"total":42,"stock":40,"Other":2,"cryptocurrency":2,"formType":"Annual Report"}]""",
+            """[{"senateID":"X000001","year":2024,"total":42,"stock":40,"mutualFundsAndETFs":3,"Other":2,"cryptocurrency":2,"formType":"Annual Report"}]""",
             FmpJsonContext.Default.ListSenateNetWorthSummary)!;
 
         var json = JsonSerializer.Serialize(original, FmpJsonContext.Default.ListSenateNetWorthSummary);
@@ -542,12 +578,17 @@ public class CongressTests
         Assert.Equal(2024, row.Year);
         Assert.Equal(42m, row.Total);
         Assert.Equal(40m, row.Stock);
+        Assert.Equal(3m, row.MutualFundsAndEtfs);
         Assert.Equal(2m, row.Other);
         Assert.Null(row.Trusts);
         Assert.Equal(2, row.UnmappedFields.Count);
         Assert.Equal(2m, row.UnmappedFields["cryptocurrency"].GetDecimal());
         Assert.Equal("Annual Report", row.UnmappedFields["formType"].GetString());
         Assert.DoesNotContain("trusts", json, StringComparison.Ordinal);
+        // The read side is case-insensitive, so a mis-cased entry in the WRITE table would round-trip green and
+        // ship wrong casing to anyone re-serialising. This is the one wire name whose casing is not the
+        // camelCase of its property name.
+        Assert.Contains("\"mutualFundsAndETFs\":", json, StringComparison.Ordinal);
     }
 
     // ---- the request surface -----------------------------------------------------------------------------

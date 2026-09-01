@@ -196,10 +196,14 @@ public sealed record SenateNetWorthLine
 /// <see cref="int"/> costs the whole response rather than the field.</para>
 ///
 /// <para><b>Carries <see cref="SenateNetWorthSummaryJsonConverter"/>, which is what feeds
-/// <see cref="UnmappedFields"/> — and the dictionary is why this record's value equality is not meaningful.</b>
-/// A dictionary member compares by reference, so two rows byte-identical on the wire are not <c>==</c>.
-/// <see cref="AsReportedStatement"/> and <see cref="RevenueSegmentation"/> carry the same cost for the same
-/// reason, and nothing in the SDK compares rows of this type.</para></summary>
+/// <see cref="UnmappedFields"/> — and the dictionary is why this record's value equality changes the day the
+/// catch-all fires.</b> An empty <see cref="UnmappedFields"/> is the shared
+/// <c>ReadOnlyDictionary&lt;string, JsonElement&gt;.Empty</c> singleton, so two rows byte-identical on the wire
+/// are <c>==</c> while it is empty — which, measured 2026-09-01, is every one of the 3,425 rows. A non-empty one
+/// is a fresh dictionary that compares by reference, so the first row FMP sends with a key this type does not
+/// name stops being equal to a byte-identical re-fetch. <see cref="AsReportedStatement"/> and
+/// <see cref="RevenueSegmentation"/> carry the same cost for the same reason, and nothing in the SDK compares
+/// rows of this type.</para></summary>
 [JsonConverter(typeof(SenateNetWorthSummaryJsonConverter))]
 public sealed record SenateNetWorthSummary
 {
@@ -339,7 +343,10 @@ public sealed record SenateNetWorthSummary
 /// a key the type does not name reaches <see cref="SenateNetWorthSummary.UnmappedFields"/>, under FMP's
 /// spelling.</para>
 ///
-/// <para>Null members are skipped on write, because absence and null bind identically on read.</para></summary>
+/// <para>Null members are skipped on write, because absence and null bind identically on read. The write path
+/// does not check <see cref="SenateNetWorthSummary.UnmappedFields"/> for a named wire key — the read path can
+/// never put one there, and a row built by hand with <c>total</c> in both places writes it twice, and on the
+/// way back in the unmapped copy wins.</para></summary>
 public sealed class SenateNetWorthSummaryJsonConverter : JsonConverter<SenateNetWorthSummary>
 {
     /// <inheritdoc/>
@@ -455,7 +462,9 @@ public sealed class SenateNetWorthSummaryJsonConverter : JsonConverter<SenateNet
         JsonValueKind.Null => null,
         JsonValueKind.Number => element.GetDecimal(),
         JsonValueKind.String when decimal.TryParse(
-            element.GetString(), NumberStyles.Float, CultureInfo.InvariantCulture, out var parsed) => parsed,
+            element.GetString(),
+            NumberStyles.AllowLeadingSign | NumberStyles.AllowDecimalPoint | NumberStyles.AllowExponent,
+            CultureInfo.InvariantCulture, out var parsed) => parsed,
         _ => throw new JsonException($"'{name}' must be a number or a numeric string, not {element.ValueKind}."),
     };
 
@@ -464,7 +473,8 @@ public sealed class SenateNetWorthSummaryJsonConverter : JsonConverter<SenateNet
         JsonValueKind.Null => null,
         JsonValueKind.Number => element.GetInt32(),
         JsonValueKind.String when int.TryParse(
-            element.GetString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) => parsed,
+            element.GetString(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture,
+            out var parsed) => parsed,
         _ => throw new JsonException($"'year' must be an integer or an integral string, not {element.ValueKind}."),
     };
 

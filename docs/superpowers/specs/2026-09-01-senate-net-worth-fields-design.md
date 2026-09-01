@@ -124,11 +124,13 @@ uncertainty lives.
 member disclosed that section, and they do not enter `total`. The five new ones say so; `SalaryAndWages`'s doc
 is corrected to say so.
 
-**One wart, stated rather than hidden.** A dictionary member on a `record` compares by reference, so two
-`SenateNetWorthSummary` rows that are byte-identical on the wire are no longer `==`. `AsReportedStatement` and
-`RevenueSegmentation` already ship this way. Nothing in the SDK depends on this type's equality — the calendar
-walk's seam detector uses it on `Dividend` and `EarningsCalendarEntry`, not here — and the type's doc records
-the loss.
+**One wart, stated rather than hidden.** A non-empty dictionary member on a `record` compares by reference. An
+empty `UnmappedFields` is the shared `ReadOnlyDictionary<string, JsonElement>.Empty` singleton, so two
+`SenateNetWorthSummary` rows that are byte-identical on the wire stay `==` while it is empty — every row
+measured 2026-09-01 — and stop being `==` the day FMP sends a key the type does not name.
+`AsReportedStatement` and `RevenueSegmentation` already ship this way. Nothing in the SDK depends on this
+type's equality — the calendar walk's seam detector uses it on `Dividend` and `EarningsCalendarEntry`, not
+here — and the type's doc records the change.
 
 ## The live sweep is blind, and gets a second member
 
@@ -153,8 +155,9 @@ separates constants per endpoint for precisely this reason (`InsiderNameQuery`, 
   `set` lines for the seven he carries; `null` lines for `Options`, `AssetBackedSecurities`, `SpousalIncome`
   and `InvestmentAndCapitalGains`; `SalaryAndWages` and `BusinessLiabilities` flipping from `set` to `null`;
   and **`null UnmappedFields`** — the sweep's `Populated` treats an empty collection as not populated, and the
-  baseline spells that `null`. That last line is the detector: the day FMP adds a bucket, it flips to `set`,
-  and the diff says so.
+  baseline spells that `null`. That last line is the detector: the day FMP adds a bucket to `G000581`'s rows,
+  it flips to `set`, and the diff says so. A bucket that first appears on another member's rows reaches every
+  caller's catch-all and this probe not at all — one member is not a population, here either.
 
 ## Documentation to correct
 
@@ -186,8 +189,8 @@ corrected with the measurement behind it:
 Offline, in `CongressTests`, against a new fixture assembled from real rows of six members — `G000581`,
 `K000375`, `M001160`, `Q000023`, `C001061`, `S001145` — which between them carry all 27 keys (verified: the
 first five's union of unmodelled keys is exactly the eleven; the sixth supplies the one non-zero,
-decimal-point `pensionAndRetirementIncome` the population offers). The existing two-row `H000601` fixture stays for the test that already
-uses it.
+decimal-point `pensionAndRetirementIncome` the population offers). The existing two-row `H000601` fixture
+stays for the test that already uses it.
 
 | test | what would break it |
 |---|---|
