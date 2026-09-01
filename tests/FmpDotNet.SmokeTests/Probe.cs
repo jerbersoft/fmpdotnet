@@ -370,6 +370,12 @@ internal static class Probe
                 "senateId" when parameter.Member.Name
                         == nameof(Endpoints.CongressEndpoints.GetHouseTradesByMemberAsync)
                     => LiveApi.HouseMemberId,
+                // The aggregated net-worth path gets its own member: the one the other two Senate paths use
+                // carries none of the eleven keys #57 added, so a sweep keyed on him could not see the defect.
+                // See NetWorthSummarySenateId for why it is a second constant and not a new value.
+                "senateId" when parameter.Member.Name
+                        == nameof(Endpoints.CongressEndpoints.GetNetWorthSummaryAsync)
+                    => LiveApi.NetWorthSummarySenateId,
                 "senateId" => LiveApi.SenateId,
 
                 "exchange" => LiveApi.Exchange,

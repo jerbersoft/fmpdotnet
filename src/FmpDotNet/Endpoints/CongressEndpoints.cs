@@ -299,8 +299,15 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <summary>One Senator's net worth by year, totalled by category —
     /// <c>stable/senate-net-worth-aggregated</c>.
     ///
-    /// <para>One row per reporting year. Measured 2026-08-29, <c>H000601</c> answered six, 2019 through
-    /// 2024 — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by line.</para>
+    /// <para>One row per reporting year — the aggregate of what <see cref="GetNetWorthAsync"/> returns line by
+    /// line. Measured 2026-09-01 across every member <see cref="GetProfilesAsync"/> enumerates, 455 of 535
+    /// answer between one and twelve rows each, 3,425 in all, and 80 answer an empty list.</para>
+    ///
+    /// <para><b>The row shape varies by member, and the record was once modelled from one.</b> FMP sends 27
+    /// keys across the population and each member carries the subset they have ever disclosed; <c>H000601</c>
+    /// carries 16, which is how this type shipped with 16 properties and dropped eleven categories on 91% of
+    /// rows (#57). All 27 bind now, and a key the type does not name lands in
+    /// <see cref="SenateNetWorthSummary.UnmappedFields"/> rather than vanishing.</para>
     ///
     /// <para><b>No <c>totalsCol</c>: it is accepted and ignored.</b> <c>fmpsdk</c> sends one, so this is recorded
     /// rather than left to be re-opened by the next parameter diff. Measured 2026-09-01 (#46) on <c>M001243</c>,

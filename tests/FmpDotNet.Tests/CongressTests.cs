@@ -1,4 +1,6 @@
+using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FmpDotNet.Endpoints;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
@@ -306,9 +308,11 @@ public class CongressTests
     [Fact]
     public void Every_money_field_on_the_aggregate_binds_whether_or_not_it_carries_a_decimal_point()
     {
-        // 8 of the 14 money fields changed representation across only six measured rows; the other 6 stayed
-        // integral, which proves nothing about the seventh. All fourteen are decimal?, and this test asserts
-        // one of each kind so typing any of them `int` fails here.
+        // Measured 2026-08-29, 8 of the 14 money fields then modelled changed representation across only six
+        // rows; re-measured 2026-09-01 across all 3,425 rows, 18 of the 25 numeric keys do, and the seven that
+        // never do include five income fields that are zero everywhere. All 24 are decimal?, and this test
+        // asserts one of each kind so typing any of them `int` fails here. The fixture is H000601's two rows
+        // and carries none of the eleven keys added by #57; the census fixture in the next test does.
         var rows = JsonSerializer.Deserialize(
             Binding.Fixture("congress-senate-net-worth-aggregated.json"),
             FmpJsonContext.Default.ListSenateNetWorthSummary)!;
@@ -331,6 +335,260 @@ public class CongressTests
         Assert.Equal(825001m, rows[0].OtherAssets);
         Assert.Equal(0m, rows[0].PensionAndRetirementAssets);
         Assert.Equal(0m, rows[0].Trusts);
+    }
+
+    [Fact]
+    public void The_eleven_categories_one_member_never_showed_bind_from_the_census_fixture()
+    {
+        // The shipped record was modelled from H000601's six rows, which carry exactly 16 of the 27 keys FMP
+        // sends on this path. Measured 2026-09-01 across all 535 members, the other eleven are on 3,130 of
+        // 3,425 rows. This fixture is nine real rows from six members, chosen so every one of the eleven
+        // appears — and is non-zero wherever the population ever has it non-zero. A test that asserted 0m
+        // alone could pass against a property that binds nothing.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth-aggregated-all-keys.json"),
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        Assert.Equal(9, rows.Count);
+
+        // G000581 carries 21 keys — the most of any member — and the six he lacks are exactly these. A
+        // property absent from this list is one that bound; a property missing from the record altogether
+        // would not appear here either, which is why the value assertions below are not optional.
+        Assert.Equal("G000581", rows[0].SenateId);
+        Assert.Equal(2024, rows[0].Year);
+        Assert.Equal(
+            ["AssetBackedSecurities", "BusinessLiabilities", "InvestmentAndCapitalGains", "Options",
+             "SalaryAndWages", "SpousalIncome"],
+            Binding.Unbound(rows[0]));
+
+        Assert.Equal(32000m, rows[0].Other);                          // asset on this row: total reconciles
+        Assert.Equal(0m, rows[0].BusinessAndSelfEmployment);          // income: zero on every row measured
+        Assert.Equal(0m, rows[0].PensionAndRetirementIncome);
+        Assert.Equal(0m, rows[0].OtherIncome);                        // income: zero on every row measured
+        Assert.Equal(0m, rows[0].PersonalLiabilities);
+        Assert.Equal(0m, rows[0].EducationLiabilities);
+        Assert.Equal(0m, rows[0].OtherLiabilities);
+
+        Assert.Equal(37500000m, rows[1].PersonalLiabilities);         // G000581 2023
+        Assert.Equal(175000m, rows[2].OtherLiabilities);              // G000581 2022
+        Assert.Equal(75000m, rows[3].EducationLiabilities);           // G000581 2017
+
+        Assert.Equal(15325011m, rows[4].AssetBackedSecurities);       // K000375 2021 — on 42 rows in the census
+        Assert.Equal(193523m, rows[4].Other);
+
+        Assert.Equal(48500m, rows[5].Options);                        // M001160 2021 — on 66 rows
+
+        Assert.Equal(0m, rows[6].SpousalIncome);                      // Q000023 2024 — never non-zero, on 153 rows
+        Assert.DoesNotContain("SpousalIncome", Binding.Unbound(rows[6]));
+
+        Assert.Equal(0m, rows[7].InvestmentAndCapitalGains);          // C001061 2024 — never non-zero, on 100 rows
+        Assert.DoesNotContain("InvestmentAndCapitalGains", Binding.Unbound(rows[7]));
+
+        Assert.Equal(289473.83m, rows[8].PensionAndRetirementIncome); // S001145 2018 — one of four non-zero rows
+        Assert.Equal(8000m, rows[8].Other);                           // liability on this row: -169999 needs it subtracted
+    }
+
+    // ---- the catch-all (#57) --------------------------------------------------------------------------------
+
+    [Fact]
+    public void A_category_the_type_does_not_name_lands_in_UnmappedFields_under_its_wire_spelling()
+    {
+        // The twenty-eighth key. Three counts of this type — 16, 25, 27 — were each drawn from a sample and
+        // each wrong, so the next one must be visible rather than dropped. Deserialised through the context's
+        // list type info, not a bare converter call, because that is the path the endpoint uses and the
+        // converter only helps if the source generator actually routes through it.
+        var rows = JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"total":42,"stock":40,"cryptocurrency":2}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var row = Assert.Single(rows);
+        Assert.Equal(40m, row.Stock);
+        var (name, value) = Assert.Single(row.UnmappedFields);
+        Assert.Equal("cryptocurrency", name);
+        Assert.Equal(JsonValueKind.Number, value.ValueKind);
+        Assert.Equal(2m, value.GetDecimal());
+    }
+
+    [Fact]
+    public void A_string_the_type_does_not_name_does_not_cost_the_response()
+    {
+        // The reason the catch-all is JsonElement and not decimal. The likeliest unmodelled key is not a 25th
+        // money bucket but an envelope field copied from senate-net-worth, where formType, filingDate and
+        // link are strings on all 67,801 rows. A decimal dictionary would throw here and lose every row.
+        var rows = JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"total":1,"formType":"Annual Report","filingDate":"2025-05-15"}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var row = Assert.Single(rows);
+        Assert.Equal(1m, row.Total);
+        Assert.Equal(2, row.UnmappedFields.Count);
+        Assert.Equal("Annual Report", row.UnmappedFields["formType"].GetString());
+        Assert.Equal("2025-05-15", row.UnmappedFields["filingDate"].GetString());
+    }
+
+    [Fact]
+    public void UnmappedFields_is_empty_and_never_null_on_every_census_row()
+    {
+        // Two claims in one: no named key leaks into the catch-all (if the converter's name table misspelt
+        // `stock`, the real `stock` would land here), and an object with nothing unrecognised binds an empty
+        // dictionary rather than null. Every row measured 2026-09-01 binds an empty one.
+        var rows = JsonSerializer.Deserialize(
+            Binding.Fixture("congress-senate-net-worth-aggregated-all-keys.json"),
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        Assert.Equal(9, rows.Count);
+        Assert.All(rows, row =>
+        {
+            Assert.NotNull(row.UnmappedFields);
+            Assert.Empty(row.UnmappedFields);
+        });
+    }
+
+    [Fact]
+    public void The_converters_name_table_and_the_JsonPropertyName_attributes_agree()
+    {
+        // The attributes are documentation once the converter owns the binding — the generated binder no
+        // longer reads them. So they can drift from the converter's table, and this pins them together from
+        // both sides: every key in a fixture that carries all 27 is a [JsonPropertyName] on the type (the
+        // attributes cover the wire), and none of those keys reaches UnmappedFields (the converter binds
+        // every attributed name — asserted in the test above, and re-asserted here on the same fixture so
+        // this test stands on its own).
+        var fixture = Binding.Fixture("congress-senate-net-worth-aggregated-all-keys.json");
+        using var document = JsonDocument.Parse(fixture);
+        var wireKeys = document.RootElement
+            .EnumerateArray()
+            .SelectMany(row => row.EnumerateObject().Select(p => p.Name))
+            .Distinct(StringComparer.Ordinal)
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+        var attributed = typeof(SenateNetWorthSummary)
+            .GetProperties()
+            .Select(p => p.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name)
+            .OfType<string>()
+            .OrderBy(name => name, StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Equal(27, wireKeys.Count);
+        Assert.Equal(wireKeys, attributed);
+
+        var rows = JsonSerializer.Deserialize(fixture, FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+        Assert.All(rows, row => Assert.Empty(row.UnmappedFields));
+    }
+
+    [Fact]
+    public void A_named_money_field_reads_a_numeric_string_as_the_context_would()
+    {
+        // FmpJsonContext sets AllowReadingFromString for every model, and a hand-written converter bypasses
+        // it. No row measured 2026-09-01 sent a string here, but the context-wide setting exists because FMP
+        // flips number representation elsewhere, and the typed members must not be the one place it is off.
+        var rows = JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":"2024","total":"12.5","stock":"7"}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var row = Assert.Single(rows);
+        Assert.Equal(2024, row.Year);
+        Assert.Equal(12.5m, row.Total);
+        Assert.Equal(7m, row.Stock);
+        Assert.Empty(row.UnmappedFields);
+    }
+
+    [Fact]
+    public void A_named_money_field_given_a_non_numeric_string_throws_as_the_context_would()
+    {
+        // Parity in the other direction. The generated binder throws JsonException on "n/a" in a decimal?
+        // slot, and reading it as null or zero here would make the typed members quietly more lenient than
+        // every other model in the SDK. A non-numeric `stock` is a defect worth hearing about.
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"stock":"n/a"}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+
+        Assert.Contains("stock", ex.Message);
+    }
+
+    [Fact]
+    public void A_named_money_field_given_a_padded_numeric_string_throws_as_the_context_would()
+    {
+        // The generated binder's AllowReadingFromString takes JSON number grammar and nothing more: a leading
+        // sign and an exponent, no whitespace. NumberStyles.Float would have accepted " 5 " here and made the
+        // typed members the one place in the SDK that is quietly more lenient than the context.
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"stock":" 5 "}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+
+        Assert.Contains("stock", ex.Message);
+    }
+
+    [Fact]
+    public void A_row_that_is_not_an_object_throws()
+    {
+        // The converter's first guard. Reachable through the public path — FMP has never sent it, but a
+        // guard with no test is a guard nobody knows is there.
+        Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[[]]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+    }
+
+    [Fact]
+    public void A_non_string_senateID_throws_as_the_context_would()
+    {
+        // ReadText's non-string arm. The generated binder does not coerce a number into a string? slot, and
+        // neither does this.
+        var ex = Assert.Throws<JsonException>(() => JsonSerializer.Deserialize(
+            """[{"senateID":5,"year":2024}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary));
+
+        Assert.Contains("senateID", ex.Message);
+    }
+
+    [Fact]
+    public void A_named_key_in_a_different_case_binds_its_property_not_the_catch_all()
+    {
+        // PropertyNameCaseInsensitive = true on the context, re-implemented by the converter. `Other` is the
+        // one key on this path that is not camelCase; if FMP ever re-cases it, every other model in the SDK
+        // would still bind it and this one must too. A null binds null rather than throwing, for the same
+        // parity reason.
+        var rows = JsonSerializer.Deserialize(
+            """[{"SENATEID":"X000001","Year":2024,"other":5,"STOCK":9,"trusts":null}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var row = Assert.Single(rows);
+        Assert.Equal("X000001", row.SenateId);
+        Assert.Equal(2024, row.Year);
+        Assert.Equal(5m, row.Other);
+        Assert.Equal(9m, row.Stock);
+        Assert.Null(row.Trusts);
+        Assert.Empty(row.UnmappedFields);
+    }
+
+    [Fact]
+    public void A_row_survives_a_round_trip_with_its_typed_values_and_its_unmapped_keys()
+    {
+        // The write path exists for symmetry with FinancialReportJsonConverter and must not lose a member.
+        // Null members are skipped on write because absence and null bind identically on read, so the
+        // comparison is on values rather than on bytes.
+        var original = JsonSerializer.Deserialize(
+            """[{"senateID":"X000001","year":2024,"total":42,"stock":40,"mutualFundsAndETFs":3,"Other":2,"cryptocurrency":2,"formType":"Annual Report"}]""",
+            FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var json = JsonSerializer.Serialize(original, FmpJsonContext.Default.ListSenateNetWorthSummary);
+        var again = JsonSerializer.Deserialize(json, FmpJsonContext.Default.ListSenateNetWorthSummary)!;
+
+        var row = Assert.Single(again);
+        Assert.Equal("X000001", row.SenateId);
+        Assert.Equal(2024, row.Year);
+        Assert.Equal(42m, row.Total);
+        Assert.Equal(40m, row.Stock);
+        Assert.Equal(3m, row.MutualFundsAndEtfs);
+        Assert.Equal(2m, row.Other);
+        Assert.Null(row.Trusts);
+        Assert.Equal(2, row.UnmappedFields.Count);
+        Assert.Equal(2m, row.UnmappedFields["cryptocurrency"].GetDecimal());
+        Assert.Equal("Annual Report", row.UnmappedFields["formType"].GetString());
+        Assert.DoesNotContain("trusts", json, StringComparison.Ordinal);
+        // The read side is case-insensitive, so a mis-cased entry in the WRITE table would round-trip green and
+        // ship wrong casing to anyone re-serialising. This is the one wire name whose casing is not the
+        // camelCase of its property name.
+        Assert.Contains("\"mutualFundsAndETFs\":", json, StringComparison.Ordinal);
     }
 
     // ---- the request surface -----------------------------------------------------------------------------
