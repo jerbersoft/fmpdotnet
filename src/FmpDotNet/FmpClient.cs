@@ -5,8 +5,8 @@ namespace FmpDotNet;
 
 /// <summary>Entry point to the FMP API, grouped the way FMP's own documentation groups it.
 ///
-/// <para>Resolve this from dependency injection after calling
-/// <see cref="DependencyInjection.FmpServiceCollectionExtensions.AddFmp(Microsoft.Extensions.DependencyInjection.IServiceCollection, Action{FmpOptions})"/>.</para></summary>
+/// <para>Resolve this from dependency injection after calling <c>AddFmp</c> from the
+/// <c>FmpDotNet.Extensions.DependencyInjection</c> package.</para></summary>
 public sealed class FmpClient(
     CompanyEndpoints company, DirectoryEndpoints directory, StatementEndpoints statements,
     CalendarEndpoints calendar, AnalystEndpoints analyst, EconomicsEndpoints economics,

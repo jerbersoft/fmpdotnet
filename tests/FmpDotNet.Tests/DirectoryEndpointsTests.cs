@@ -1,7 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using FmpDotNet.DependencyInjection;
+using FmpDotNet.Extensions.DependencyInjection;
 using FmpDotNet.Endpoints;
 
 namespace FmpDotNet.Tests;
