@@ -10,7 +10,13 @@ namespace FmpDotNet.Endpoints;
 /// the bare call answered fiscal year <b>2023</b> only. See <see cref="GetBenchmarkAsync"/>.</para>
 ///
 /// <para><b>One parameter here is accepted and discarded</b>, which is why this facade has fewer parameters
-/// than FMP's documentation implies. See <see cref="GetBenchmarkAsync"/>.</para></summary>
+/// than FMP's documentation implies. See <see cref="GetBenchmarkAsync"/>.</para>
+///
+/// <para><b>Plan tier — Ultimate, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, recorded every path in this class as 402 on free, Starter and Premium and working on
+/// Ultimate on 2026-08-24. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with
+/// (2026-09-02), which says nothing about the plans below it. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class EsgEndpoints(FmpTransport transport)
 {
     /// <summary>One company's ESG scores, filing by filing — <c>stable/esg-disclosures</c>.

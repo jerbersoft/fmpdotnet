@@ -12,7 +12,13 @@ namespace FmpDotNet.Endpoints;
 /// <see cref="Models.TechnicalIndicatorBar"/> is the shape they share.</para>
 ///
 /// <para><b>This facade computes nothing.</b> It reports what FMP returned, including where that is wrong —
-/// see the warm-up note on <see cref="GetAsync"/>.</para></summary>
+/// see the warm-up note on <see cref="GetAsync"/>.</para>
+///
+/// <para><b>Plan tier — Starter, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is cross-checked
+/// against, recorded every path in this class as 402 on free, needing Starter or higher; it gives no date for that
+/// beyond its release, 2026-08-24. Not verified here: every path answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02), which says nothing about the plans below it. A dated observation, not a contract —
+/// catch <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class TechnicalIndicatorsEndpoints(FmpTransport transport)
 {
     /// <summary>One indicator's series for one symbol —

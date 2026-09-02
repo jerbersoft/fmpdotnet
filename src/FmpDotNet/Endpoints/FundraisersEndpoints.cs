@@ -47,7 +47,12 @@ namespace FmpDotNet.Endpoints;
 /// <para><b>Neither search path's matching rule is claimed by this SDK.</b> The fundraising one behaves like
 /// a case-insensitive prefix match and the crowdfunding one refutes substring, prefix and whole-word alike —
 /// see <see cref="CrowdfundingSearchHit"/>. Both take the caller's string unchanged, because the rule is
-/// upstream's and it will go stale.</para></summary>
+/// upstream's and it will go stale.</para>
+///
+/// <para><b>Plan tier — no floor on record.</b> Every path in this class answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02), and fmpsdk 20260824.0, the independent client this SDK is cross-checked against,
+/// records nothing about them below that — an absence of evidence, not a Free-tier claim. Catch
+/// <see cref="FmpPlanRestrictedException"/> rather than assuming either way.</para></summary>
 public sealed class FundraisersEndpoints(FmpTransport transport)
 {
     /// <summary>The largest <c>limit</c> <c>stable/crowdfunding-offerings-latest</c> honours. Measured

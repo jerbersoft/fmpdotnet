@@ -15,7 +15,12 @@ namespace FmpDotNet.Endpoints;
 /// <see cref="GetRatingAsync"/>/<see cref="GetRatingHistoryAsync"/> are not sell-side opinion at all: they are
 /// FMP's own score, computed over reported fundamentals rather than solicited from analysts — see
 /// <see cref="CompanyRating"/> for the overall score and its six DCF/ROE/ROA/debt-to-equity/P/E/P/B
-/// components.</para></summary>
+/// components.</para>
+///
+/// <para><b>Plan tier — no floor on record.</b> Every path in this class answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02), and fmpsdk 20260824.0, the independent client this SDK is cross-checked against,
+/// records nothing about them below that — an absence of evidence, not a Free-tier claim. Catch
+/// <see cref="FmpPlanRestrictedException"/> rather than assuming either way.</para></summary>
 public sealed class AnalystEndpoints(FmpTransport transport)
 {
     /// <summary>Sell-side consensus estimates for one symbol's future fiscal periods, from

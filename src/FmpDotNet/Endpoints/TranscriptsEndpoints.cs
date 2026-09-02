@@ -12,7 +12,13 @@ namespace FmpDotNet.Endpoints;
 /// <see cref="DirectoryEndpoints"/> because it is a universe list rather than a transcript.</para>
 ///
 /// <para><b>The three paths spell the same two facts three different ways</b>, and this SDK reproduces each
-/// exactly rather than normalising. See <see cref="EarningsTranscript"/>.</para></summary>
+/// exactly rather than normalising. See <see cref="EarningsTranscript"/>.</para>
+///
+/// <para><b>Plan tier — Ultimate, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, recorded every path in this class as 402 on free, Starter and Premium and working on
+/// Ultimate on 2026-08-24. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with
+/// (2026-09-02), which says nothing about the plans below it. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class TranscriptsEndpoints(FmpTransport transport)
 {
     /// <summary>The largest page <see cref="GetLatestAsync"/> will serve, measured rather than documented.

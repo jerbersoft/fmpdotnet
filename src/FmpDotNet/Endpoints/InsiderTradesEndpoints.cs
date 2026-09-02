@@ -17,7 +17,14 @@ namespace FmpDotNet.Endpoints;
 /// in what they select. The other three answer shapes of their own.</para>
 ///
 /// <para>Every measurement quoted in this class was taken on 2026-08-28 against an Ultimate key. No path in the
-/// group answered 402.</para></summary>
+/// group answered 402.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetLatestAsync"/> and <see cref="GetTransactionTypesAsync"/> work on
+/// a free key; <see cref="SearchAsync"/>, <see cref="SearchReportingNameAsync"/> and <see cref="GetStatisticsAsync"/>
+/// need Starter or higher. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with
+/// (2026-09-02). The members off the class's main rung carry their own notes. A dated observation, not a contract —
+/// catch <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class InsiderTradesEndpoints(FmpTransport transport)
 {
     /// <summary>The largest page either insider feed will serve, measured rather than documented.
@@ -49,7 +56,11 @@ public sealed class InsiderTradesEndpoints(FmpTransport transport)
     /// rules out "filtered to nothing", since 89 rows of that very date were sitting in the page it returned
     /// unchanged, and dropping <c>page</c> and <c>limit</c> changes nothing. Modelling it as a date filter would
     /// hand a caller a silently unfiltered page for every historical date they asked for — the failure this whole
-    /// endpoint group is documented to avoid.</para></summary>
+    /// endpoint group is documented to avoid.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
     /// error.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxInsiderTradePageSize"/>.</param>
@@ -201,7 +212,11 @@ public sealed class InsiderTradesEndpoints(FmpTransport transport)
     ///
     /// <para>Takes no parameters and answers the whole list. Measured 2026-08-28: 18 rows, <c>A-Award</c>
     /// through <c>Z-Trust</c>, and every <c>transactionType</c> on 1,000 sampled trade rows was drawn from it
-    /// or was the empty string.</para></summary>
+    /// or was the empty string.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The eighteen codes. Never <see langword="null"/>.</returns>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>

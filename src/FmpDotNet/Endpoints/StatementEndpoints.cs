@@ -15,7 +15,15 @@ namespace FmpDotNet.Endpoints;
 /// <para>Most, but not all, share one query shape — symbol, period and limit, newest first. Several of the rest
 /// still take a period, just not the same limit story (or none), and a few take neither: the private
 /// <c>Periodic</c>, <c>Rolling</c>, <c>Envelope</c> and <c>Report</c> helpers below say exactly which paths take
-/// what.</para></summary>
+/// what.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: the three TTM statements and the two <c>latest-financial-statements</c> methods
+/// need Ultimate (402 on free, Starter and Premium; working on Ultimate 2026-08-24); it records nothing about the
+/// other twenty-three below Ultimate, an absence of evidence rather than a Free-tier claim. Not verified here: every
+/// path answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The members off the class's main
+/// rung carry their own notes. A dated observation, not a contract — catch <see cref="FmpPlanRestrictedException"/>
+/// rather than gating on it.</para></summary>
 public sealed class StatementEndpoints(FmpTransport transport)
 {
     /// <summary>Income statements for one symbol, newest first.</summary>
@@ -147,7 +155,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     ///
     /// <para><b>No <c>period</c> parameter, deliberately.</b> The endpoint accepts one and ignores it, measured
     /// 2026-08-27: the answer is always quarterly-stepped and newest-first from the latest quarter. This is the
-    /// deepest series in the group — AAPL returned 164 rows back to 1985-09-30.</para></summary>
+    /// deepest series in the group — AAPL returned 164 rows back to 1985-09-30.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it. Class shares need the hyphenated form (<c>BRK-B</c>).</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> — the default — means the whole
     /// history: the SDK sends <see cref="FullHistoryLimit"/>, because FMP reads an omitted limit as 5.</param>
@@ -177,7 +189,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// already a point in time — so read these as "the balance sheet as at the end of each trailing twelve-month
     /// window", which is the quarter end, not an average over the year.</para>
     ///
-    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para></summary>
+    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
@@ -198,7 +214,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// identical, so this reuses <see cref="CashFlowStatement"/>. Consecutive rows overlap by nine months; do not
     /// sum them.</para>
     ///
-    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para></summary>
+    /// <para>Takes no <c>period</c>: the endpoint accepts one and ignores it.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">Ticker as FMP spells it.</param>
     /// <param name="limit">Rows to return, newest first. <see langword="null"/> means the whole history — see
     /// <see cref="FullHistoryLimit"/>.</param>
@@ -643,7 +663,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// <c>stable/latest-financial-statements</c>.
     ///
     /// <para>Rows are keyed on calendar year rather than fiscal year, and carry a wall-clock ingest time with no
-    /// timezone — see <see cref="LatestFinancialStatement"/> for both.</para></summary>
+    /// timezone — see <see cref="LatestFinancialStatement"/> for both.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="page">Zero-based page index, 0 to <see cref="MaxLatestStatementsPage"/>.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxLatestStatementsPageSize"/>. Required rather than
     /// defaulted: the page size and the page index have to agree for a walk to be complete, and a default would
@@ -676,7 +700,11 @@ public sealed class StatementEndpoints(FmpTransport transport)
     /// bound is reached in practice rather than in theory.</para>
     ///
     /// <para><b>This is not "every statement FMP has."</b> It is roughly the last three weeks of ingests. See
-    /// <see cref="LatestFinancialStatement"/>.</para></summary>
+    /// <see cref="LatestFinancialStatement"/>.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="ct">Cancels the walk between pages as well as mid-page.</param>
     /// <exception cref="FmpRateLimitedException">FMP answered 429. Possible if 101 pages are walked flat
     /// out.</exception>

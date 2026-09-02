@@ -26,7 +26,13 @@ namespace FmpDotNet.Endpoints;
 /// carries rows dated outside the range you asked for. See <see cref="SecFiling"/> for the measurement.</para>
 ///
 /// <para>Every measurement quoted in this class was taken on 2026-08-28 against an Ultimate key. No path in the
-/// group answered 402.</para></summary>
+/// group answered 402.</para>
+///
+/// <para><b>Plan tier — Free, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is cross-checked
+/// against, recorded every path in this class as working on a free key; it gives no date for that beyond its release,
+/// 2026-08-24. Every path also answered 200 on the Ultimate key this SDK is measured with (2026-09-02). A dated
+/// observation, not a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating on
+/// it.</para></summary>
 public sealed class SecFilingsEndpoints(FmpTransport transport)
 {
     /// <summary>The EDGAR registrant profile for one symbol, or <see langword="null"/> when FMP knows no such

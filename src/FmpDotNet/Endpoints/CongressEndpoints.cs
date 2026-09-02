@@ -29,7 +29,16 @@ namespace FmpDotNet.Endpoints;
 /// <see cref="GetHouseTradesAsync"/>.</para>
 ///
 /// <para>Every measurement quoted in this class was taken on 2026-08-29 against an Ultimate key. No path in
-/// the group answered 402.</para></summary>
+/// the group answered 402.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetHouseLatestAsync"/> and <see cref="GetSenateLatestAsync"/> work
+/// on a free key; the six filtered trade methods need Starter or higher; <see cref="GetProfilesAsync"/>,
+/// <see cref="GetPositionsAsync"/>, <see cref="GetNetWorthAsync"/> and <see cref="GetNetWorthSummaryAsync"/> need
+/// Premium or higher (402 on free and Starter; working on Premium 2026-08-23). Not verified here: every path answered
+/// 200 on the Ultimate key this SDK is measured with (2026-09-02). The members off the class's main rung carry their
+/// own notes. A dated observation, not a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating
+/// on it.</para></summary>
 public sealed class CongressEndpoints(FmpTransport transport)
 {
     /// <summary>The largest page either latest feed will serve, measured rather than documented.
@@ -56,7 +65,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <summary>Every House disclosure as it arrives, newest first — <c>stable/house-latest</c>.
     ///
     /// <para>The 100 rows a bare call returns is a default rather than a cap; see
-    /// <see cref="MaxCongressionalTradePageSize"/> for where it stops.</para></summary>
+    /// <see cref="MaxCongressionalTradePageSize"/> for where it stops.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
     /// error.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxCongressionalTradePageSize"/>.</param>
@@ -79,7 +92,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <para><b>The one path of the eight that omits <c>capitalGainsOver200USD</c>.</b> Measured 2026-08-29,
     /// 0 of its 100 rows carried the key, against 100% on the other seven — so
     /// <see cref="CongressionalTrade.CapitalGainsOver200Usd"/> is always <see langword="null"/> on rows from
-    /// here. That is the feed's silence, not a missing value in the disclosure.</para></summary>
+    /// here. That is the feed's silence, not a missing value in the disclosure.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an
     /// error.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxCongressionalTradePageSize"/>.</param>
@@ -315,7 +332,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <see cref="CongressPositionCriteria"/>.</b> An empty criteria is the bare call — the first 300 of
     /// <b>8,227 rows over 28 pages</b>, measured to exhaustion the same day. The filters are exact,
     /// case-sensitive and silent about a value they do not know; the criteria type carries the
-    /// evidence.</para></summary>
+    /// evidence.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="criteria">The filters and the page. Required rather than optional so the call site says what
     /// it is asking for — pass <c>new CongressPositionCriteria()</c> for FMP's first page.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -353,7 +374,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// <c>active=true</c>; <c>active=false</c> answers a further <b>720</b> former members over two pages, so
     /// the universe is <b>1,255</b> and it takes <see cref="CongressProfileCriteria.Active"/> =
     /// <see langword="false"/> to see the second half. The filters and the paging live on
-    /// <see cref="CongressProfileCriteria"/>; an empty criteria is the bare call.</para></summary>
+    /// <see cref="CongressProfileCriteria"/>; an empty criteria is the bare call.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="criteria">The filters and the page. Required rather than optional so the call site says what
     /// it is asking for, which on this path is never "everyone" — pass <c>new CongressProfileCriteria()</c> for
     /// the first 500 active members.</param>
@@ -386,7 +411,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// byte-identical to the request without them. Meanwhile <c>senate-trades-by-id</c> pages properly —
     /// 100, 45, 0 across pages 0 to 2. So paging on this group is per-path and cannot be reasoned about from a
     /// sibling. 250 looks like a round number but is not a cap: nothing here answered more than the filer
-    /// held.</para></summary>
+    /// held.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -422,7 +451,11 @@ public sealed class CongressEndpoints(FmpTransport transport)
     /// which answers three rows: <c>totalsCol=total</c>, <c>=stock</c>, <c>=1</c> and <c>=true</c> each returned
     /// a body byte-identical to the request without it. Four values rather than one because a single wrong value
     /// cannot tell "ignored" from "unrecognised" — if there is a working vocabulary here, none of a column name,
-    /// a category name, an index and a boolean is in it.</para></summary>
+    /// a category name, an index and a boolean is in it.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="senateId">The member's Bioguide identifier, from
     /// <see cref="GetProfilesAsync"/>.</param>
     /// <param name="ct">Cancels the request.</param>

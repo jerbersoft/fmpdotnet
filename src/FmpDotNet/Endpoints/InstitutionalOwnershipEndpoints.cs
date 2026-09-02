@@ -25,7 +25,14 @@ namespace FmpDotNet.Endpoints;
 /// measured 2026-08-28, Apple's <c>320193</c> returned zero rows from every one of them.</para>
 ///
 /// <para>Every measurement quoted in this class was taken on 2026-08-28 against an Ultimate key. No path in the
-/// group answered 402.</para></summary>
+/// group answered 402.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: the eight <c>institutional-ownership/</c> methods need Ultimate (402 on free,
+/// Starter and Premium; working on Ultimate 2026-08-24); <see cref="GetBeneficialOwnershipAsync"/> needs Starter or
+/// higher. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The
+/// members off the class's main rung carry their own notes. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
 {
     /// <summary>Every quarter one 13F filer has reported, newest first —
@@ -341,7 +348,11 @@ public sealed class InstitutionalOwnershipEndpoints(FmpTransport transport)
     /// bodies on 2026-08-28. Honouring one does not predict honouring the other, so each was measured
     /// separately and only the one that works is offered.</para>
     ///
-    /// <para>Historical as well as current: the captured AAPL response spans 2015 to 2026 in 99 rows.</para></summary>
+    /// <para>Historical as well as current: the captured AAPL response spans 2015 to 2026 in 99 rows.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbol">The issuer's ticker, as FMP spells it.</param>
     /// <param name="limit">Rows to return, 1 to <see cref="MaxOwnershipPageSize"/>. <b>The upper bound is
     /// derived from this path's siblings rather than measured on it</b> — see

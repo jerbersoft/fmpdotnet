@@ -21,7 +21,20 @@ namespace FmpDotNet.Endpoints;
 /// that asymmetry with <c>CompanyEndpoints.TryGetAllSharesFloatAsync</c> — which returns null for the same status —
 /// is deliberate. An empty stream would be indistinguishable from a genuinely empty universe, and "a paywalled
 /// endpoint reading as an empty result" is the exact defect the caller-side history records. Catch the exception to
-/// fall back to the per-symbol path; do not infer entitlement from a row count.</para></summary>
+/// fall back to the per-symbol path; do not infer entitlement from a row count.</para>
+///
+/// <para><b>Corrected 2026-09-02 (#45): "not settled" rested on a misreading.</b> The predecessor's own record has
+/// <c>profile-bulk</c> at 402 on a <i>free</i> key (2026-07-23) and again on a plan its specs do not name, and the
+/// 2026-08-26 re-probe that answered 200 was on this repository's Ultimate key. A 402 below a tier and a 200 on it
+/// is the ladder as described, not gating that moved. The handling above stands on its own — a refusal must arrive
+/// as an exception — but the surface is not unsettled; it is, on every record there is, Ultimate-only. See
+/// <c>docs/superpowers/specs/2026-09-02-plan-tier-provenance.md</c>.</para>
+///
+/// <para><b>Plan tier — Ultimate, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, recorded every path in this class as 402 on free, Starter and Premium and working on
+/// Ultimate on 2026-08-24. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with
+/// (2026-08-27), which says nothing about the plans below it. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class BulkEndpoints(FmpBulkTransport transport)
 {
     /// <summary>Streams FMP's letter rating and component scores for every company it covers. From

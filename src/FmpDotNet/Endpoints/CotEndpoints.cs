@@ -17,7 +17,13 @@ namespace FmpDotNet.Endpoints;
 /// look equally healthy. See <see cref="GetAnalysisAsync"/>.</para>
 ///
 /// <para>Contract codes are FMP's own — <c>NG</c>, <c>ZC</c>, <c>EURGBP</c> — not exchange tickers, and not
-/// the equity symbols the rest of this SDK takes. <see cref="GetSymbolsAsync"/> lists all 65.</para></summary>
+/// the equity symbols the rest of this SDK takes. <see cref="GetSymbolsAsync"/> lists all 65.</para>
+///
+/// <para><b>Plan tier — Premium, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is cross-checked
+/// against, recorded every path in this class as 402 on free and Starter and working on Premium on 2026-08-23. Not
+/// verified here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02), which says
+/// nothing about the plans below it. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class CotEndpoints(FmpTransport transport)
 {
     /// <summary>The CFTC's weekly report, field for field — <c>stable/commitment-of-traders-report</c>.

@@ -20,7 +20,14 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para>Only <see cref="GetTreasuryRatesAsync"/> answered current data on 2026-08-29.
 /// <see cref="GetMarketRiskPremiumsAsync"/> carries no dates at all, so its currency cannot be
-/// checked.</para></summary>
+/// checked.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetEconomicCalendarAsync"/> needs Starter or higher (402 on free);
+/// it records nothing about the other three below Ultimate, an absence of evidence rather than a Free-tier claim. Not
+/// verified here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The members off
+/// the class's main rung carry their own notes. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class EconomicsEndpoints(FmpTransport transport)
 {
     /// <summary>Every economic release FMP has scheduled or published between <paramref name="from"/> and
@@ -77,7 +84,11 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     /// to compare against, which is exactly why the check has to be positional.</para>
     ///
     /// <para>Results are returned exactly as FMP sends them: unsorted, unfiltered, and not clamped to the
-    /// requested range.</para></summary>
+    /// requested range.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="from">First calendar day of the range, inclusive.</param>
     /// <param name="to">Last calendar day of the range, inclusive. Must not be earlier than
     /// <paramref name="from"/>.</param>

@@ -7,7 +7,15 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para>Where <see cref="DirectoryEndpoints"/> answers "everything FMP knows" as a flat 5–8 MB download, this
 /// answers a question about the universe and returns only the matches, with the values matched on. It is the
-/// endpoint to reach for when a full directory download is more than the question needs.</para></summary>
+/// endpoint to reach for when a full directory download is more than the question needs.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="FindBySymbolAsync"/>, <see cref="FindByNameAsync"/> and
+/// <see cref="FindByCikAsync"/> work on a free key; the CUSIP, ISIN, exchange-variant, screener and
+/// industry-classification methods need Starter or higher (402 on free). Not verified here: every path answered 200
+/// on the Ultimate key this SDK is measured with (2026-09-02). The members off the class's main rung carry their own
+/// notes. A dated observation, not a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating on
+/// it.</para></summary>
 public sealed class SearchEndpoints(FmpTransport transport)
 {
     /// <summary>Screens the universe against <paramref name="criteria"/>, returning matches ordered by market
@@ -57,7 +65,11 @@ public sealed class SearchEndpoints(FmpTransport transport)
     ///
     /// <para><b>Returns listings, not companies.</b> Apple appears once per exchange, each with its own symbol
     /// and currency, so taking the first row picks one arbitrarily. Narrow with
-    /// <paramref name="exchange"/> instead.</para></summary>
+    /// <paramref name="exchange"/> instead.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="query">The ticker or ticker prefix. Required and non-blank.</param>
     /// <param name="limit">Rows to return. Omitted by default, which asks FMP for its own default of 50.</param>
     /// <param name="exchange">Restricts to one exchange by short code — <c>NASDAQ</c>. Undocumented by FMP and
@@ -81,7 +93,11 @@ public sealed class SearchEndpoints(FmpTransport transport)
     ///
     /// <para>The same row shape and the same behaviour as
     /// <see cref="FindBySymbolAsync(string, int?, string?, CancellationToken)"/>, searching the other
-    /// field.</para></summary>
+    /// field.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="query">The company name or a fragment of it. Required and non-blank.</param>
     /// <param name="limit">Rows to return. Omitted by default.</param>
     /// <param name="exchange">Restricts to one exchange by short code. See the sibling method.</param>
@@ -113,7 +129,11 @@ public sealed class SearchEndpoints(FmpTransport transport)
     /// Invalid or missing query parameter - cik</c></b>, and <c>limit=1</c> on a full CIK answered a body
     /// byte-identical to the request without it. So the verdict is decorative, but the cause is the shape of the
     /// endpoint rather than FMP discarding the parameter, and it says nothing about <c>limit</c>
-    /// elsewhere.</para></summary>
+    /// elsewhere.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="cik">The Central Index Key, padded or bare. Required and non-blank.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The matching listings. Empty for an unknown CIK. Never <see langword="null"/>.</returns>

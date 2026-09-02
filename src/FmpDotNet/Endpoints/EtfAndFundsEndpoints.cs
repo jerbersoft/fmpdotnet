@@ -37,7 +37,15 @@ namespace FmpDotNet.Endpoints;
 /// <para><b>Method names carry <c>Etf</c> or <c>Fund</c> on purpose.</b> <c>GetHoldings</c> and
 /// <c>GetDisclosure</c> on one facade would read as two views of one thing. They point opposite ways:
 /// <see cref="GetEtfHoldingsAsync"/> is what a fund owns, <see cref="GetFundHoldersAsync"/> is who owns a
-/// security.</para></summary>
+/// security.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetEtfInfoAsync"/>, <see cref="GetEtfCountryWeightingsAsync"/> and
+/// <see cref="GetEtfSectorWeightingsAsync"/> need Starter or higher; <see cref="GetEtfHoldingsAsync"/>,
+/// <see cref="GetEtfAssetExposureAsync"/> and the four <c>funds/</c> methods need Ultimate (402 on free, Starter and
+/// Premium; working on Ultimate 2026-08-24). Not verified here: every path answered 200 on the Ultimate key this SDK
+/// is measured with (2026-09-02). The members off the class's main rung carry their own notes. A dated observation,
+/// not a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class EtfAndFundsEndpoints(FmpTransport transport)
 {
     /// <summary>Which ETFs hold a given security, from <c>stable/etf/asset-exposure</c>.
@@ -69,7 +77,11 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
     ///
     /// <para><b>The weights arrive as percent-suffixed strings on this path and as bare numbers on
     /// <see cref="GetEtfSectorWeightingsAsync"/></b>, one letter apart in the URL. The SDK reconciles them —
-    /// see <see cref="EtfCountryWeighting.WeightPercentage"/>.</para></summary>
+    /// see <see cref="EtfCountryWeighting.WeightPercentage"/>.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbol">The fund. One symbol; a comma-joined list is rejected.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The breakdown, in FMP's own order. Measured 2026-08-30 that order is <b>by weight,
@@ -120,7 +132,11 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
     /// rather than a list — the <see cref="CompanyEndpoints.GetProfileAsync"/> precedent. The record carries
     /// the fund's sector breakdown inline: <see cref="EtfInfo.SectorsList"/> measured <b>identical</b> to
     /// <see cref="GetEtfSectorWeightingsAsync"/> on all 13 ETFs cross-checked, so a caller holding this does
-    /// not need that call.</para></summary>
+    /// not need that call.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbol">The fund. One symbol; a comma-joined list is rejected.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The fact sheet, or <see langword="null"/> when FMP answered an empty array — which is what an
@@ -143,7 +159,11 @@ public sealed class EtfAndFundsEndpoints(FmpTransport transport)
     /// rounding difference, on all 13 ETFs cross-checked. Calling both is a wasted request.</para>
     ///
     /// <para>The weights are bare JSON numbers here, unlike
-    /// <see cref="GetEtfCountryWeightingsAsync"/>'s.</para></summary>
+    /// <see cref="GetEtfCountryWeightingsAsync"/>'s.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbol">The fund. One symbol; a comma-joined list is rejected.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The breakdown, in FMP's own order. Measured 2026-08-30 that order is <b>alphabetical by
