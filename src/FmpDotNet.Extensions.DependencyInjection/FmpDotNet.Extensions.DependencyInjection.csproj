@@ -30,13 +30,16 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The rule for this list: name what the code compiles against and Http does not already imply.
-         Configuration.Abstractions is IConfiguration, GetSection and the indexer, for the by-name binding.
-         Hosting.Abstractions is IHostApplicationBuilder, for the host sugar; a hosting abstraction belongs in
-         the integration package and never on the core, and PackageBoundaryTests holds the core to that.
-         Http brings the rest: DependencyInjection.Abstractions (IServiceCollection, keyed services, TryAdd*),
-         Options (AddOptions/Configure/Validate/ValidateOnStart — the concrete Options package; there is no
-         Options.Abstractions), Logging, and the concrete container FmpClientFactory builds on.
+    <!-- The rule for this list: Http, because the package exists to build the HttpClientFactory pipeline, plus one
+         explicit abstraction per integration point beyond that pipeline, so the package's seams are visible
+         without opening the code. Configuration.Abstractions is IConfiguration, GetSection and the indexer, for
+         the by-name binding — Http would bring it anyway, and naming it is the point. Hosting.Abstractions is
+         IHostApplicationBuilder, for the host sugar; a hosting abstraction belongs in the integration package
+         and never on the core, and PackageBoundaryTests holds the core to that.
+         Everything else the code uses arrives through Http without a line here: DependencyInjection.Abstractions
+         (IServiceCollection, keyed services, TryAdd*), Options (AddOptions/Configure/Validate/ValidateOnStart —
+         the concrete Options package; there is no Options.Abstractions), Logging, and the concrete container
+         FmpClientFactory builds on.
          NOT Options.ConfigurationExtensions: ConfigurationBinder is neither trim- nor AOT-safe and is never called. -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
