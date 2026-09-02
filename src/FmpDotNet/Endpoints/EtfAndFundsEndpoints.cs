@@ -6,7 +6,8 @@ namespace FmpDotNet.Endpoints;
 /// <summary>ETFs and mutual funds — what a fund holds, who holds a fund, and the SEC filings behind both.
 ///
 /// <para><b>Three things hold across all nine paths, measured 2026-08-30, and a caller should read them
-/// once.</b></para>
+/// once</b> — and a fourth, measured 2026-09-02, explains a parameter this facade knows about and does not
+/// offer.</para>
 ///
 /// <list type="number">
 ///   <item><description><b>There is no pagination anywhere in this group.</b> <c>limit</c> and <c>page</c>
@@ -23,6 +24,14 @@ namespace FmpDotNet.Endpoints;
 ///   <item><description><b>One symbol per call.</b> <c>symbol=SPY,QQQ</c> answers <c>[]</c> at HTTP 200 —
 ///     a silent wrong answer — and the plural <c>symbols=</c> is a 400. Every method here rejects a comma
 ///     rather than letting that happen.</description></item>
+///   <item><description><b><c>cik</c> on <c>funds/disclosure</c> and <c>funds/disclosure-dates</c> is
+///     honoured and can only subtract (#51).</b> Measured 2026-09-02: without <c>symbol</c> both paths are
+///     HTTP 400 <c>Invalid or missing query parameter - symbol</c>, so the CIK cannot select a fund; with
+///     it, SPY's own CIK answers the same 503 and 28 rows the symbol answers alone, and another fund's CIK
+///     answers <b>0</b>. It is an AND on a column that is the filer's CIK on every row of a filing —
+///     <see cref="FundDisclosure.Cik"/> was <c>0000884394</c> on all 503 SPY rows — so it names nothing the
+///     symbol did not, and <see cref="GetFundDisclosureAsync"/> and <see cref="GetFundDisclosureDatesAsync"/>
+///     do not take it. A caller checking which filer stands behind a symbol reads the row.</description></item>
 /// </list>
 ///
 /// <para><b>Method names carry <c>Etf</c> or <c>Fund</c> on purpose.</b> <c>GetHoldings</c> and

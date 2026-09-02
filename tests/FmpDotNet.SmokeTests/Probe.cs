@@ -400,6 +400,9 @@ internal static class Probe
                 "company" => LiveApi.CompanyNameQuery,
                 "formType" => LiveApi.FormType,
                 "sicCode" => LiveApi.SicCode,
+                "industryTitle" => LiveApi.SicTitleQuery,
+                // economic-calendar's country filter is exact and case-sensitive; AAPL would answer 0 rows.
+                "country" => LiveApi.Country,
 
                 // The COT paths take a futures contract code, not an equity ticker. AAPL answers `[]` with
                 // HTTP 200 there, which is the silent green this file's other named constants exist to stop.
@@ -566,6 +569,10 @@ internal static class Probe
         if (type == typeof(Models.CustomDcfAssumptions)) return new Models.CustomDcfAssumptions();
         if (type == typeof(Models.CustomLeveredDcfAssumptions))
             return new Models.CustomLeveredDcfAssumptions();
+
+        // The hours paths' asAt. Fixed rather than now, for the reason LiveApi.SettledInstant gives; before #51
+        // these two methods took no argument at all and were probed as-of the sweep's own instant.
+        if (type == typeof(Instant)) return LiveApi.SettledInstant;
 
         if (type == typeof(bool))
             return parameter.Name switch

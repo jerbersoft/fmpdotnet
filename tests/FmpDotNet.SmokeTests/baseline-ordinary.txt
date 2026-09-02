@@ -140,10 +140,15 @@ set Yield
 
 [Calendar.GetEarningsAsync]
 outcome rows
+set Confirmed
 set Date
 set EpsActual
 set EpsEstimated
+set FiscalPeriod
+set FiscalYear
 set LastUpdated
+set PeriodEnding
+set ReportTime
 set RevenueActual
 set RevenueEstimated
 set Symbol
@@ -956,8 +961,21 @@ set PhoneNumber
 set SicCode
 set Symbol
 
+[Directory.GetInvalidSymbolChangesAsync]
+outcome rows
+set CompanyName
+set Date
+set NewSymbol
+set OldSymbol
+
 [Directory.GetSectorsAsync]
 outcome rows
+
+[Directory.GetSicCodeAsync]
+outcome rows
+set IndustryTitle
+set Office
+set SicCode
 
 [Directory.GetSicCodesAsync]
 outcome rows
@@ -982,6 +1000,12 @@ outcome rows
 set CompanyName
 set Symbol
 set TranscriptCount
+
+[Directory.SearchSicCodesAsync]
+outcome rows
+set IndustryTitle
+set Office
+set SicCode
 
 [Directory.StreamCikListAsync]
 outcome rows
@@ -2062,14 +2086,14 @@ outcome rows
 set Price
 set Symbol
 set Timestamp
-null TradeSize
+set TradeSize
 
 [Quote.GetAftermarketTradesAsync]
 outcome rows
 set Price
 set Symbol
 set Timestamp
-null TradeSize
+set TradeSize
 
 [Quote.GetCommodityQuotesAsync]
 outcome rows

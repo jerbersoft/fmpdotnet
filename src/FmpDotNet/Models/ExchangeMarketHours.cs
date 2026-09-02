@@ -119,7 +119,14 @@ public sealed record ExchangeMarketHours
     /// <c>isClosed: true</c>. Zero unexplained exceptions across all 81 rows.</para>
     ///
     /// <para>A caller must not read this as "the market is not open right now" — that is
-    /// <see cref="IsMarketOpen"/>.</para></summary>
+    /// <see cref="IsMarketOpen"/>.</para>
+    ///
+    /// <para><b>"Today" is the day of the instant asked about (#51).</b> Since
+    /// <see cref="Endpoints.MarketHoursEndpoints.GetAllExchangesAsync"/> and
+    /// <see cref="Endpoints.MarketHoursEndpoints.GetExchangeAsync"/> take an <c>asAt</c>, the sentinel follows
+    /// it: measured 2026-09-02, NASDAQ reads <c>CLOSED</c> at 14:30 UTC on Christmas Day 2025 and on Saturday
+    /// 2026-08-29, and 76 of 81 rows read it at 12:00 UTC on Sunday 2026-08-30. The name keeps the wire's
+    /// vocabulary; with <c>asAt</c> set, read it as "closed on that day".</para></summary>
     [JsonIgnore] public bool IsClosedToday => OpeningHourText is "CLOSED";
 
     private static OffsetTime? ParseHour(string? text)

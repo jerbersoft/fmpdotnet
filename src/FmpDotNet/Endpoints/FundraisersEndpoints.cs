@@ -30,7 +30,8 @@ namespace FmpDotNet.Endpoints;
 ///     <c>crowdfunding-offerings-latest?cik=0002010670&amp;limit=100</c> returned <b>100 rows across 85
 ///     distinct CIKs</b>. <see cref="GetFundraisingByCikAsync"/> already provides what the working one adds,
 ///     and offering the parameter on one method but not the other would invite a caller to try the one that
-///     fails silently.</description></item>
+///     fails silently. Re-listed by the 2026-09-01 parameter audit as honoured and unmodelled (#51); the
+///     decision stands, on the same measurement.</description></item>
 ///   <item><description><b>A search row is one filing, not one company.</b>
 ///     <c>fundraising-search?name=Schutt</c> returned 34 rows across <b>5</b> distinct CIKs;
 ///     <c>crowdfunding-offerings-search?name=Well</c> returned 44 across <b>31</b>. A caller populating a

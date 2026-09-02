@@ -24,13 +24,22 @@ namespace FmpDotNet.Endpoints;
 public sealed class EconomicsEndpoints(FmpTransport transport)
 {
     /// <summary>Every economic release FMP has scheduled or published between <paramref name="from"/> and
-    /// <paramref name="to"/>, both ends inclusive, for every country.
+    /// <paramref name="to"/>, both ends inclusive, for every country — or for one.
     ///
     /// <para>Measured on 2026-08-26: <c>from=2026-08-25&amp;to=2026-09-01</c> answered 713 rows spanning 81
     /// countries, and the single day 2026-08-26 answered 78 across 19. Rows came back <b>newest first</b> in both,
     /// and both range ends were included — <c>from</c> returned rows dated 2026-08-25 and <c>to</c> returned rows
     /// dated 2026-09-01. There is no paging parameter, no country parameter and no impact parameter; a range is
     /// the entire query surface.</para>
+    ///
+    /// <para><b>"No country parameter" above was wrong (#51).</b> Measured 2026-09-01 and again 2026-09-02 over
+    /// 2026-08-17…24: 529 rows unfiltered, <c>country=US</c> <b>74</b> with every row <c>US</c>,
+    /// <c>country=DE</c> 9, <c>country=EU</c> 24. The match is exact and case-sensitive — <c>country=us</c>
+    /// answers <b>0</b> — and it takes one value: <c>country=US,DE</c> answers 0 too, both at HTTP 200. The
+    /// vocabulary is what <see cref="EconomicRelease.Country"/> carries, which is not ISO-3166 (<c>EU</c> and
+    /// <c>UK</c> are in it), so the SDK sends the string as given and validates only what would be silently
+    /// wrong: a blank and a comma. The window's truncation below is measured on the unfiltered call; a filter
+    /// answers fewer rows and has not been measured to change the window it truncates at.</para>
     ///
     /// <para><b>Wide windows are silently truncated, and the SDK cannot page around it — which is now measured
     /// rather than assumed.</b> Re-probed 2026-09-01 (#46) because the same claim on
@@ -72,23 +81,45 @@ public sealed class EconomicsEndpoints(FmpTransport transport)
     /// <param name="from">First calendar day of the range, inclusive.</param>
     /// <param name="to">Last calendar day of the range, inclusive. Must not be earlier than
     /// <paramref name="from"/>.</param>
+    /// <param name="country">One country code in FMP's spelling — <c>US</c>, <c>DE</c>, <c>EU</c> — or
+    /// <see langword="null"/> for every country. Exact and case-sensitive upstream; sent as given.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The releases in the range, newest first as measured, or an empty list — never null.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="to"/> is earlier than
     /// <paramref name="from"/>. Checked before the request is sent: FMP answers a backwards range with an empty
     /// array and HTTP 200, so an argument the caller has plainly got wrong would otherwise read as "no releases
     /// that week" and cost a call from the key's quota to say nothing.</exception>
+    /// <exception cref="ArgumentException"><paramref name="country"/> is given but blank, or contains a comma.
+    /// A blank goes out as no filter and answers every country; a list answers nothing, at HTTP 200 either
+    /// way.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<EconomicRelease>> GetEconomicCalendarAsync(
-        LocalDate from, LocalDate to, CancellationToken ct = default)
+        LocalDate from, LocalDate to, string? country = null, CancellationToken ct = default)
     {
         DateRange.ThrowIfBackwards(from, to);
+        ThrowIfNotOneCountry(country);
 
         return await transport.GetListAsync(
-            new FmpRequest("stable/economic-calendar").With("from", from).With("to", to),
+            new FmpRequest("stable/economic-calendar").With("from", from).With("to", to).With("country", country),
             FmpJsonContext.Default.ListEconomicRelease, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>Rejects a <c>country</c> FMP would answer wrongly at HTTP 200 — measured 2026-09-02 (#51),
+    /// <c>country=US,DE</c> answers 0 rows and <c>country=</c> answers all of them. Nothing else is checked:
+    /// the vocabulary is upstream's, it is not ISO-3166, and a client-side list would go stale.</summary>
+    private static void ThrowIfNotOneCountry(string? country)
+    {
+        if (country is null) return;
+        ArgumentException.ThrowIfNullOrWhiteSpace(country);
+        if (country.Contains(',', StringComparison.Ordinal))
+        {
+            throw new ArgumentException(
+                "stable/economic-calendar takes one country. Measured 2026-09-02, country=US,DE answers an "
+                + "empty array at HTTP 200. Call once per country, or omit it and filter EconomicRelease.Country.",
+                nameof(country));
+        }
     }
 
     /// <summary>One macroeconomic series, oldest observation last — <c>stable/economic-indicators</c>.

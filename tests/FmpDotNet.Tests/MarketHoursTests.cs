@@ -319,6 +319,38 @@ public class MarketHoursTests
     }
 
     [Fact]
+    public async Task An_as_at_instant_reaches_both_hours_paths_as_unix_seconds()
+    {
+        // 1788091200 is 2026-08-30 12:00 UTC, a Sunday — the instant #46 measured: 81 rows either way, but
+        // 1 exchange open instead of 42 and 76 reading CLOSED. Seconds, not milliseconds: see
+        // FmpRequestTests for what milliseconds answer.
+        var (endpoints, handler) = Build();
+        var sunday = Instant.FromUnixTimeSeconds(1788091200);
+
+        await endpoints.GetAllExchangesAsync(asAt: sunday);
+        await endpoints.GetExchangeAsync("NASDAQ", asAt: sunday);
+
+        Assert.Equal("?timestamp=1788091200", handler.Requests[0].Query);
+        Assert.Equal("?exchange=NASDAQ&timestamp=1788091200", handler.Requests[1].Query);
+    }
+
+    [Theory]
+    [InlineData(0L)]
+    [InlineData(-1L)]
+    public async Task An_instant_at_or_before_the_epoch_is_rejected_before_a_request_goes_out(long seconds)
+    {
+        // Measured 2026-09-02: `timestamp=0` answers byte-identically to no timestamp at all — FMP reads it as
+        // absent, so a caller asking about 1970 is silently told about now — and `timestamp=-1` answers 2
+        // exchanges open and 0 CLOSED, which describes no instant there has ever been. Both at HTTP 200.
+        var (endpoints, handler) = Build();
+        var instant = Instant.FromUnixTimeSeconds(seconds);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => endpoints.GetAllExchangesAsync(asAt: instant));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => endpoints.GetExchangeAsync("NASDAQ", asAt: instant));
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task The_whole_market_path_sends_no_exchange_and_the_single_one_does()
     {
         var (endpoints, handler) = Build();

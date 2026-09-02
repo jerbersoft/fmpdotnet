@@ -298,6 +298,28 @@ internal static class LiveApi
     /// baseline-recording guard exists to prevent — arriving through the argument synthesiser instead.</para></summary>
     public const string Exchange = "NASDAQ";
 
+    /// <summary>The instant the two hours paths are asked about — 14:30 UTC on <see cref="SettledWeekday"/>,
+    /// which is 10:30 New York in either half of the year.
+    ///
+    /// <para>Not <see langword="null"/>, and not now: Probe supplies every parameter, and an <c>asAt</c> that
+    /// tracked the clock would make the baseline's <c>isMarketOpen</c> depend on the minute the sweep ran. A
+    /// settled weekday mid-session gives the same answer every run — measured 2026-09-02 (#51), 14:30 UTC on
+    /// Tuesday 2026-09-01 answered 52 open and 1 <c>CLOSED</c> across 81 rows, and this suite records
+    /// set/null per field rather than the values, so a holiday landing on the day moves nothing it
+    /// checks.</para></summary>
+    public static Instant SettledInstant => SettledWeekday.At(new LocalTime(14, 30)).InUtc().ToInstant();
+
+    /// <summary>The country the economic calendar is narrowed to — <c>US</c>, the most populous code in every
+    /// measured window (74 of 529 rows over 2026-08-17…24, measured 2026-09-02, #51). Upper case, because the
+    /// match is case-sensitive and <c>us</c> answers 0 rows at HTTP 200 — the silent-green baseline this
+    /// file's constants exist to prevent.</summary>
+    public const string Country = "US";
+
+    /// <summary>The fragment <c>standard-industrial-classification-list?industryTitle=</c> is searched for —
+    /// <c>AGRICULTURAL</c>, a case-insensitive substring that answered 4 of 444 rows on 2026-09-02 (#51). A
+    /// fragment rather than a full title so the baseline is a list rather than a single row.</summary>
+    public const string SicTitleQuery = "AGRICULTURAL";
+
     /// <summary>The industry the Market Performance industry paths are probed with.
     ///
     /// <para><b>Named for the reason <see cref="Exchange"/> is.</b> <c>Probe.Argument</c> maps any unrecognised

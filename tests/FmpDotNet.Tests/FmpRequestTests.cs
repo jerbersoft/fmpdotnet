@@ -40,4 +40,18 @@ public class FmpRequestTests
         Assert.Equal("stable/earnings-calendar?from=2026-05-13&to=2026-05-19&includeReportTimes=true",
             request.ToString());
     }
+
+    [Fact]
+    public void Renders_an_instant_as_the_unix_seconds_fmp_reads()
+    {
+        // stable/*exchange-market-hours read `timestamp` as epoch SECONDS: measured 2026-09-02, the same
+        // instant in milliseconds answered 0 open exchanges and 64 CLOSED at HTTP 200. So the overload renders
+        // seconds, and it drops sub-second precision rather than rounding — a truncated instant is still the
+        // same second.
+        var request = new FmpRequest("stable/all-exchange-market-hours")
+            .With("timestamp", Instant.FromUnixTimeSeconds(1788091200).PlusNanoseconds(999_999_999))
+            .With("unused", (Instant?)null);
+
+        Assert.Equal("stable/all-exchange-market-hours?timestamp=1788091200", request.ToString());
+    }
 }

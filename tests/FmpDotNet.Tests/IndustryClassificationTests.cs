@@ -269,6 +269,60 @@ public class IndustryClassificationTests
         Assert.All(rows, r => Assert.Equal(3, r.SicCode!.Length));
     }
 
+    [Fact]
+    public async Task A_sic_code_lookup_sends_the_code_as_given_and_reads_one_row()
+    {
+        // Measured 2026-09-02 (#51): `sicCode` is an exact match that ACCEPTS the four-wide spelling — 0100 and
+        // 100 both answer the "100" row — and refuses a prefix (1 and 10 answer nothing). So the code is sent
+        // verbatim: a caller holding IndustryClassification.SicCode's zero-padded form need not strip it here.
+        var (endpoints, handler) = BuildDirectory(StubHandler.Json(
+            """[{"office":"Office of Life Sciences","sicCode":"100","industryTitle":"AGRICULTURAL PRODUCTION-CROPS"}]"""));
+
+        var entry = await endpoints.GetSicCodeAsync("0100");
+
+        Assert.Equal("?sicCode=0100", handler.Requests.Single().Query);
+        Assert.NotNull(entry);
+        Assert.Equal("100", entry.SicCode);
+        Assert.Equal("AGRICULTURAL PRODUCTION-CROPS", entry.IndustryTitle);
+    }
+
+    [Fact]
+    public async Task An_unknown_sic_code_reads_as_null()
+    {
+        // `sicCode=9999999` answers `[]` at HTTP 200, measured 2026-09-02 — not an error.
+        var (endpoints, _) = BuildDirectory(StubHandler.Json("[]"));
+
+        Assert.Null(await endpoints.GetSicCodeAsync("9999999"));
+    }
+
+    [Fact]
+    public async Task A_sic_title_search_sends_the_fragment_as_given()
+    {
+        // Measured 2026-09-02 (#51): `industryTitle` is a case-insensitive SUBSTRING match — CROPS answers 1,
+        // AGRICULTURAL answers 4 (100, 200, 700, 2870), the lower-case full title answers 1.
+        var (endpoints, handler) = BuildDirectory(
+            StubHandler.Json(Binding.Fixture("standard-industrial-classification-list.head.json")));
+
+        var rows = await endpoints.SearchSicCodesAsync("agricultural");
+
+        Assert.Equal("?industryTitle=agricultural", handler.Requests.Single().Query);
+        Assert.Equal(5, rows.Count);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task The_two_sic_filters_refuse_a_blank_before_a_request_goes_out(string blank)
+    {
+        // A blank filter would go out as the unfiltered call and hand back all 444 rows under a method whose
+        // name promises a selection.
+        var (endpoints, handler) = BuildDirectory(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetSicCodeAsync(blank));
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.SearchSicCodesAsync(blank));
+        Assert.Empty(handler.Requests);
+    }
+
     // ---- fmp.Search --------------------------------------------------------------------------------------------
 
     private static (SearchEndpoints Endpoints, StubHandler Handler) BuildSearch(

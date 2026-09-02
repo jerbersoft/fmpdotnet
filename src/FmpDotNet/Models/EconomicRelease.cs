@@ -17,6 +17,12 @@ namespace FmpDotNet.Models;
 /// and cannot lift. Ask for a range, get everything in it, and use LINQ. That is also why <see cref="Impact"/>
 /// stays a raw <see cref="string"/> — see the note on that property.</para>
 ///
+/// <para><b>Half of that was wrong, and the half that matters is the wire (#51).</b> Measured 2026-09-01 and
+/// 2026-09-02, <c>country</c> <i>is</i> a parameter — 529 rows over 2026-08-17…24 became 74 with
+/// <c>country=US</c> — and it is now the optional <c>country</c> argument on
+/// <see cref="Endpoints.EconomicsEndpoints.GetEconomicCalendarAsync"/>. Nothing is baked in: omit it and the
+/// answer is still every country. <c>impact</c> stays unmeasured and unoffered.</para>
+///
 /// <para>Rows arrived <b>newest first</b> in both captures — the 713-row week ran from
 /// <c>2026-09-01 23:50:00</c> back to <c>2026-08-25 01:30:00</c>, strictly descending, and the single day ran
 /// <c>23:50</c> back to <c>01:00</c>. The SDK does not re-sort; a caller who needs chronological order should say

@@ -19,6 +19,16 @@ namespace FmpDotNet.Models;
 /// returns. The same seven are the whole of an unflagged <c>stable/earnings-calendar</c> row, which is why
 /// <see cref="EarningsCalendarEntry"/> is this record plus five nullable extras rather than a different shape.</para>
 ///
+/// <para><b>Now this record carries the same five extras, and the two shapes coincide (#51).</b> Measured
+/// 2026-09-02, <c>includeReportTimes=true</c> on <c>stable/earnings</c> adds exactly <c>time</c>,
+/// <c>periodEnding</c>, <c>fiscalPeriod</c>, <c>fiscalYear</c> and <c>confirmed</c> to every one of AAPL's 165
+/// rows, with the seven shared fields byte-equal per row and — unlike the calendar path — <b>no row re-dated and
+/// none reordered</b>. They are still two types. The calendar's rows shift a day under the flag and this path's
+/// do not; its measurements come from a 48-row global sample and these from one issuer's forty years; and a
+/// merge would rename the calendar's public type to buy nothing a caller can observe. The five properties below
+/// are <see langword="null"/> unless the flag was sent, which means "not asked for" and not "not known" — the
+/// same reading <see cref="EarningsCalendarEntry"/> asks for.</para>
+///
 /// <para>Money and per-share figures are <see langword="decimal"/> and never <see langword="double"/>: revenue
 /// reaches 2.3e12 in the measured captures and EPS is signed — <c>-0.17</c> on <c>0AAW.L</c> and <c>-0.15</c> on
 /// <c>SCCB</c> — so nothing here may be assumed positive.</para></summary>
@@ -28,13 +38,13 @@ public sealed record EarningsReport
     /// <c>BRK.B</c>), and the dotted spelling answers an empty array rather than an error.</summary>
     [JsonPropertyName("symbol")] public string? Symbol { get; init; }
 
-    /// <summary>The earnings date, as a plain calendar date — there is no time of day on this endpoint, and the
-    /// report-time marker lives on <see cref="EarningsCalendarEntry.ReportTime"/> instead.
+    /// <summary>The earnings date, as a plain calendar date — there is no time of day on this endpoint. The
+    /// session marker is <see cref="ReportTime"/>, and only with the flag.
     ///
     /// <para>Nullable because the converter reads an unparseable date as null rather than throwing away the rest of
     /// the response, but it is never null on a row the SDK hands back: rows with no usable date are dropped, since
     /// the date is half of this row's identity. See
-    /// <see cref="Endpoints.CalendarEndpoints.GetEarningsAsync(string, int?, CancellationToken)"/>.</para></summary>
+    /// <see cref="Endpoints.CalendarEndpoints.GetEarningsAsync(string, int?, bool, CancellationToken)"/>.</para></summary>
     [JsonPropertyName("date")]
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]
     public LocalDate? Date { get; init; }
@@ -63,4 +73,42 @@ public sealed record EarningsReport
     [JsonPropertyName("lastUpdated")]
     [JsonConverter(typeof(NullableLocalDateJsonConverter))]
     public LocalDate? LastUpdated { get; init; }
+
+    // ---- Only populated when includeReportTimes=true. Null otherwise, meaning "not asked for". ----
+
+    /// <summary>Session marker for the announcement — <c>"amc"</c> after market close, <c>"bmo"</c> before the
+    /// open — or <see langword="null"/>.
+    ///
+    /// <para>Named and typed as <see cref="EarningsCalendarEntry.ReportTime"/> is, for the reason given there:
+    /// the wire name is <c>time</c> and there is no clock time in it. Measured 2026-09-02 across AAPL's 165
+    /// flagged rows: <c>amc</c> on 58, <see langword="null"/> on 107, and never <c>bmo</c>. The newest null is
+    /// 2022-10-27 and the nulls are interspersed with <c>amc</c> rows from there back to 1997 — not a clean cut
+    /// at some year. So a null under the flag means FMP has no marker for that announcement, and a null without
+    /// the flag means nothing at all. Kept verbatim; fold case at the call site if matching on it.</para></summary>
+    [JsonPropertyName("time")] public string? ReportTime { get; init; }
+
+    /// <summary>Last day of the fiscal period the announcement reports on — <c>2026-09-27</c> for the
+    /// <c>2026-10-29</c> announcement, a plain <c>yyyy-MM-dd</c> date. Non-null on all 165 flagged AAPL rows,
+    /// measured 2026-09-02, and the property to key a quarter on: <see cref="Date"/> is when the company
+    /// spoke, this is what it spoke about.</summary>
+    [JsonPropertyName("periodEnding")]
+    [JsonConverter(typeof(NullableLocalDateJsonConverter))]
+    public LocalDate? PeriodEnding { get; init; }
+
+    /// <summary>Fiscal period label as FMP writes it — <c>Q1</c> to <c>Q4</c>, measured 2026-09-02 as 41, 41,
+    /// 41 and 42 rows respectively across AAPL's 165. A raw string rather than the
+    /// <see cref="FmpDotNet.FiscalPeriod"/> enum, which is the request vocabulary; and relative to the company's
+    /// own fiscal calendar, so Apple's <c>Q4</c> ends in September.</summary>
+    [JsonPropertyName("fiscalPeriod")] public string? FiscalPeriod { get; init; }
+
+    /// <summary>Fiscal year the period belongs to — <c>2026</c> for a period ending <c>2026-09-27</c>. Sent
+    /// unquoted, non-null on all 165 flagged AAPL rows measured 2026-09-02.</summary>
+    [JsonPropertyName("fiscalYear")] public int? FiscalYear { get; init; }
+
+    /// <summary>Whether FMP considers the date confirmed by the company rather than estimated. Measured
+    /// 2026-09-02: <see langword="true"/> on 15 of AAPL's 165 flagged rows — the eleven newest, two from 2023,
+    /// and two isolated rows from 2006 and 1997 — and <see langword="false"/> on the other 150. A future date
+    /// that reads <see langword="false"/> is FMP's estimate of when the company will report, and it
+    /// moves.</summary>
+    [JsonPropertyName("confirmed")] public bool? Confirmed { get; init; }
 }

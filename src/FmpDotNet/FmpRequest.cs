@@ -42,6 +42,18 @@ public sealed class FmpRequest
     /// <summary>Adds a boolean query parameter as lowercase <c>true</c>/<c>false</c>.</summary>
     public FmpRequest With(string name, bool? value) => With(name, value is null ? null : value.Value ? "true" : "false");
 
+    /// <summary>Adds an instant as Unix <b>seconds</b>, which is the unit FMP reads a <c>timestamp</c> in.
+    ///
+    /// <para>The unit is the whole reason this overload exists rather than an <see cref="long"/> one. Measured
+    /// 2026-09-02 on <c>stable/all-exchange-market-hours</c>: the current instant in seconds answered 26 open
+    /// exchanges, byte-identical to the unfiltered call, while the same instant in <i>milliseconds</i> answered
+    /// <b>0 open and 64 <c>CLOSED</c></b> at HTTP 200 — a date some fifty thousand years out, served as a
+    /// well-formed answer. A caller holding an <see cref="Instant"/> cannot make that mistake; a caller holding
+    /// a <see cref="long"/> makes it by default. Sub-second precision is truncated, not rounded: the same
+    /// second is the same second.</para></summary>
+    public FmpRequest With(string name, Instant? value) =>
+        With(name, value?.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture));
+
     /// <summary>Renders path and query — exactly the relative URI the transport sends. The API key is never part
     /// of it, so the rendering is safe to log.</summary>
     public override string ToString()

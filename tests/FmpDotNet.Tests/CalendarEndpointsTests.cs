@@ -40,6 +40,76 @@ public class CalendarEndpointsTests
     // ------------------------------------------------------------------ stable/earnings
 
     [Fact]
+    public async Task The_report_times_flag_reaches_the_wire_only_when_asked_for()
+    {
+        // Measured 2026-09-02 (#51): includeReportTimes=false is byte-identical to omitting it, so the default
+        // sends nothing — the query every earlier measurement on this path was taken with.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetEarningsAsync("AAPL", limit: 8);
+        await endpoints.GetEarningsAsync("AAPL", limit: 8, includeReportTimes: true);
+        await endpoints.GetEarningsAsync("AAPL", includeReportTimes: true);
+
+        Assert.Equal("?symbol=AAPL&limit=8", handler.Requests[0].Query);
+        Assert.Equal("?symbol=AAPL&limit=8&includeReportTimes=true", handler.Requests[1].Query);
+        Assert.Equal("?symbol=AAPL&includeReportTimes=true", handler.Requests[2].Query);
+    }
+
+    [Fact]
+    public async Task The_five_report_time_fields_bind_on_a_per_symbol_row_when_the_flag_was_sent()
+    {
+        // Captured 2026-09-02 as `symbol=AAPL&includeReportTimes=true&limit=3`. The same five extras the calendar
+        // path carries, under the same wire names — and unlike that path, no row is re-dated: all 165 AAPL rows
+        // kept their date and their order under the flag, with the seven shared fields byte-equal per row.
+        var (endpoints, _) = Build(Fixture("earnings.AAPL.times.head.json"));
+
+        var rows = await endpoints.GetEarningsAsync("AAPL", limit: 3, includeReportTimes: true);
+
+        Assert.Equal(3, rows.Count);
+        // Row 2 is reported, so every one of the twelve wire fields is non-null and every property binds.
+        Assert.Empty(Binding.Unbound(rows[2]));
+
+        var forecast = rows[0];
+        Assert.Equal(Day(2026, 10, 29), forecast.Date);
+        Assert.Null(forecast.EpsActual);
+        Assert.Equal("amc", forecast.ReportTime);
+        Assert.Equal(Day(2026, 9, 27), forecast.PeriodEnding);
+        Assert.Equal("Q4", forecast.FiscalPeriod);
+        Assert.Equal(2026, forecast.FiscalYear);
+        Assert.True(forecast.Confirmed);
+        Assert.Equal(Day(2026, 9, 2), forecast.LastUpdated);
+
+        var reported = rows[2];
+        Assert.Equal(Day(2026, 4, 30), reported.Date);
+        Assert.Equal(2.01m, reported.EpsActual);
+        Assert.Equal(Day(2026, 3, 28), reported.PeriodEnding);
+        Assert.Equal("Q2", reported.FiscalPeriod);
+    }
+
+    [Fact]
+    public async Task The_five_report_time_fields_read_as_null_when_the_flag_was_not_sent()
+    {
+        // The unflagged capture has seven keys per row. Null here means "not asked for", the same way it does on
+        // EarningsCalendarEntry — and the old fixture must keep binding cleanly with the five new properties
+        // reporting themselves unbound rather than failing.
+        var (endpoints, _) = Build(Fixture("earnings.AAPL.json"));
+
+        var rows = await endpoints.GetEarningsAsync("AAPL", limit: 8);
+
+        Assert.All(rows, r =>
+        {
+            Assert.Null(r.ReportTime);
+            Assert.Null(r.PeriodEnding);
+            Assert.Null(r.FiscalPeriod);
+            Assert.Null(r.FiscalYear);
+            Assert.Null(r.Confirmed);
+        });
+        // On a reported row the seven wire fields all bind, so the five extras are exactly what is left unbound.
+        Assert.Equal(
+            ["Confirmed", "FiscalPeriod", "FiscalYear", "PeriodEnding", "ReportTime"], Binding.Unbound(rows[1]));
+    }
+
+    [Fact]
     public async Task Maps_every_field_of_the_captured_aapl_earnings_rows()
     {
         var (endpoints, _) = Build(Fixture("earnings.AAPL.json"));
@@ -96,15 +166,22 @@ public class CalendarEndpointsTests
     {
         // Both directions matter. A wrong [JsonPropertyName] does not fail, it silently reads null; a field FMP
         // sends that no property claims is data thrown away. All 165 rows of AAPL's full history carried exactly
-        // these seven names, none missing and none extra.
-        using var doc = JsonDocument.Parse(Fixture("earnings.AAPL.json"));
-        var wire = doc.RootElement[0].EnumerateObject().Select(p => p.Name).ToHashSet();
+        // seven names unflagged, and exactly twelve under includeReportTimes=true (measured 2026-09-02, #51) —
+        // so the flagged capture is the one the model must match exactly, and the unflagged one is its subset.
+        using var flagged = JsonDocument.Parse(Fixture("earnings.AAPL.times.head.json"));
+        using var plain = JsonDocument.Parse(Fixture("earnings.AAPL.json"));
+        var flaggedWire = flagged.RootElement[0].EnumerateObject().Select(p => p.Name).ToHashSet();
+        var plainWire = plain.RootElement[0].EnumerateObject().Select(p => p.Name).ToHashSet();
 
         var mapped = WireNames(typeof(EarningsReport));
 
-        Assert.Empty(wire.Except(mapped));
-        Assert.Empty(mapped.Except(wire));
-        Assert.Equal(7, mapped.Count);
+        Assert.Empty(flaggedWire.Except(mapped));
+        Assert.Empty(mapped.Except(flaggedWire));
+        Assert.Equal(12, mapped.Count);
+        Assert.Equal(7, plainWire.Count);
+        Assert.Empty(plainWire.Except(mapped));
+        Assert.Equal(
+            ["confirmed", "fiscalPeriod", "fiscalYear", "periodEnding", "time"], mapped.Except(plainWire).Order());
         await Task.CompletedTask;
     }
 
@@ -295,12 +372,14 @@ public class CalendarEndpointsTests
     public async Task The_unflagged_capture_carries_the_same_seven_fields_as_stable_earnings()
     {
         // The unflagged row is a subset, not a different shape - which is why one model with five nullable extras
-        // is right rather than two unrelated ones.
+        // is right rather than two unrelated ones. Since #51 EarningsReport carries the same five extras, so the
+        // two records now map the same twelve wire names; they stay two types for the reasons on EarningsReport.
         using var plain = JsonDocument.Parse(Fixture("earnings-calendar.2026-05-16.json"));
         var wire = plain.RootElement[0].EnumerateObject().Select(p => p.Name).ToHashSet();
 
         Assert.Empty(wire.Except(WireNames(typeof(EarningsCalendarEntry))));   // nothing the model ignores
-        Assert.True(wire.SetEquals(WireNames(typeof(EarningsReport))));        // and it is exactly the earnings seven
+        Assert.Equal(7, wire.Count);                                            // and it is the earnings seven
+        Assert.True(WireNames(typeof(EarningsReport)).SetEquals(WireNames(typeof(EarningsCalendarEntry))));
         await Task.CompletedTask;
     }
 
