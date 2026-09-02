@@ -45,11 +45,19 @@ public enum ChartInterval
 
     /// <summary>Hourly bars, from <c>stable/historical-chart/1hour</c>. Measured 2026-08-27: about
     /// <b>90 calendar days</b> (434 bars). The session's last bar is partial — 15:30 covers the half hour to the
-    /// close.</summary>
+    /// close.
+    ///
+    /// <para><b>With <c>extended=true</c> the grid moves (#50).</b> Measured 2026-09-02: bars are stamped
+    /// 04:00 … 19:00, sixteen a day, and no bar starts at 09:30 — the extended day's bars do not line up with the
+    /// plain day's.</para></summary>
     OneHour,
 
     /// <summary>Four-hour bars, from <c>stable/historical-chart/4hour</c>. Measured 2026-08-27: about
-    /// <b>180 calendar days</b> (247 bars), the deepest intraday history FMP serves.</summary>
+    /// <b>180 calendar days</b> (247 bars), the deepest intraday history FMP serves.
+    ///
+    /// <para><b>With <c>extended=true</c> the grid moves (#50).</b> Measured 2026-09-02: 04:00 / 08:00 / 12:00 /
+    /// 16:00 instead of 09:30 / 13:30, so the regular session is split across bars that also carry pre- and
+    /// post-market trades.</para></summary>
     FourHours,
 }
 

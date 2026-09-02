@@ -570,6 +570,11 @@ internal static class Probe
                 "includeReportTimes" => true,
                 // False on purpose: it discards rows, and this suite is measuring what FMP sent.
                 "clampToRange" => false,
+                // True on purpose: this suite measures shape, and the pre- and post-market bars are where a
+                // shape change could hide. Measured 2026-09-02 the six properties were the same either way (#50).
+                "extended" => true,
+                // False on purpose: the split-adjusted series is what FMP sends unasked.
+                "nonadjusted" => false,
                 _ => throw Unknown(parameter),
             };
 

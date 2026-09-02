@@ -11,6 +11,12 @@ namespace FmpDotNet.Models;
 /// across all six intervals. A full 1-minute session for AAPL answered 390 bars running
 /// <c>09:30</c> to <c>15:59</c>.</para>
 ///
+/// <para><b>The extended session has the same shape (#50).</b> Measured 2026-09-02, AAPL 2026-09-01 1-minute with
+/// <c>extended=true</c>: 960 bars from <c>04:00</c> to <c>19:59</c>, the same six keys on each, no nulls. The
+/// 390 regular-session bars inside that answer were byte-identical to the plain answer, so a pre- or post-market
+/// bar is told from a regular one only by its <see cref="Timestamp"/>. On the hourly and 4-hourly sizes the flag
+/// moves the bar boundaries — see <see cref="Endpoints.ChartEndpoints.GetIntradayAsync"/>.</para>
+///
 /// <para><b>There is no symbol on an intraday row.</b> Every other list endpoint in this SDK carries one; this one
 /// does not, and FMP sends nothing that identifies the security. A caller assembling several symbols into one
 /// collection has to carry the symbol alongside the rows themselves, because it cannot be recovered from
@@ -76,7 +82,9 @@ public sealed record IntradayBar
     /// <summary>The bar's closing price.</summary>
     [JsonPropertyName("close")] public decimal? Close { get; init; }
 
-    /// <summary>Shares traded within the bar. Split-adjusted, consistently with the prices.
+    /// <summary>Shares traded within the bar. Split-adjusted, consistently with the prices — measured 2026-09-02 on
+    /// MNST's 2:1 split of 2026-08-11, where <c>nonadjusted=true</c> halved a pre-split hourly bar's volume from
+    /// <c>1379074</c> to <c>689537</c> as it doubled its prices (#50).
     ///
     /// <para><b><see cref="decimal"/> rather than <see cref="long"/>, because intraday volume is genuinely
     /// fractional</b> — which is the one thing on this type that will stop a caller's deserialisation dead rather

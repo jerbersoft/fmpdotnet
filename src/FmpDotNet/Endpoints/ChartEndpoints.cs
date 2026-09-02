@@ -170,6 +170,25 @@ public sealed class ChartEndpoints(FmpTransport transport)
     /// <see cref="IntradayBar"/>. Bars are stamped with their <i>opening</i> time in Eastern wall clock, and the
     /// last bar of a session is short.</para>
     ///
+    /// <para><b><paramref name="extended"/> widens each day to 04:00–19:59 and moves the hourly grids (#50).</b>
+    /// Measured 2026-09-02 on AAPL's 2026-09-01 session: 1-minute answered 390 bars (09:30–15:59) plain and
+    /// <b>960</b> with the flag — 330 pre-market from 04:00, the same 390, 240 post-market to 19:59 — the same six
+    /// keys on every bar, no nulls, and a minute with no trade simply has no bar (the previous day gave 959). The
+    /// window is unchanged: a wide range answered the same two days either way. On 1-, 5-, 15- and 30-minute the
+    /// regular-session bars are <b>byte-identical</b> with and without the flag. On
+    /// <see cref="ChartInterval.OneHour"/> and <see cref="ChartInterval.FourHours"/> they are <b>not</b>: the
+    /// grid is anchored at the session's first bar, so hourly bars move from 09:30 … 15:30 (seven) to
+    /// 04:00 … 19:00 (sixteen) and 4-hourly from 09:30 / 13:30 to 04:00 / 08:00 / 12:00 / 16:00, and a 09:30 bar
+    /// does not exist in the extended answer. Do not join extended and plain answers at those two sizes.</para>
+    ///
+    /// <para><b><paramref name="nonadjusted"/> turns split adjustment off, on price and volume alike (#50).</b>
+    /// Measured 2026-09-02 on MNST hourly across its 2:1 split of 2026-08-11: the 2026-08-04 09:30 bar answered
+    /// <c>open 46.925 … close 46.52, volume 1379074</c> plain and <c>93.85 … 93.04, volume 689537</c> with the
+    /// flag — prices exactly doubled, volume exactly halved — while a post-split bar was unchanged. The row count
+    /// was the same either way. The two flags are independent: sent together they answered the extended grid at
+    /// unadjusted prices. An explicit <c>false</c> on either answers byte for byte what omission answers, so this
+    /// method sends neither name unless it is true.</para>
+    ///
     /// <para><b>Why the backwards-range check is here rather than in a paragraph.</b> Measured 2026-08-27,
     /// <c>from=2026-08-26&amp;to=2026-08-24</c> on the intraday endpoints answers <b>390 well-formed rows dated
     /// 2026-08-24</b> — not an error, not an empty array, but a plausible session for the wrong end of the range.
@@ -183,6 +202,10 @@ public sealed class ChartEndpoints(FmpTransport transport)
     /// lookback window.</param>
     /// <param name="to">Last calendar day of the range, inclusive. Must not be earlier than
     /// <paramref name="from"/>.</param>
+    /// <param name="extended">Include pre-market (from 04:00) and post-market (to 19:59) bars. Sent as
+    /// <c>extended=true</c> only when true. Re-anchors the hourly and 4-hourly grids — see above.</param>
+    /// <param name="nonadjusted">Answer prices and volumes as traded, without split adjustment. Sent as
+    /// <c>nonadjusted=true</c> only when true.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The bars FMP returned, newest first, truncated to the interval's window. Empty for an unknown
     /// symbol. Never null.</returns>
@@ -191,14 +214,19 @@ public sealed class ChartEndpoints(FmpTransport transport)
     /// <paramref name="from"/>, or <paramref name="interval"/> is not a declared member.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
     public Task<IReadOnlyList<IntradayBar>> GetIntradayAsync(
-        string symbol, ChartInterval interval, LocalDate from, LocalDate to, CancellationToken ct = default)
+        string symbol, ChartInterval interval, LocalDate from, LocalDate to,
+        bool extended = false, bool nonadjusted = false, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         DateRange.ThrowIfBackwards(from, to);
 
+        // Sent only when true. Measured 2026-09-02: an explicit `extended=false` and an explicit
+        // `nonadjusted=false` each answer byte for byte what omission answers, so false travels as nothing.
         return transport.GetListAsync(
             new FmpRequest($"stable/historical-chart/{interval.ToPathSegment()}")
-                .With("symbol", symbol).With("from", from).With("to", to),
+                .With("symbol", symbol).With("from", from).With("to", to)
+                .With("extended", extended ? true : (bool?)null)
+                .With("nonadjusted", nonadjusted ? true : (bool?)null),
             FmpJsonContext.Default.ListIntradayBar, ct);
     }
 
