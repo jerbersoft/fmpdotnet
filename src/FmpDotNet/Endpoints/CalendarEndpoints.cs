@@ -161,9 +161,21 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="StatementEndpoints"/>, this one accepts <c>symbol</c> and <c>limit</c> only, and every row is a
     /// quarterly announcement. There is nothing to ask for annually.</para>
     ///
+    /// <para><b>"<c>symbol</c> and <c>limit</c> only" undercounted by one (#51).</b> Measured 2026-09-01 and
+    /// again 2026-09-02, <c>includeReportTimes=true</c> is honoured here exactly as on
+    /// <see cref="GetEarningsCalendarAsync"/>: the same 165 AAPL rows, in the same order, with the same dates
+    /// — this path does <b>not</b> re-date rows the way the calendar does — and five fields added to each:
+    /// <see cref="EarningsReport.ReportTime"/>, <see cref="EarningsReport.PeriodEnding"/>,
+    /// <see cref="EarningsReport.FiscalPeriod"/>, <see cref="EarningsReport.FiscalYear"/> and
+    /// <see cref="EarningsReport.Confirmed"/>. It composes with <paramref name="limit"/>. An explicit
+    /// <c>false</c> is byte-identical to omitting it, so the default sends nothing.</para>
+    ///
     /// <para>Rows whose date cannot be parsed are dropped — see the note on the type.</para></summary>
     /// <param name="symbol">Ticker, in FMP's spelling. Class-share tickers are hyphenated (<c>BRK-B</c>).</param>
     /// <param name="limit">Newest N rows, or null for the whole history. Must be positive when given.</param>
+    /// <param name="includeReportTimes">Ask for the five report-time fields. Sent only when
+    /// <see langword="true"/>; without it those five properties read <see langword="null"/>, meaning "not asked
+    /// for".</param>
     /// <param name="ct">Cancellation token.</param>
     /// <exception cref="ArgumentException"><paramref name="symbol"/> is null, empty or whitespace.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="limit"/> is zero or negative.</exception>
@@ -171,14 +183,15 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
     public async Task<IReadOnlyList<EarningsReport>> GetEarningsAsync(
-        string symbol, int? limit = null, CancellationToken ct = default)
+        string symbol, int? limit = null, bool includeReportTimes = false, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(symbol);
         if (limit is <= 0)
             throw new ArgumentOutOfRangeException(nameof(limit), limit, "A limit, when given, must be positive.");
 
         var rows = await transport.GetListAsync(
-            new FmpRequest("stable/earnings").With("symbol", symbol).With("limit", limit),
+            new FmpRequest("stable/earnings").With("symbol", symbol).With("limit", limit)
+                .With("includeReportTimes", includeReportTimes ? true : (bool?)null),
             FmpJsonContext.Default.ListEarningsReport, ct).ConfigureAwait(false);
 
         var dated = new List<EarningsReport>(rows.Count);

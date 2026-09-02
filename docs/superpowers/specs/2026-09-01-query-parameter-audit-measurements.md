@@ -42,6 +42,29 @@ the repository.
 > lost 2 of 535 to tie cuts, at 100 and 250 none). Row order was stable on every path re-checked today —
 > 0 of 142 positions moved on the by-name call that moved 104 on 2026-08-29.
 
+> **Group A remainder — settled 2026-09-02 (#51).** Seven of the nine rows are sent since #51; two are
+> measured again and declined. Re-measured the same day, beyond the rows below. `available-exchanges`:
+> `extended=false` is byte-identical to omission, the 63 are a subset of the 71 with byte-equal rows, and all
+> 71 sit inside `all-exchange-market-hours`' 81 (the ten it keeps to itself: ASE, BTS, CME, EBS, EURONEXT, FGI,
+> ICEF, NIM, PNK, SSX) — `GetExchangesAsync(extended: true)`. `timestamp` is **holiday-aware and lunch-aware**:
+> NASDAQ reads `CLOSED` at 14:30 UTC on 2025-12-25, 2026-01-19 and 2026-07-03, a Saturday answers 0 open / 81
+> `CLOSED`, and JPX at 03:00 UTC reads `isMarketOpen=false` with both sessions printed; `timestamp=0` is
+> byte-identical to omission, `-1` answers 2 open / 0 `CLOSED`, **milliseconds answer 0 open / 64 `CLOSED`**,
+> and a non-numeric value is ignored — all at HTTP 200. Hence an `Instant? asAt`, rejected at or before the
+> epoch, on both hours methods. `symbol-change` `invalid` is **a partition, not a separate dataset**: omitted
+> 5,472, `false` 5,471, `true` 1, the flagged `A → AWD` row being inside the 5,472; `TRUE` works, `1`/`yes` are
+> ignored — `GetInvalidSymbolChangesAsync`. `economic-calendar` `country` is exact and case-sensitive (`US` 74
+> of 529, `us` 0, `US,DE` 0, `XX` 0, `EU` 24) — an optional `country` that rejects a blank and a comma.
+> `earnings` `includeReportTimes`: same 165 AAPL rows, same dates in the same order, seven shared fields
+> byte-equal per row, **no re-dating** unlike the calendar path; `time` `amc` ×58 / null ×107, `confirmed` true
+> ×15, `periodEnding` and `fiscalYear` non-null throughout; `false` ≡ omission — `EarningsReport` carries the
+> five and stays a separate type. SIC list: `sicCode` is exact and **accepts the zero-padded spelling**
+> (`0100` → the `100` row; `1`, `10` → 0), `industryTitle` is a case-insensitive substring (`CROPS` 1,
+> `AGRICULTURAL` 4), together they AND — `GetSicCodeAsync` and `SearchSicCodesAsync`. Declined:
+> `fundraising-latest` `cik` on the 2026-08-31 decision already in the class doc, and `funds/disclosure` /
+> `disclosure-dates` `cik` because `symbol` is required (HTTP 400 without it) and the CIK can only subtract —
+> SPY's own answers the symbol's 503 and 28 rows, another fund's answers 0.
+
 ## The headline is not a missing parameter
 
 **`page` is a working cursor on `earnings-calendar` and `dividends-calendar`, and the SDK does not send it.**

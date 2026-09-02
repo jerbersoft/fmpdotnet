@@ -14,13 +14,22 @@ namespace FmpDotNet.Endpoints;
 ///     <c>exchange=nasdaq</c> returned a byte-identical response to <c>exchange=NASDAQ</c> on both
 ///     single-exchange paths; <c>exchange=NASDAQ%20Global%20Market</c> is an HTTP 400. Codes come from
 ///     <see cref="DirectoryEndpoints.GetExchangesAsync"/> — all <b>63</b> codes it returned appear in
-///     <see cref="GetAllExchangesAsync"/>, which carries 18 more.</description></item>
+///     <see cref="GetAllExchangesAsync"/>, which carries 18 more. <b>Re-measured 2026-09-02 (#51):</b> that
+///     directory call now takes <c>extended: true</c> and answers 71, every one of which is here; the ten this
+///     path still has to itself are ASE, BTS, CME, EBS, EURONEXT, FGI, ICEF, NIM, PNK and SSX.</description></item>
 ///   <item><description><b>An unknown exchange is an error, not an empty list.</b> <c>exchange=ZZZZ</c> and
 ///     <c>exchange=NASDAQ,NYSE</c> are both HTTP 400 <c>Invalid Exchange Provided.</c> This SDK does not
 ///     validate the code itself: the vocabulary is 81 entries that will change, and a client-side list
 ///     would go stale.</description></item>
 ///   <item><description><b>Nothing paginates.</b> <c>limit</c> and <c>page</c> were ignored on all three
 ///     paths — byte-identical responses.</description></item>
+///   <item><description><b>The two hours paths answer for an instant, and it need not be now.</b> Measured
+///     2026-09-02 (#51): <c>timestamp</c> moves <see cref="ExchangeMarketHours.IsMarketOpen"/> and the
+///     <c>CLOSED</c> sentinel together, and it knows the calendar — NASDAQ reads <c>CLOSED</c> at 14:30 UTC on
+///     Christmas Day 2025, on Martin Luther King Day 2026 and on Friday 2026-07-03, and JPX reads
+///     <see cref="ExchangeMarketHours.IsMarketOpen"/> <see langword="false"/> at 03:00 UTC, inside its
+///     lunch break, with both sessions' hours still printed. That is the <c>asAt</c> argument on
+///     <see cref="GetAllExchangesAsync"/> and <see cref="GetExchangeAsync"/>.</description></item>
 /// </list>
 ///
 /// <para>Index membership is a separate facade — <see cref="IndexesEndpoints"/> — because the two groups
@@ -30,19 +39,42 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     /// <summary>Trading hours for every exchange FMP knows, from <c>stable/all-exchange-market-hours</c>.
     ///
     /// <para>81 rows measured 2026-08-30 — 18 more than
-    /// <see cref="DirectoryEndpoints.GetExchangesAsync"/> returns. Read
-    /// <see cref="ExchangeMarketHours.OpeningAdditionalText"/> before building anything on the first row:
-    /// seven of these exchanges break for lunch and carry two extra keys that 74 rows lack.</para></summary>
+    /// <see cref="DirectoryEndpoints.GetExchangesAsync"/> returns (10 more than its <c>extended</c> form, measured
+    /// 2026-09-02). Read <see cref="ExchangeMarketHours.OpeningAdditionalText"/> before building anything on the
+    /// first row: seven of these exchanges break for lunch and carry two extra keys that 74 rows lack.</para>
+    ///
+    /// <para><b><paramref name="asAt"/> asks the same question about another instant.</b> Measured 2026-09-02
+    /// (#51) with the current instant: 81 rows, 26 open, 1 <c>CLOSED</c>, byte-identical to sending nothing. At
+    /// 2026-08-30 12:00 UTC, a Sunday: 81 rows, <b>1</b> open, <b>76</b> <c>CLOSED</c>. At 14:30 UTC on
+    /// Saturday 2026-08-29: 0 open, 81 <c>CLOSED</c>. At 14:30 UTC on Christmas Day 2025: 3 open, 67
+    /// <c>CLOSED</c>. The row count never moves; <see cref="ExchangeMarketHours.IsMarketOpen"/> and the
+    /// <c>CLOSED</c> sentinel do, and the sentinel means "closed on that instant's local calendar day" — so
+    /// <see cref="ExchangeMarketHours.IsClosedToday"/> reads "closed on the day asked about" when this is
+    /// set. Holidays and lunch breaks are honoured; see the class doc.</para>
+    ///
+    /// <para><b>Rejected at or before the Unix epoch, because FMP misreads both sides of it.</b> Measured
+    /// 2026-09-02: <c>timestamp=0</c> answers byte-identically to no timestamp at all — 1970 is silently
+    /// replaced by now — and <c>timestamp=-1</c> answers 2 exchanges open and 0 <c>CLOSED</c>, a picture of no
+    /// instant that has existed. Both at HTTP 200. Non-numeric values are ignored the same silent way, which an
+    /// <see cref="Instant"/> cannot produce.</para></summary>
+    /// <param name="asAt">The instant to answer for, or <see langword="null"/> for now. Sent as Unix seconds —
+    /// see <see cref="FmpRequest.With(string, Instant?)"/> for what milliseconds would have answered.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every exchange, in FMP's own order. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="asAt"/> is at or before
+    /// 1970-01-01T00:00:00Z.</exception>
     /// <exception cref="FmpApiException">FMP answered a failure status.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points
     /// at the key at least as often as at the plan.</exception>
-    public Task<IReadOnlyList<ExchangeMarketHours>> GetAllExchangesAsync(CancellationToken ct = default) =>
-        transport.GetListAsync(
-            new FmpRequest("stable/all-exchange-market-hours"),
+    public Task<IReadOnlyList<ExchangeMarketHours>> GetAllExchangesAsync(
+        Instant? asAt = null, CancellationToken ct = default)
+    {
+        ThrowIfNotAfterTheEpoch(asAt);
+        return transport.GetListAsync(
+            new FmpRequest("stable/all-exchange-market-hours").With("timestamp", asAt),
             FmpJsonContext.Default.ListExchangeMarketHours, ct);
+    }
 
     /// <summary>Trading hours for one exchange, from <c>stable/exchange-market-hours</c>.
     ///
@@ -59,21 +91,37 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
     ///
     /// <para>The code is sent exactly as given: <c>nasdaq</c> and <c>NASDAQ</c> answered byte-identically
     /// on 2026-08-30, so there is nothing to normalise and normalising would rewrite the caller's
-    /// identifier.</para></summary>
+    /// identifier.</para>
+    ///
+    /// <para><b><paramref name="asAt"/> makes this an "was it open then" oracle.</b> Measured 2026-09-02 (#51)
+    /// for NASDAQ: at 14:30 UTC on Tuesday 2026-09-01 the row reads <c>09:30 AM -04:00</c> to
+    /// <c>04:00 PM -04:00</c> and <see cref="ExchangeMarketHours.IsMarketOpen"/> <see langword="true"/>; at
+    /// 14:30 UTC on Christmas Day 2025, on Martin Luther King Day 2026 and on Friday 2026-07-03 (the observed
+    /// Independence Day) both hours read <c>CLOSED</c> and it is <see langword="false"/>; at 12:00 UTC on
+    /// Sunday 2026-08-30 the same. For JPX at 03:00 UTC on 2026-09-01 — inside the 11:30–12:30 JST lunch
+    /// break — it is <see langword="false"/> while all four session hours are still printed, so the flag is
+    /// about the instant and the hours are about the day. The rejection at the epoch and the reason are on
+    /// <see cref="GetAllExchangesAsync"/>.</para></summary>
     /// <param name="exchange">The exchange code — <c>"NASDAQ"</c>, <c>"JPX"</c>. One exchange; a
     /// comma-joined list is rejected. Case-insensitive upstream. The exchange's full <i>name</i> is not
     /// accepted.</param>
+    /// <param name="asAt">The instant to answer for, or <see langword="null"/> for now. Sent as Unix
+    /// seconds.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The exchange's hours, or <see langword="null"/> on an empty array.</returns>
     /// <exception cref="ArgumentException"><paramref name="exchange"/> is blank or contains a comma.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="asAt"/> is at or before
+    /// 1970-01-01T00:00:00Z.</exception>
     /// <exception cref="FmpApiException">FMP answered a failure status — including <b>400</b> for an
     /// exchange it does not know.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
-    public async Task<ExchangeMarketHours?> GetExchangeAsync(string exchange, CancellationToken ct = default)
+    public async Task<ExchangeMarketHours?> GetExchangeAsync(
+        string exchange, Instant? asAt = null, CancellationToken ct = default)
     {
         ThrowIfNotOneExchange(exchange);
+        ThrowIfNotAfterTheEpoch(asAt);
         return await transport.GetSingleAsync(
-            new FmpRequest("stable/exchange-market-hours").With("exchange", exchange),
+            new FmpRequest("stable/exchange-market-hours").With("exchange", exchange).With("timestamp", asAt),
             FmpJsonContext.Default.ListExchangeMarketHours, ct).ConfigureAwait(false);
     }
 
@@ -175,6 +223,26 @@ public sealed class MarketHoursEndpoints(FmpTransport transport)
                 + "'Invalid Exchange Provided.' — a wasted call against the key's quota. Call once per "
                 + "exchange, or use GetAllExchangesAsync.",
                 nameof(exchange));
+        }
+    }
+
+    /// <summary>Rejects an <c>asAt</c> FMP would answer wrongly at HTTP 200.
+    ///
+    /// <para>Measured 2026-09-02 (#51): <c>timestamp=0</c> is read as no timestamp — the response is
+    /// byte-identical to the unfiltered call, so a question about 1970 is answered about now — and
+    /// <c>timestamp=-1</c> answers 2 open and 0 <c>CLOSED</c> across 81 rows, which no real instant has
+    /// produced. Everything after the first second of 1970 was honoured wherever it was tried, back to
+    /// 2020-06-15 14:00 UTC (54 open, 1 <c>CLOSED</c>). No upper bound: a millisecond-scale value is the
+    /// future trap, and the <see cref="Instant"/> type is what closes it.</para></summary>
+    private static void ThrowIfNotAfterTheEpoch(Instant? asAt)
+    {
+        if (asAt is { } instant && instant.ToUnixTimeSeconds() <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(asAt), instant,
+                "asAt must be after 1970-01-01T00:00:00Z. Measured 2026-09-02, FMP reads timestamp=0 as no "
+                + "timestamp and answers for now, and a negative timestamp answers hours no instant has had — "
+                + "both at HTTP 200.");
         }
     }
 }

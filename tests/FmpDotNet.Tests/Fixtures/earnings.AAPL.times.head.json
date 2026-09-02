@@ -1,0 +1,44 @@
+[
+  {
+    "symbol": "AAPL",
+    "date": "2026-10-29",
+    "epsActual": null,
+    "epsEstimated": 1.98,
+    "revenueActual": null,
+    "revenueEstimated": 113218400000,
+    "time": "amc",
+    "periodEnding": "2026-09-27",
+    "fiscalPeriod": "Q4",
+    "fiscalYear": 2026,
+    "confirmed": true,
+    "lastUpdated": "2026-09-02"
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-07-30",
+    "epsActual": 2.02,
+    "epsEstimated": 1.89,
+    "revenueActual": 109417000000,
+    "revenueEstimated": 109038900000,
+    "time": "amc",
+    "periodEnding": "2026-06-27",
+    "fiscalPeriod": "Q3",
+    "fiscalYear": 2026,
+    "confirmed": true,
+    "lastUpdated": "2026-09-02"
+  },
+  {
+    "symbol": "AAPL",
+    "date": "2026-04-30",
+    "epsActual": 2.01,
+    "epsEstimated": 1.95,
+    "revenueActual": 111184000000,
+    "revenueEstimated": 109457600000,
+    "time": "amc",
+    "periodEnding": "2026-03-28",
+    "fiscalPeriod": "Q2",
+    "fiscalYear": 2026,
+    "confirmed": true,
+    "lastUpdated": "2026-07-29"
+  }
+]

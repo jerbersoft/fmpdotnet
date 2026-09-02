@@ -341,6 +341,9 @@ public partial class EndpointCoverageTests
                 _ => new LocalDate(2026, 1, 2), // from, date, earliest
             };
         }
+        // The hours paths' asAt (#51). Any instant after the epoch passes the facade's guard; this harness only
+        // records the path, so the value is immaterial.
+        if (type == typeof(Instant)) return Instant.FromUtc(2026, 9, 1, 14, 30);
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria();
         if (type == typeof(CongressPositionCriteria)) return new CongressPositionCriteria();
         if (type == typeof(CongressProfileCriteria)) return new CongressProfileCriteria();

@@ -8,7 +8,13 @@ namespace FmpDotNet.Models;
 /// <see cref="CompanyProfile.Exchange"/>, on <see cref="SymbolSearchResult.Exchange"/> and as the
 /// <c>exchange</c> argument to <see cref="Endpoints.QuoteEndpoints.GetExchangeQuotesAsync"/> — which answers an
 /// unknown exchange with an empty array and HTTP 200 rather than an error, so validating against this list is
-/// cheaper than debugging an empty result.</para></summary>
+/// cheaper than debugging an empty result.</para>
+///
+/// <para><b>"The whole set" was the default set (#51).</b> Measured 2026-09-02,
+/// <c>extended: true</c> on <see cref="Endpoints.DirectoryEndpoints.GetExchangesAsync"/> answers 71 rows — the
+/// same 63 byte for byte, plus AQS, BUD, BVC, EGX, HOSE, KUW, RIS and TAL — with these same six fields. A
+/// validation list built from the default call rejects eight exchanges FMP quotes; build it from the extended
+/// one.</para></summary>
 public sealed record ExchangeInfo
 {
     /// <summary>The short code — <c>AMEX</c>, <c>ASX</c>, <c>FSX</c>. This is the value the rest of the API

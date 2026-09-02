@@ -245,6 +245,38 @@ public class DirectoryListsTests
     }
 
     [Fact]
+    public async Task The_extended_exchange_list_is_asked_for_only_when_it_is_wanted()
+    {
+        // Measured 2026-09-02 (#51): `extended=true` answers 71 exchanges against 63, adding AQS, BUD, BVC, EGX,
+        // HOSE, KUW, RIS and TAL with the same six fields, and `extended=false` is byte-identical to sending
+        // nothing. So the default sends nothing — the query the 63-row measurements were taken with — and only
+        // an explicit true reaches the wire.
+        var (endpoints, handler) = Build("[]");
+
+        await endpoints.GetExchangesAsync();
+        await endpoints.GetExchangesAsync(extended: true);
+
+        Assert.Equal("", handler.Requests[0].Query);
+        Assert.Equal("?extended=true", handler.Requests[1].Query);
+    }
+
+    [Fact]
+    public async Task The_invalid_symbol_changes_are_a_separate_call_with_the_same_limit()
+    {
+        // Measured 2026-09-02 (#51): `invalid=true` answers the ONE row FMP flags — A -> AWD, 2005-11-23,
+        // Agilent — and that row is also inside the 5,472 the unflagged call returns, so this is a partition of
+        // one dataset rather than a second one. The limit travels too: without it this path's default is 100
+        // rows, and nothing says the flagged set will stay at one.
+        var (endpoints, handler) = Build("[]");
+
+        await endpoints.GetInvalidSymbolChangesAsync();
+
+        var uri = handler.Requests.Single();
+        Assert.Equal("/stable/symbol-change", uri.AbsolutePath);
+        Assert.Equal($"?invalid=true&limit={DirectoryEndpoints.SymbolChangeRequestLimit}", uri.Query);
+    }
+
+    [Fact]
     public async Task A_symbol_change_request_asks_for_more_than_the_hidden_default()
     {
         var (endpoints, handler) = Build("[]");

@@ -64,7 +64,12 @@ public sealed record TranscriptSymbol
 /// <see cref="Endpoints.DirectoryEndpoints.GetActivelyTradingAsync"/> without being delisted. A caller
 /// reconciling historical positions against current tickers needs the whole set, which is why
 /// <see cref="Endpoints.DirectoryEndpoints.GetSymbolChangesAsync"/> takes no paging arguments and asks for all of
-/// it — see that method for what the default would otherwise cost.</para></summary>
+/// it — see that method for what the default would otherwise cost.</para>
+///
+/// <para>One of those rows — <c>A → AWD</c>, 2005-11-23 — is a rename FMP itself flags as invalid, and the
+/// flag is the only thing that distinguishes it: the row carries these same four fields. Measured 2026-09-02
+/// (#51); <see cref="Endpoints.DirectoryEndpoints.GetInvalidSymbolChangesAsync"/> answers the flagged rows on
+/// their own.</para></summary>
 public sealed record SymbolChange
 {
     /// <summary>The date the change took effect. ISO <c>uuuu-MM-dd</c> on all 5,456 measured rows, none null.

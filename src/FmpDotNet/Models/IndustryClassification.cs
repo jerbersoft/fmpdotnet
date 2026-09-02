@@ -71,7 +71,10 @@ public sealed record IndustryClassification
 /// <para>Named for the <see cref="CikEntry"/> precedent: a reference-list row that is an entry in a vocabulary
 /// rather than a thing in the market. Measured 2026-08-28, the endpoint answers all <b>444</b> rows for every
 /// combination of <c>page</c> and <c>limit</c> tried — see
-/// <see cref="Endpoints.DirectoryEndpoints.GetSicCodesAsync(CancellationToken)"/>.</para></summary>
+/// <see cref="Endpoints.DirectoryEndpoints.GetSicCodesAsync(CancellationToken)"/>. It does answer one row
+/// for a <c>sicCode</c> and a substring's worth for an <c>industryTitle</c>, measured 2026-09-02 (#51) —
+/// <see cref="Endpoints.DirectoryEndpoints.GetSicCodeAsync"/> and
+/// <see cref="Endpoints.DirectoryEndpoints.SearchSicCodesAsync"/>.</para></summary>
 public sealed record SicCodeEntry
 {
     /// <summary>The SEC review office that handles filings under this code — <c>"Office of Life Sciences"</c>.

@@ -14,7 +14,7 @@ namespace FmpDotNet.Endpoints;
 /// <see cref="CompanyEndpoints.GetProfileAsync(string, CancellationToken)"/> and on the screener, so a caller
 /// building a lookup table or validating user input should take them from here rather than hard-coding a list that
 /// silently rots when FMP adds a category. <see cref="GetCountriesAsync(CancellationToken)"/> and
-/// <see cref="GetExchangesAsync(CancellationToken)"/> are the same idea applied to country and exchange codes —
+/// <see cref="GetExchangesAsync(bool, CancellationToken)"/> are the same idea applied to country and exchange codes —
 /// 117 countries and 63 exchanges, the whole set of each, measured 2026-08-27.</para>
 ///
 /// <para><b>The universe.</b> <see cref="GetStockListAsync(CancellationToken)"/> and
@@ -96,7 +96,7 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     ///
     /// <para><b>Codes, not names.</b> The wire key is <c>country</c> and the values are <c>"FK"</c>, <c>"MT"</c>,
     /// <c>"SG"</c> — two characters on every measured row. A caller rendering these to a user needs a lookup;
-    /// <see cref="GetExchangesAsync(CancellationToken)"/> carries both spellings of the same fact and is the
+    /// <see cref="GetExchangesAsync(bool, CancellationToken)"/> carries both spellings of the same fact and is the
     /// cheapest join for it.</para>
     ///
     /// <para>Ignores <c>limit</c>, like every list endpoint in this group except <c>cik-list</c> and
@@ -259,13 +259,24 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     ///
     /// <para><see cref="ExchangeInfo.Delay"/> is prose, not a duration, and
     /// <see cref="ExchangeInfo.SymbolSuffix"/> is the literal <c>"N/A"</c> on five rows — see those properties.
-    /// Ignores <c>limit</c>.</para></summary>
+    /// Ignores <c>limit</c>.</para>
+    ///
+    /// <para><b>The 63 is the default set, not the whole one (#51).</b> Measured 2026-09-02,
+    /// <c>extended=true</c> answers <b>71</b>: the same 63 rows byte for byte, plus AQS, BUD, BVC, EGX, HOSE,
+    /// KUW, RIS and TAL, with the same six fields — it widens the universe, not the row. <c>extended=false</c>
+    /// is byte-identical to omitting it, so the default here sends nothing. All 71 codes appear in
+    /// <see cref="MarketHoursEndpoints.GetAllExchangesAsync"/>'s 81; the ten that path has to itself are ASE,
+    /// BTS, CME, EBS, EURONEXT, FGI, ICEF, NIM, PNK and SSX.</para></summary>
+    /// <param name="extended">Ask for the eight exchanges FMP leaves out by default. Sent only when
+    /// <see langword="true"/>.</param>
+    /// <param name="ct">Cancels the request.</param>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
-    public Task<IReadOnlyList<ExchangeInfo>> GetExchangesAsync(CancellationToken ct = default) =>
+    public Task<IReadOnlyList<ExchangeInfo>> GetExchangesAsync(bool extended = false, CancellationToken ct = default) =>
         transport.GetListAsync(
-            new FmpRequest("stable/available-exchanges"), FmpJsonContext.Default.ListExchangeInfo, ct);
+            new FmpRequest("stable/available-exchanges").With("extended", extended ? true : (bool?)null),
+            FmpJsonContext.Default.ListExchangeInfo, ct);
 
     /// <summary>Every symbol FMP holds financial statements for — 68,200 measured 2026-08-27, 5.6 MB of JSON.
     ///
@@ -334,7 +345,14 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// <see cref="GetCikListAsync(int, int, CancellationToken)"/>, whose "CIK descending" is read off two measured
     /// page heads, nothing in the 2026-08-27 sweep pins this endpoint's row order — only its count, its four field
     /// names, and that <c>date</c> is ISO on all 5,456 rows. The SDK preserves whatever order the wire
-    /// sends.</para></summary>
+    /// sends.</para>
+    ///
+    /// <para><b>The whole set includes the row FMP itself flags as invalid (#51).</b> Measured 2026-09-02:
+    /// 5,472 rows here, 5,471 with <c>invalid=false</c>, and <b>1</b> with <c>invalid=true</c> — the same
+    /// <c>A → AWD</c> row of 2005-11-23, which is also inside these 5,472. FMP documents the parameter and not
+    /// its meaning, so this method keeps sending nothing and answering everything; the flagged rows are
+    /// <see cref="GetInvalidSymbolChangesAsync"/>, and a caller who wants them out subtracts that
+    /// answer.</para></summary>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every recorded rename in FMP's own order, which this SDK does not re-sort. Never
     /// <see langword="null"/>.</returns>
@@ -344,6 +362,26 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     public Task<IReadOnlyList<SymbolChange>> GetSymbolChangesAsync(CancellationToken ct = default) =>
         transport.GetListAsync(
             new FmpRequest("stable/symbol-change").With("limit", SymbolChangeRequestLimit),
+            FmpJsonContext.Default.ListSymbolChange, ct);
+
+    /// <summary>The renames FMP has flagged as invalid — <c>stable/symbol-change?invalid=true</c>.
+    ///
+    /// <para><b>One row, measured 2026-09-02 (#51):</b> <c>{"date":"2005-11-23","companyName":"Agilent
+    /// Technologies Inc.","oldSymbol":"A","newSymbol":"AWD"}</c>. It is not a second dataset: the same row
+    /// sits inside <see cref="GetSymbolChangesAsync"/>'s 5,472, and <c>invalid=false</c> answers the 5,471
+    /// without it. FMP publishes the parameter with no account of what earns the flag, so this SDK names the
+    /// method after the wire and claims nothing more.</para>
+    ///
+    /// <para>Sends the same <see cref="SymbolChangeRequestLimit"/> as the unflagged call. The path's default
+    /// without a limit is 100 rows, and a set that is one row today is not promised to stay one. The value is
+    /// case-insensitive upstream — <c>TRUE</c> answered the same row — while <c>1</c> and <c>yes</c> are
+    /// ignored and answer the unflagged default; the SDK sends <c>true</c>.</para></summary>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The flagged renames, in FMP's own order. Never <see langword="null"/>.</returns>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SymbolChange>> GetInvalidSymbolChangesAsync(CancellationToken ct = default) =>
+        transport.GetListAsync(
+            new FmpRequest("stable/symbol-change").With("invalid", true).With("limit", SymbolChangeRequestLimit),
             FmpJsonContext.Default.ListSymbolChange, ct);
 
     /// <summary>The largest page <c>stable/cik-list</c> will serve, measured rather than documented.
@@ -495,9 +533,14 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// <summary>The SIC vocabulary — <c>stable/standard-industrial-classification-list</c>, a fixed 444 rows
     /// measured 2026-08-28.
     ///
-    /// <para><b>No parameters, because the endpoint has none that work.</b> It answered all 444 rows for every
+    /// <para><b>No paging, because the endpoint has none that works.</b> It answered all 444 rows for every
     /// combination of <c>page</c> and <c>limit</c> tried. A signature that accepted either would let a caller
     /// believe they had asked for five rows while holding 444.</para>
+    ///
+    /// <para><b>An earlier note here said "no parameters" outright, and that was wrong (#51).</b> Measured
+    /// 2026-09-01 and again 2026-09-02, <c>sicCode</c> and <c>industryTitle</c> are both honoured — 444 → 1
+    /// each — and they are <see cref="GetSicCodeAsync"/> and <see cref="SearchSicCodesAsync"/>. This method
+    /// still sends nothing and answers the vocabulary.</para>
     ///
     /// <para>This is the authoritative spelling of the <c>sicCode</c> and <c>industryTitle</c> values that come
     /// back on <see cref="IndustryClassification"/> — with one catch that will silently break a join. See
@@ -510,6 +553,53 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
         transport.GetListAsync(
             new FmpRequest("stable/standard-industrial-classification-list"),
             FmpJsonContext.Default.ListSicCodeEntry, ct);
+
+    /// <summary>One SIC code's entry — <c>stable/standard-industrial-classification-list?sicCode=</c>.
+    ///
+    /// <para><b>Exact match, and it absorbs the leading-zero hazard on the way in.</b> Measured 2026-09-02
+    /// (#51): <c>sicCode=100</c> and <c>sicCode=0100</c> both answer the single <c>"100"</c> row, so the
+    /// four-wide code <see cref="IndustryClassification.SicCode"/> carries can be passed straight through —
+    /// the value goes out exactly as given. It is not a prefix search: <c>1</c> and <c>10</c> answer nothing.
+    /// The row that comes back still spells the code without its zero; see
+    /// <see cref="SicCodeEntry.SicCode"/>.</para></summary>
+    /// <param name="sicCode">The code, padded or not. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The entry, or <see langword="null"/> — <c>sicCode=9999999</c> answers <c>[]</c> at HTTP 200,
+    /// measured 2026-09-02.</returns>
+    /// <exception cref="ArgumentException"><paramref name="sicCode"/> is null, empty or whitespace: a blank
+    /// filter goes out as the unfiltered call and answers all 444 rows.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public async Task<SicCodeEntry?> GetSicCodeAsync(string sicCode, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sicCode);
+        return await transport.GetSingleAsync(
+            new FmpRequest("stable/standard-industrial-classification-list").With("sicCode", sicCode),
+            FmpJsonContext.Default.ListSicCodeEntry, ct).ConfigureAwait(false);
+    }
+
+    /// <summary>SIC entries whose title contains a fragment —
+    /// <c>stable/standard-industrial-classification-list?industryTitle=</c>.
+    ///
+    /// <para><b>A case-insensitive substring match, measured 2026-09-02 (#51):</b> <c>CROPS</c> answers 1
+    /// row, <c>agricultural production-crops</c> answers the same 1, and <c>AGRICULTURAL</c> answers 4 —
+    /// codes 100, 200, 700 and 2870. Sent with <c>sicCode</c> as well the two AND together, which is why
+    /// they are two methods rather than one with two optional strings: a method that took both would mostly
+    /// answer nothing.</para>
+    ///
+    /// <para>The fragment goes out as given. The rule is upstream's and measured, not promised.</para></summary>
+    /// <param name="industryTitle">The fragment to match. Required and non-blank.</param>
+    /// <param name="ct">Cancels the request.</param>
+    /// <returns>The matching entries in FMP's own order, or an empty list. Never <see langword="null"/>.</returns>
+    /// <exception cref="ArgumentException"><paramref name="industryTitle"/> is null, empty or whitespace: a
+    /// blank filter goes out as the unfiltered call and answers all 444 rows.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
+    public Task<IReadOnlyList<SicCodeEntry>> SearchSicCodesAsync(string industryTitle, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(industryTitle);
+        return transport.GetListAsync(
+            new FmpRequest("stable/standard-industrial-classification-list").With("industryTitle", industryTitle),
+            FmpJsonContext.Default.ListSicCodeEntry, ct);
+    }
 
     /// <summary>Unwraps the two directory row shapes into <see cref="CompanySymbol"/>. Written once so the pair
     /// cannot drift apart on the judgement calls below, the same way <see cref="Labels{T}"/> serves the

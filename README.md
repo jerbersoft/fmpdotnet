@@ -245,9 +245,9 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/financial-statement-symbol-list` | `GetFinancialStatementSymbolsAsync` |
 | `stable/forex-list` | `GetForexListAsync` |
 | `stable/index-list` | `GetIndexListAsync` |
-| `stable/standard-industrial-classification-list` | `GetSicCodesAsync` |
+| `stable/standard-industrial-classification-list` | `GetSicCodeAsync`, `GetSicCodesAsync`, `SearchSicCodesAsync` |
 | `stable/stock-list` | `GetStockListAsync` |
-| `stable/symbol-change` | `GetSymbolChangesAsync` |
+| `stable/symbol-change` | `GetInvalidSymbolChangesAsync`, `GetSymbolChangesAsync` |
 
 `fmp.DiscountedCashFlow`
 

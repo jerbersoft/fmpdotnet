@@ -293,8 +293,9 @@ public class EconomicsEndpointsTests
     [Fact]
     public async Task Hits_its_own_path_carrying_from_and_to()
     {
-        // Equality, not Contains: there is no country, impact, page or limit parameter on this endpoint, and an
-        // invented one would be accepted silently by FMP rather than rejected. Dates go out in FMP's yyyy-MM-dd.
+        // Equality, not Contains: there is no impact, page or limit parameter on this endpoint, and an invented
+        // one would be accepted silently by FMP rather than rejected. `country` exists (#51) and is sent only
+        // when given — see the test below. Dates go out in FMP's yyyy-MM-dd.
         var (endpoints, handler) = Build();
 
         await endpoints.GetEconomicCalendarAsync(new LocalDate(2026, 8, 25), new LocalDate(2026, 9, 1));
@@ -302,6 +303,35 @@ public class EconomicsEndpointsTests
         var uri = handler.Requests.Single();
         Assert.Equal("/stable/economic-calendar", uri.AbsolutePath);
         Assert.Equal("?from=2026-08-25&to=2026-09-01", uri.Query);
+    }
+
+    [Fact]
+    public async Task A_country_filter_follows_the_range_onto_the_wire_as_given()
+    {
+        // Measured 2026-09-02 (#51) over 2026-08-17..24: 529 rows unfiltered, `country=US` 74 — every row US —
+        // `country=DE` 9, `country=EU` 24. Sent verbatim: the vocabulary is EconomicRelease.Country's, which is
+        // not ISO (EU and UK are in it), and upstream's rule is exact and case-sensitive — `us` answered 0.
+        var (endpoints, handler) = Build();
+
+        await endpoints.GetEconomicCalendarAsync(new LocalDate(2026, 8, 17), new LocalDate(2026, 8, 24), country: "EU");
+
+        Assert.Equal("?from=2026-08-17&to=2026-08-24&country=EU", handler.Requests.Single().Query);
+    }
+
+    [Theory]
+    [InlineData("US,DE")]
+    [InlineData("")]
+    [InlineData("  ")]
+    public async Task A_country_list_or_blank_is_refused_before_a_request_goes_out(string country)
+    {
+        // `country=US,DE` answers 0 rows at HTTP 200 (measured 2026-09-02) — a silent wrong answer, the same
+        // shape as a comma-joined symbol elsewhere. A blank goes out as no filter at all and answers every
+        // country under an argument that said one.
+        var (endpoints, handler) = Build();
+
+        await Assert.ThrowsAsync<ArgumentException>(() => endpoints.GetEconomicCalendarAsync(
+            new LocalDate(2026, 8, 17), new LocalDate(2026, 8, 24), country: country));
+        Assert.Empty(handler.Requests);
     }
 
     // ---- the three paths added in #40 --------------------------------------------------------------------
