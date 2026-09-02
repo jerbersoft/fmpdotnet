@@ -16,6 +16,17 @@ the repository.
 > `avgVolume` field they filter on, which joined the screener row between 2026-08-26 (fifteen keys) and
 > 2026-09-01 (sixteen). Nothing in the 40 verdicts below changes.
 
+> **`historical-chart` `extended` and `nonadjusted` — settled 2026-09-02 (#50).** Both are sent by
+> `ChartEndpoints.GetIntradayAsync` since #50, each only when true. Re-measured on AAPL 2026-09-01 1min:
+> `extended=true` answers **960** bars `04:00–19:59` against 390 `09:30–15:59` (the 957 below was 2026-08-28; a
+> minute with no trade has no bar), the regular-session bars inside the extended answer are byte-identical to the
+> plain answer on 1/5/15/30min, and the window is unchanged. On **1hour and 4hour the grid re-anchors** at 04:00
+> — hourly stamps `04:00 … 19:00` (16) instead of `09:30 … 15:30` (7), 4-hourly `04:00/08:00/12:00/16:00`
+> instead of `09:30/13:30` — so those regular-session bars are not the same bars. `nonadjusted=true` also halves
+> the pre-split **volume** (`1379074 → 689537`) as it doubles the prices. The two are independent. And the open
+> question on both — what an explicit `false` does — is answered: `extended=false` and `nonadjusted=false` are
+> each byte-identical to omission.
+
 ## The headline is not a missing parameter
 
 **`page` is a working cursor on `earnings-calendar` and `dividends-calendar`, and the SDK does not send it.**

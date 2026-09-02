@@ -129,6 +129,25 @@ public class ChartEndpointsTests
         Assert.Equal(313.52m, newest.High);
     }
 
+    [Fact]
+    public async Task An_extended_session_bar_is_read_through_the_same_eastern_converter()
+    {
+        // Measured 2026-09-02: `extended=true` widens AAPL's 2026-09-01 session from 390 bars (09:30 to 15:59) to
+        // 960 (04:00 to 19:59), the same six keys on every bar. The captured head is the last three post-market
+        // minutes, and 19:59 is the stamp that tells the converters apart from the other side: read as UTC it is
+        // 15:59 in New York in September — a post-market bar passing as the closing bar.
+        var bars = await Build(Fixture("historical-chart-1min.AAPL.extended.head.json"))
+            .Endpoints.GetIntradayAsync("AAPL", ChartInterval.OneMinute,
+                new LocalDate(2026, 9, 1), new LocalDate(2026, 9, 1), extended: true);
+
+        var newest = bars[0];
+        var wallClock = newest.Timestamp!.Value.InZone(Eastern);
+        Assert.Equal(new LocalDate(2026, 9, 1), wallClock.Date);
+        Assert.Equal(new LocalTime(19, 59, 0), wallClock.TimeOfDay);
+        Assert.Equal(325.1106m, newest.Open);
+        Assert.Equal(2281m, newest.Volume);
+    }
+
     [Theory]
     [InlineData(ChartInterval.OneMinute, "1min")]
     [InlineData(ChartInterval.FiveMinutes, "5min")]
@@ -145,6 +164,25 @@ public class ChartEndpointsTests
         await endpoints.GetIntradayAsync("AAPL", interval, SplitFrom, SplitTo);
 
         Assert.Contains($"stable/historical-chart/{segment}?", handler.Requests[0].ToString());
+    }
+
+    [Theory]
+    [InlineData(false, false, "")]
+    [InlineData(true, false, "&extended=true")]
+    [InlineData(false, true, "&nonadjusted=true")]
+    [InlineData(true, true, "&extended=true&nonadjusted=true")]
+    public async Task The_session_flags_are_sent_only_when_set(bool extended, bool nonadjusted, string tail)
+    {
+        // Measured 2026-09-02. `extended=true` answers AAPL's 2026-09-01 1min session as 960 bars (04:00 to 19:59)
+        // where omission answers 390 (09:30 to 15:59); `nonadjusted=true` doubles MNST's pre-split prices and
+        // halves its volume across the 2:1 of 2026-08-11; and an explicit `=false` on either answers byte for byte
+        // what omission answers. So false travels as nothing — the choice `includeReportTimes` made on caution,
+        // made here on evidence — and the two are independent, so both can travel at once.
+        var (endpoints, handler) = Build();
+        await endpoints.GetIntradayAsync("AAPL", ChartInterval.OneMinute, SplitFrom, SplitTo,
+            extended: extended, nonadjusted: nonadjusted);
+
+        Assert.Equal($"?symbol=AAPL&from=2020-08-27&to=2020-09-02{tail}", handler.Requests.Single().Query);
     }
 
     [Fact]
