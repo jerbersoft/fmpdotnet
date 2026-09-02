@@ -163,6 +163,64 @@ public partial class EndpointCoverageTests
     private static bool HasMember(Type type, string name) =>
         type.GetMember(name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Length > 0;
 
+    // ---- plan tier notes (#45) ----------------------------------------------------------------------------------
+
+    /// <summary>The fixed opening of a plan-tier note, as it reads in the shipped XML documentation. The
+    /// <c>&lt;b&gt;</c> around it is gone by then; line breaks inside a wrapped comment are not, hence
+    /// <c>\s+</c> between every token.</summary>
+    [GeneratedRegex(@"Plan\s+tier\s+—\s+(?:(?:Free|Starter|Premium|Ultimate|mixed),\s+second-hand|no\s+floor\s+on\s+record)\.")]
+    private static partial Regex PlanTierNote();
+
+    /// <summary>Anything that starts like a plan-tier note, whether or not it finishes like one.</summary>
+    [GeneratedRegex(@"Plan\s+tier\b")]
+    private static partial Regex PlanTierOpening();
+
+    [Fact]
+    public void Every_endpoint_group_records_the_plan_tier_it_was_observed_on()
+    {
+        // A reader on Starter cannot measure entitlement from this repo's docs unless every class says what was
+        // observed and by whom (#45). Held to the shipped XML rather than the sources because the XML is what
+        // IntelliSense shows that reader; a note the compiler dropped would be a note nobody sees.
+        var documented = ShippedDocumentation();
+        var silent = Groups()
+            .Where(g => !documented.TryGetValue("T:" + g.Type.FullName, out var text) || !PlanTierNote().IsMatch(text))
+            .Select(g => g.Type.Name)
+            .ToList();
+
+        Assert.True(silent.Count == 0,
+            "Endpoint classes without a `Plan tier —` note in their <summary>:\n  " + string.Join("\n  ", silent));
+    }
+
+    [Fact]
+    public void Every_plan_tier_note_uses_the_fixed_vocabulary()
+    {
+        // The phrase is fixed so that it is greppable and so that "second-hand" cannot quietly be dropped from a
+        // claim this repo never measured. Every note, class-level or member-level, has to finish the way it starts.
+        var loose = ShippedDocumentation()
+            .Where(m => m.Key.StartsWith("T:FmpDotNet.Endpoints.", StringComparison.Ordinal)
+                        || m.Key.StartsWith("M:FmpDotNet.Endpoints.", StringComparison.Ordinal))
+            .Where(m => PlanTierOpening().Count(m.Value) != PlanTierNote().Count(m.Value))
+            .Select(m => m.Key)
+            .ToList();
+
+        Assert.True(loose.Count == 0,
+            "Plan-tier notes that do not read `Plan tier — <Free|Starter|Premium|Ultimate|mixed>, second-hand.` "
+            + "or `Plan tier — no floor on record.`:\n  " + string.Join("\n  ", loose));
+    }
+
+    /// <summary>The documentation file the package ships, keyed by member id, with the markup flattened to its
+    /// text. It sits beside the assembly because <c>GenerateDocumentationFile</c> is on and a project reference
+    /// copies it along with the DLL.</summary>
+    private static Dictionary<string, string> ShippedDocumentation()
+    {
+        var path = Path.ChangeExtension(typeof(FmpClient).Assembly.Location, ".xml");
+        Assert.True(File.Exists(path), $"{path} is missing — is GenerateDocumentationFile still on?");
+
+        return System.Xml.Linq.XDocument.Load(path)
+            .Descendants("member")
+            .ToDictionary(m => (string)m.Attribute("name")!, m => m.Value, StringComparer.Ordinal);
+    }
+
     // ---- discovery ----------------------------------------------------------------------------------------------
 
     /// <summary>Invokes every public endpoint method against a stub and records the path each one requests.</summary>

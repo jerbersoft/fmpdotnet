@@ -4,7 +4,17 @@ using NodaTime;
 
 namespace FmpDotNet.Endpoints;
 
-/// <summary>FMP's <c>Company</c> group — profiles and the identifiers hanging off them.</summary>
+/// <summary>FMP's <c>Company</c> group — profiles and the identifiers hanging off them.
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetLatestMergersAcquisitionsAsync"/> needs Starter or higher (402 on
+/// free); <see cref="SearchMergersAcquisitionsAsync"/> and <see cref="GetExecutiveCompensationBenchmarkAsync"/> need
+/// Premium or higher (402 on free and Starter; working on Premium 2026-08-23); it records nothing about the other
+/// fourteen below Ultimate, an absence of evidence rather than a Free-tier claim. The application this SDK replaces
+/// saw <c>shares-float-all</c> answer 200 on a free key on 2026-07-23 — a partial page, not a refusal. Not verified
+/// here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The members off the
+/// class's main rung carry their own notes. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class CompanyEndpoints(FmpTransport transport)
 {
     /// <summary>Company profile for one symbol, or null when FMP knows no such symbol.
@@ -389,10 +399,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// <para><b>The first call is slow.</b> 37.18 s cold against 0.53 s warm, measured 2026-08-27. That is
     /// inside this SDK's default timeout and outside many shorter ones.</para>
     ///
-    /// <para><b>Recorded 402 on free and on Starter by an independent client on 2026-08-23</b>, and working on
-    /// Premium. Not measurable here: every path in this group answered 200 on the Ultimate key this SDK was
-    /// measured with. Catch <see cref="FmpPlanRestrictedException"/> if your consumers may be on a lower
-    /// tier.</para></summary>
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="year">The year to benchmark. Omitted from the request when null, which gets FMP's own
     /// default of last year.</param>
     /// <param name="ct">Cancels the request.</param>
@@ -449,9 +458,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// the first short page — one request cheaper than waiting for the empty one, exactly as
     /// <see cref="GetDelistedAsync(int, int, CancellationToken)"/> does.</para>
     ///
-    /// <para><b>Recorded 402 on free by an independent client on 2026-08-23</b>, needing Starter or higher.
-    /// Not measurable here: every path in this group answered 200 on the Ultimate key this SDK was measured
-    /// with.</para></summary>
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="page">Zero-based page index. A page past the end answers an empty list, not an error.</param>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxMergerAcquisitionPageSize"/>. Required rather
     /// than defaulted, matching <see cref="GetDelistedAsync(int, int, CancellationToken)"/>: the page size and
@@ -488,8 +497,9 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// including <c>Pineapple Energy Inc.</c>. <c>name=zzzznope</c> answered <c>[]</c>; omitting the name
     /// entirely answers <b>400</b>, which is why a blank one is rejected here.</para>
     ///
-    /// <para><b>Recorded 402 on free and on Starter by an independent client on 2026-08-23</b>, and working on
-    /// Premium.</para></summary>
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="name">The company name to match. Matched loosely — see above.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>Every matching deal, unpaged. Empty when nothing matches. Never <see langword="null"/>.</returns>

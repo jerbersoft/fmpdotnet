@@ -722,7 +722,9 @@ Measured against the live API on 2026-08-26 unless noted.
   `HttpClient.Timeout` is deliberately infinite.
 - **Plan gating changes.** `profile-bulk` and `shares-float-all` were previously recorded as 402-on-Premium; both
   answered 200 when re-probed. Catch `FmpPlanRestrictedException` to degrade a fast path — and read its
-  `StatusCode` before reporting it, since 403 points at the key at least as often as at the plan.
+  `StatusCode` before reporting it, since 403 points at the key at least as often as at the plan. *Corrected
+  2026-09-02 (#45): the record behind the first sentence was misread — see "Plan gating" below. The advice in the
+  second stands.*
 - **`/stable/company-symbol-list` does not exist, and says so in the success shape.** It answers **404 with the
   body `[]`** — a JSON array, which is what this API returns when a request *works*. A client that reads the body
   for an explanation finds a valid empty result on a failed request; this SDK's own error path did exactly that
@@ -800,6 +802,25 @@ provider being down — a defect the SDK's predecessor shipped.
 **The SDK carries no tier map**, and will not. `profile-bulk` and `shares-float-all` were both recorded as 402 on
 Premium and both answered 200 when re-probed on 2026-08-26. Entitlement moves and varies per key, so anything
 claiming "this needs Ultimate" would be confidently wrong sooner or later. Probe, catch, and re-probe.
+
+**Corrected 2026-09-02 (#45): the evidence in that paragraph was misread; the decision stands.** The predecessor's
+own record has `profile-bulk` at 402 on a *free* key (2026-07-23), and `shares-float-all` never at 402 at all — it
+answered 200 with a partial page on free and on Premium, "NOT 402" in its regression test's words. The 2026-08-26
+re-probe was on this repository's key, which is Ultimate. A 402 below a tier and a 200 on it is the ladder working,
+not entitlement moving. The reasons for carrying no map are the ones that were always its own: FMP restricts
+individual keys (403 for abusing the bulk surface, by its own error text), plans get re-tiered, and a cached refusal
+goes stale silently. Provenance: `docs/superpowers/specs/2026-09-02-plan-tier-provenance.md`.
+
+**What the docs do record, since #45: dated observations, per class and per method.** Every `*Endpoints` class opens
+a paragraph `Plan tier — …` in its XML docs — `Free`, `Starter`, `Premium`, `Ultimate` or `mixed`, always
+`second-hand`, or `no floor on record` — and every method that sits off its class's main rung carries one of its
+own. "Second-hand" is literal: this repository holds one key, on Ultimate, and every one of the 236 modelled paths
+answers 200 on it, so nothing below that tier was measurable here. The floors come from `fmpsdk` 20260824.0, an
+independent Python client whose docstrings record the 402s it met on the tiers it holds, transcribed with its dates
+and attributed on every note; where it recorded nothing, the note says so rather than guessing "Free". They are what
+someone observed on a date — not a contract, and not a gate: the SDK never reads them, and
+`FmpPlanRestrictedException` remains the only authority. `EndpointCoverageTests` holds every class to carrying one
+and every note to the fixed wording, so `grep -rn "Plan tier —" src/FmpDotNet/Endpoints` lists all of them.
 
 ## Installing and versioning
 

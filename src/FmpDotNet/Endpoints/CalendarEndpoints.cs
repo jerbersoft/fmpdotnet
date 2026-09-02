@@ -53,7 +53,15 @@ namespace FmpDotNet.Endpoints;
 /// three, say how much it removed if it ever does. The dividends, splits and IPO calendars apply the same rule
 /// by analogy to that reasoning, not from a per-path measurement of undated rows — no such measurement was taken
 /// on those three paths, so treat their expected removal count as unknown rather than zero.</description></item>
-/// </list></summary>
+/// </list>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: the three IPO methods — <see cref="GetIpoCalendarAsync"/>,
+/// <see cref="GetIpoDisclosuresAsync"/> and <see cref="GetIpoProspectusesAsync"/> — need Starter or higher (402 on
+/// free); it records nothing about the other six below Ultimate, an absence of evidence rather than a Free-tier
+/// claim. Not verified here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The
+/// members off the class's main rung carry their own notes. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class CalendarEndpoints(FmpTransport transport)
 {
     /// <summary>The most pages <see cref="GetEarningsCalendarAsync"/> and
@@ -552,7 +560,11 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// A row per warrant and per unit is normal, so one company can occupy several rows on one date.</para>
     ///
     /// <para>Rows whose <c>date</c> cannot be parsed are dropped, for the reason recorded on this
-    /// class.</para></summary>
+    /// class.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="from">First day of the range, inclusive. Anything more than 90 days before
     /// <paramref name="to"/> is silently ignored.</param>
     /// <param name="to">Last day of the range, inclusive, and the anchor the 90-day window is measured
@@ -593,7 +605,11 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// signal on it. There is nothing to report; there is a payload to budget for.</para>
     ///
     /// <para><b>One filing appears once per share class it covers</b>, sharing a CIK, form and URL across
-    /// several tickers — so the row count is not a filing count.</para></summary>
+    /// several tickers — so the row count is not a filing count.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="from">First day of the range, inclusive.</param>
     /// <param name="to">Last day of the range, inclusive.</param>
     /// <param name="ct">Cancellation token.</param>
@@ -620,7 +636,11 @@ public sealed class CalendarEndpoints(FmpTransport transport)
     /// <para><b>It is a follow-on feed as much as a new-issue one:</b>
     /// <see cref="IpoProspectus.IpoDate"/> ran back to 1989 against 2026 filings in the measured sample. And the
     /// money fields are reported exactly as sent — read the remarks on <see cref="IpoProspectus"/> before
-    /// treating them as arithmetically consistent.</para></summary>
+    /// treating them as arithmetically consistent.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="from">First day of the range, inclusive.</param>
     /// <param name="to">Last day of the range, inclusive.</param>
     /// <param name="ct">Cancellation token.</param>

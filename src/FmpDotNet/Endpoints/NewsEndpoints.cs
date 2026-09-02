@@ -48,7 +48,16 @@ namespace FmpDotNet.Endpoints;
 /// nine feeds cap <c>limit</c> at <see cref="MaxFeedPageSize"/> and <c>page</c> at
 /// <see cref="MaxFeedPage"/>, past which FMP answers HTTP 400. <c>fmp-articles</c> caps <c>limit</c> at
 /// <see cref="MaxArticlePageSize"/> and has <b>no page ceiling at all</b> — see
-/// <see cref="GetArticlesAsync"/> before writing a loop against it.</para></summary>
+/// <see cref="GetArticlesAsync"/> before writing a loop against it.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetArticlesAsync"/> works on a free key;
+/// <see cref="GetGeneralLatestAsync"/> and the six stock, crypto and forex methods need Starter or higher;
+/// <see cref="SearchPressReleasesAsync"/> and <see cref="GetPressReleasesLatestAsync"/> need Premium or higher (402
+/// on free and Starter; working on Premium 2026-08-23). Not verified here: every path answered 200 on the Ultimate
+/// key this SDK is measured with (2026-09-02). The members off the class's main rung carry their own notes. A dated
+/// observation, not a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating on
+/// it.</para></summary>
 public sealed class NewsEndpoints(FmpTransport transport)
 {
     /// <summary>The largest <c>limit</c> the nine <c>news/*</c> paths honour. Measured 2026-08-29,
@@ -163,7 +172,11 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// group shared zero. Reading both and concatenating double-counts those stories.</para>
     ///
     /// <para>6 distinct publishers, the narrowest vocabulary of the five, led by Newsfile Corp with 83.
-    /// Daily volume is high: 964 rows on 2026-08-27 and 839 on 2026-01-14.</para></summary>
+    /// Daily volume is high: 964 rows on 2026-08-27 and 839 on 2026-01-14.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
     /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
     /// nothing for dates older than the three-month floor.</param>
@@ -272,7 +285,11 @@ public sealed class NewsEndpoints(FmpTransport transport)
     /// <summary>Press releases for named companies, from <c>stable/news/press-releases</c>.
     ///
     /// <para>Omitting <paramref name="symbols"/> substitutes <c>AAPL</c> — measured 2026-08-29 — which is
-    /// why this SDK requires it. History reaches 2015 with an explicit <paramref name="from"/>.</para></summary>
+    /// why this SDK requires it. History reaches 2015 with an explicit <paramref name="from"/>.</para>
+    ///
+    /// <para><b>Plan tier — Premium, second-hand.</b> Recorded 402 on free and Starter and working on Premium
+    /// (2026-08-23) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks
+    /// for what that is worth.</para></summary>
     /// <param name="symbols">Uppercase tickers.</param>
     /// <param name="from">Earliest publication date. Supply it to reach past the three-month floor.</param>
     /// <param name="to">Latest publication date. Without <paramref name="from"/>, this returns
@@ -314,7 +331,11 @@ public sealed class NewsEndpoints(FmpTransport transport)
     ///     silent for 60.5 hours. An empty or stale response is not evidence of a broken call.</description></item>
     ///   <item><description><b><see cref="FmpArticle.Content"/> is markup FMP wrote.</b> 200 of 200 rows
     ///     carried HTML tags, against 0 of 2,250 in <see cref="NewsArticle.Text"/>.</description></item>
-    /// </list></summary>
+    /// </list>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="limit">Rows per page, 1 to <see cref="MaxArticlePageSize"/>. Omit to take FMP's own
     /// default of 20.</param>
     /// <param name="page">Zero-based page index. <b>There is no upper bound</b> — see above.</param>

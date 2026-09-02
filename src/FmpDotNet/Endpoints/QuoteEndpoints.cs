@@ -22,7 +22,18 @@ namespace FmpDotNet.Endpoints;
 /// there is one method here rather than five facades over it.</para>
 ///
 /// <para>Everything here is on the ordinary throttle. The whole-universe batches are large but they are not
-/// <c>*-bulk</c> paths, so they do not draw on the bulk reservoir.</para></summary>
+/// <c>*-bulk</c> paths, so they do not draw on the bulk reservoir.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: the five single-symbol methods — <see cref="GetQuoteAsync"/>,
+/// <see cref="GetShortQuoteAsync"/>, <see cref="GetAftermarketQuoteAsync"/>, <see cref="GetAftermarketTradeAsync"/>
+/// and <see cref="GetPriceChangeAsync"/> — work on a free key; <see cref="GetQuotesAsync"/>,
+/// <see cref="GetShortQuotesAsync"/>, <see cref="GetAftermarketQuotesAsync"/> and
+/// <see cref="GetAftermarketTradesAsync"/> need Starter or higher; the exchange batch and the six asset-class
+/// batches, fourteen methods over seven paths, need Ultimate (402 on free, Starter and Premium; working on Ultimate
+/// 2026-08-24). Not verified here: every path answered 200 on the Ultimate key this SDK is measured with
+/// (2026-09-02). The members off the class's main rung carry their own notes. A dated observation, not a contract —
+/// catch <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class QuoteEndpoints(FmpTransport transport)
 {
     // ---- one symbol -----------------------------------------------------------------------------------------
@@ -37,7 +48,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     /// rather than two rows or an error. Use <see cref="GetQuotesAsync"/> for several.</para>
     ///
     /// <para>Works for equities, ETFs, indices, commodities, forex pairs and crypto alike — see the note on the
-    /// class.</para></summary>
+    /// class.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">One symbol.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The quote, or null when FMP returned no rows.</returns>
@@ -53,7 +68,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     ///
     /// <para>Symbol, price, change and volume. For a single symbol the saving over <see cref="GetQuoteAsync"/> is
     /// a few hundred bytes and rarely worth the loss of <see cref="Quote.Name"/> and the rest; the short shape
-    /// earns its place on the whole-universe batches, not here.</para></summary>
+    /// earns its place on the whole-universe batches, not here.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">One symbol.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The quote, or null when FMP returned no rows.</returns>
@@ -70,7 +89,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     /// it.</para>
     ///
     /// <para><see cref="AftermarketTrade.Timestamp"/> is epoch <b>milliseconds</b> here, where
-    /// <see cref="Quote.Timestamp"/> is epoch seconds.</para></summary>
+    /// <see cref="Quote.Timestamp"/> is epoch seconds.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">One symbol.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The trade, or null when FMP returned no rows.</returns>
@@ -85,7 +108,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     /// <para>The complement to <see cref="GetAftermarketTradeAsync"/>: that says what last printed, this says
     /// where the book stands. <b>They are stamped independently</b>, by a gap that was measured at 25 seconds
     /// and later at 8 on the same symbol — so pairing them gives two nearby observations rather than one
-    /// snapshot, and the lag is not a constant to correct for. See <see cref="AftermarketQuote"/>.</para></summary>
+    /// snapshot, and the lag is not a constant to correct for. See <see cref="AftermarketQuote"/>.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">One symbol.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The quote, or null when FMP returned no rows.</returns>
@@ -99,7 +126,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     ///
     /// <para>Percentages on 0–100, from one day to since-inception, with no base price carried. See
     /// <see cref="PriceChange"/>, whose property names differ from the wire's because the wire's are not legal C#
-    /// identifiers.</para></summary>
+    /// identifiers.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="symbol">One symbol.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The changes, or null when FMP returned no rows.</returns>
@@ -120,7 +151,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     ///
     /// <para><b>Duplicates are echoed back rather than collapsed.</b> A list of 120 symbols containing repeats
     /// answered 120 rows. No cap was reached at 120; FMP documents none, and none was searched for, since a caller
-    /// asking for thousands should be using the whole-universe batches instead.</para></summary>
+    /// asking for thousands should be using the whole-universe batches instead.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbols">The symbols. Joined with commas as FMP expects.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>One row per symbol FMP recognised, in FMP's order. Empty when it recognised none. Never
@@ -136,7 +171,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
     /// <summary>Four-field quotes for several symbols in one call — <c>stable/batch-quote-short</c>.
     ///
     /// <para>The same symbol handling as <see cref="GetQuotesAsync"/> — unknown symbols dropped silently,
-    /// duplicates echoed.</para></summary>
+    /// duplicates echoed.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbols">The symbols. Joined with commas as FMP expects.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>One row per symbol FMP recognised. Never null.</returns>
@@ -148,7 +187,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
         => transport.GetListAsync(
             Batch("stable/batch-quote-short", symbols), FmpJsonContext.Default.ListShortQuote, ct);
 
-    /// <summary>Last extended-hours trades for several symbols — <c>stable/batch-aftermarket-trade</c>.</summary>
+    /// <summary>Last extended-hours trades for several symbols — <c>stable/batch-aftermarket-trade</c>.
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbols">The symbols. Joined with commas as FMP expects.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>One row per symbol FMP recognised. Never null.</returns>
@@ -161,7 +204,11 @@ public sealed class QuoteEndpoints(FmpTransport transport)
             Batch("stable/batch-aftermarket-trade", symbols),
             FmpJsonContext.Default.ListAftermarketTrade, ct);
 
-    /// <summary>Extended-hours bids and asks for several symbols — <c>stable/batch-aftermarket-quote</c>.</summary>
+    /// <summary>Extended-hours bids and asks for several symbols — <c>stable/batch-aftermarket-quote</c>.
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbols">The symbols. Joined with commas as FMP expects.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>One row per symbol FMP recognised. Never null.</returns>

@@ -52,7 +52,17 @@ namespace FmpDotNet.Endpoints;
 /// — and nine of the eleven reference and asset-class lists swept on 2026-08-27 show the same, <c>cik-list</c> and
 /// <c>symbol-change</c> above being the only two that respond to it. There is no sampling call on these; the
 /// alternative when a full download is too much is the screener, which does honour <c>limit</c>, or — for renames
-/// and the SEC registrant index specifically — the two paging endpoints above.</para></summary>
+/// and the SEC registrant index specifically — the two paging endpoints above.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: <see cref="GetIndexListAsync"/> and the three SIC-code methods work on a free
+/// key; the stock, ETF, CIK, actively-trading, financial-statement-symbol and symbol-change lists, the four
+/// <c>available-*</c> lists and the two industry-classification methods need Starter or higher (402 on free);
+/// <see cref="GetTranscriptSymbolsAsync"/> needs Ultimate (402 on free, Starter and Premium; working on Ultimate
+/// 2026-08-24); it records nothing about the commodity, cryptocurrency and forex lists. Not verified here: every path
+/// answered 200 on the Ultimate key this SDK is measured with (2026-09-02). The members off the class's main rung
+/// carry their own notes. A dated observation, not a contract — catch <see cref="FmpPlanRestrictedException"/> rather
+/// than gating on it.</para></summary>
 public sealed class DirectoryEndpoints(FmpTransport transport)
 {
     /// <summary>Every sector FMP classifies against, in the order the API returns them.
@@ -183,7 +193,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     ///
     /// <para>Filed under Indexes in FMP's documentation; here for the reason given on
     /// <see cref="CommodityInfo"/>. The <b>constituent</b> lists — S&amp;P 500, Nasdaq, Dow Jones, current and
-    /// historical — are a separate six paths and are not modelled. Ignores <c>limit</c>.</para></summary>
+    /// historical — are a separate six paths and are not modelled. Ignores <c>limit</c>.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -308,7 +322,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// <see cref="TranscriptsEndpoints.GetTranscriptAsync"/> answers a call in full.</para>
     ///
     /// <para>The count arrives as a quoted string on every row; see
-    /// <see cref="TranscriptSymbol.TranscriptCount"/>. Ignores <c>limit</c>.</para></summary>
+    /// <see cref="TranscriptSymbol.TranscriptCount"/>. Ignores <c>limit</c>.</para>
+    ///
+    /// <para><b>Plan tier — Ultimate, second-hand.</b> Recorded 402 on free, Starter and Premium and working on
+    /// Ultimate (2026-08-24) by fmpsdk 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
     /// the key at least as often as at the plan.</exception>
@@ -545,7 +563,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// <para>This is the authoritative spelling of the <c>sicCode</c> and <c>industryTitle</c> values that come
     /// back on <see cref="IndustryClassification"/> — with one catch that will silently break a join. See
     /// <see cref="SicCodeEntry.SicCode"/>: this endpoint strips a leading zero and the classification endpoints
-    /// do not.</para></summary>
+    /// do not.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>All 444 SIC codes with their review offices. Never <see langword="null"/>.</returns>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403.</exception>
@@ -561,7 +583,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// four-wide code <see cref="IndustryClassification.SicCode"/> carries can be passed straight through —
     /// the value goes out exactly as given. It is not a prefix search: <c>1</c> and <c>10</c> answer nothing.
     /// The row that comes back still spells the code without its zero; see
-    /// <see cref="SicCodeEntry.SicCode"/>.</para></summary>
+    /// <see cref="SicCodeEntry.SicCode"/>.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="sicCode">The code, padded or not. Required and non-blank.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The entry, or <see langword="null"/> — <c>sicCode=9999999</c> answers <c>[]</c> at HTTP 200,
@@ -586,7 +612,11 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
     /// they are two methods rather than one with two optional strings: a method that took both would mostly
     /// answer nothing.</para>
     ///
-    /// <para>The fragment goes out as given. The rule is upstream's and measured, not promised.</para></summary>
+    /// <para>The fragment goes out as given. The rule is upstream's and measured, not promised.</para>
+    ///
+    /// <para><b>Plan tier — Free, second-hand.</b> Recorded working on a free key by fmpsdk 20260824.0, which puts
+    /// this member below the rest of its class; answered 200 on the Ultimate key here (2026-09-02). See the class
+    /// remarks for what that is worth.</para></summary>
     /// <param name="industryTitle">The fragment to match. Required and non-blank.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The matching entries in FMP's own order, or an empty list. Never <see langword="null"/>.</returns>

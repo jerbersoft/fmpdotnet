@@ -28,7 +28,13 @@ namespace FmpDotNet.Endpoints;
 ///
 /// <para>Market hours and exchange holidays are a separate facade —
 /// <see cref="FmpDotNet.Endpoints.MarketHoursEndpoints"/> — because the two groups share no path prefix, no
-/// parameter, no record and no concept.</para></summary>
+/// parameter, no record and no concept.</para>
+///
+/// <para><b>Plan tier — Premium, second-hand.</b> fmpsdk 20260824.0, the independent client this SDK is cross-checked
+/// against, recorded every path in this class as 402 on free and Starter and working on Premium on 2026-08-23. Not
+/// verified here: every path answered 200 on the Ultimate key this SDK is measured with (2026-09-02), which says
+/// nothing about the plans below it. A dated observation, not a contract — catch
+/// <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class IndexesEndpoints(FmpTransport transport)
 {
     /// <summary>The Dow Jones Industrial Average's current members, from

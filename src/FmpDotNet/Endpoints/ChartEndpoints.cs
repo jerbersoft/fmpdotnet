@@ -20,7 +20,13 @@ namespace FmpDotNet.Endpoints;
 /// complaint.</para>
 ///
 /// <para>Every method here runs on the ordinary throttle. None of these are <c>*-bulk</c> paths, so a wide history
-/// walk is a normal cost rather than a bulk download — but it is still a call per symbol per variant.</para></summary>
+/// walk is a normal cost rather than a bulk download — but it is still a call per symbol per variant.</para>
+///
+/// <para><b>Plan tier — mixed, second-hand.</b> As fmpsdk 20260824.0, the independent client this SDK is
+/// cross-checked against, records it: the four end-of-day methods work on a free key; <see cref="GetIntradayAsync"/>
+/// needs Starter or higher (402 on free). Not verified here: every path answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02). The members off the class's main rung carry their own notes. A dated observation, not
+/// a contract — catch <see cref="FmpPlanRestrictedException"/> rather than gating on it.</para></summary>
 public sealed class ChartEndpoints(FmpTransport transport)
 {
     /// <summary>The most daily rows <c>stable/historical-price-eod/*</c> will serve in one call, whatever range is
@@ -194,7 +200,11 @@ public sealed class ChartEndpoints(FmpTransport transport)
     /// 2026-08-24</b> — not an error, not an empty array, but a plausible session for the wrong end of the range.
     /// The daily endpoints answer <c>[]</c> for the same mistake. So the same transposition is silently wrong on
     /// one family and silently empty on the other, and neither tells the caller. Rejecting it before the request
-    /// is sent costs nothing and is the only place the two can be made to behave alike.</para></summary>
+    /// is sent costs nothing and is the only place the two can be made to behave alike.</para>
+    ///
+    /// <para><b>Plan tier — Starter, second-hand.</b> Recorded 402 on free, needing Starter or higher, by fmpsdk
+    /// 20260824.0; answered 200 on the Ultimate key here (2026-09-02). See the class remarks for what that is
+    /// worth.</para></summary>
     /// <param name="symbol">One symbol. A comma-separated list answers an empty array, not an error.</param>
     /// <param name="interval">The bar size. Each carries a different depth of history — see
     /// <see cref="ChartInterval"/>.</param>

@@ -17,7 +17,12 @@ namespace FmpDotNet.Endpoints;
 /// 2026-08-28 read <c>-0.6192</c> on NASDAQ and <c>-1.7398</c> on NYSE, with not one of 20 shared dates
 /// matching. No "all exchanges" value appeared among those measured, so a caller who wants the whole market
 /// iterates <see cref="DirectoryEndpoints.GetExchangesAsync"/>. The three movers lists are the only
-/// market-wide thing in this group.</para></summary>
+/// market-wide thing in this group.</para>
+///
+/// <para><b>Plan tier — no floor on record.</b> Every path in this class answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02), and fmpsdk 20260824.0, the independent client this SDK is cross-checked against,
+/// records nothing about them below that — an absence of evidence, not a Free-tier claim. Catch
+/// <see cref="FmpPlanRestrictedException"/> rather than assuming either way.</para></summary>
 public sealed class MarketPerformanceEndpoints(FmpTransport transport)
 {
     /// <summary>The fifty biggest percentage risers of the last completed session, from

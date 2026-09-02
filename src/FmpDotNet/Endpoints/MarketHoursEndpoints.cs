@@ -33,7 +33,12 @@ namespace FmpDotNet.Endpoints;
 /// </list>
 ///
 /// <para>Index membership is a separate facade — <see cref="IndexesEndpoints"/> — because the two groups
-/// share no path prefix, no parameter, no record and no concept.</para></summary>
+/// share no path prefix, no parameter, no record and no concept.</para>
+///
+/// <para><b>Plan tier — no floor on record.</b> Every path in this class answered 200 on the Ultimate key this SDK is
+/// measured with (2026-09-02), and fmpsdk 20260824.0, the independent client this SDK is cross-checked against,
+/// records nothing about them below that — an absence of evidence, not a Free-tier claim. Catch
+/// <see cref="FmpPlanRestrictedException"/> rather than assuming either way.</para></summary>
 public sealed class MarketHoursEndpoints(FmpTransport transport)
 {
     /// <summary>Trading hours for every exchange FMP knows, from <c>stable/all-exchange-market-hours</c>.

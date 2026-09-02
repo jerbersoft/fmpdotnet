@@ -80,6 +80,17 @@ public sealed class FmpApiException : FmpException
 /// 2026-08-26. Code that decides once that an endpoint is unavailable goes stale silently, and the SDK
 /// deliberately carries no tier map for the same reason — entitlement moves, and it varies per key.</para>
 ///
+/// <para><b>The evidence in that paragraph was misread — corrected 2026-09-02 (#45).</b> Trader's record has
+/// <c>profile-bulk</c> at 402 on a <i>free</i> key (2026-07-23), and <c>shares-float-all</c> was never 402 there at
+/// all: it answered 200 with a partial page on free and on Premium, "NOT 402" in the regression test's own words.
+/// The 2026-08-26 re-probe was on this repository's key, which is Ultimate — so those two facts show a ladder,
+/// not entitlement moving. The decision stands on the reasons that were always its own: FMP restricts individual
+/// keys (403, by its own error text, for abusing the bulk surface), plans get re-tiered, and a cached refusal goes
+/// stale silently. What the SDK does carry, since #45, is dated prose: every endpoint class opens a paragraph
+/// <c>Plan tier — …</c> saying what an independent client observed below the tier this repo measures on, and on
+/// what date. Read it as an observation, never as a gate. See
+/// <c>docs/superpowers/specs/2026-09-02-plan-tier-provenance.md</c>.</para>
+///
 /// <para><b>Every endpoint throws this; none of them signal a refusal by returning.</b> There is no
 /// <c>Try</c>-prefixed twin anywhere in the SDK, and there deliberately is not going to be one. C# forbids
 /// <c>out</c> parameters on async methods (CS1988), so the BCL's <c>bool TryX(out T)</c> shape cannot be
