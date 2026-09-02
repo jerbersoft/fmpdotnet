@@ -871,6 +871,8 @@ rm -rf "$APP"
 
 Expected: `dotnet run` prints `FmpDotNet`. The `grep` shows `FmpDotNet/0.1.0-ci.0` in the consumer's resolved graph, reached through the extensions package, which is the version-coupling claim in the spec made observable. The `"k"` is a placeholder that passes the non-empty check; no request is sent. The two `--source` flags are both needed: the local directory holds the pair, nuget.org holds the Microsoft packages. Delete the scratch app afterwards, as the last line does.
 
+Measured while executing this step on SDK 10.0.102: `dotnet add package` accepts a single `--source`, so the two-flag form above is rejected ("Option '--source' expects a single argument but 2 were provided"). Write a `NuGet.Config` in the scratch directory instead, with `<clear/>` and the two sources, and add the `PackageReference` to the scratch csproj by hand; restoring with `--packages` pointed at a fresh empty folder is what proves both feeds were consulted rather than the global cache.
+
 - [ ] **Step 4: Final green, push, open the PR**
 
 ```bash

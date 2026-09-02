@@ -126,9 +126,11 @@ jobs:
   # failure. A hand-cut release later packs without the suffix, and plain 0.1.0 outranks every 0.1.0-ci.N.
   #
   # No PAT. GITHUB_TOKEN can write to its OWN repository's package registry given `packages: write`. Trader's
-  # CI reads this feed with ITS own GITHUB_TOKEN, which works because this package grants the trader repository
-  # read access under the package's "Manage Actions access" setting — a one-off grant in the package settings,
-  # not a secret in either repo. That is the only manual step in the whole chain.
+  # CI reads this feed with ITS own GITHUB_TOKEN, which works because each package grants the trader repository
+  # read access under that package's "Manage Actions access" setting — a one-off grant in the package settings,
+  # not a secret in either repo. The grant is per package, not per repository: a package that does not exist yet
+  # cannot carry it, so the first publish of a new package (FmpDotNet.Extensions.DependencyInjection, #61) is
+  # followed by repeating the grant on it. That is the only manual step in the whole chain.
   publish:
     name: Publish to GitHub Packages
     needs: dotnet
