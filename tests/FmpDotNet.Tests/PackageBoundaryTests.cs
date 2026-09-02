@@ -4,6 +4,8 @@ namespace FmpDotNet.Tests;
 
 /// <summary>Pins the dependency cut #61 made: the core assembly compiles against the options and logging
 /// abstractions only, and the container wiring lives in <c>FmpDotNet.Extensions.DependencyInjection</c>.
+/// Hosting.Abstractions is on the list since #65, which put the host-builder sugar in the extensions package;
+/// this is what keeps it there.
 ///
 /// <para><see cref="Assembly.GetReferencedAssemblies"/> lists what the compiled IL actually references, not what
 /// the package graph carries — so a <c>using Microsoft.Extensions.DependencyInjection</c> that creeps back into
@@ -20,6 +22,7 @@ public class PackageBoundaryTests
     [InlineData("Microsoft.Extensions.DependencyInjection.Abstractions")]
     [InlineData("Microsoft.Extensions.Configuration.Abstractions")]
     [InlineData("Microsoft.Extensions.Options.ConfigurationExtensions")]
+    [InlineData("Microsoft.Extensions.Hosting.Abstractions")]
     public void The_core_does_not_reference(string assembly) =>
         Assert.DoesNotContain(assembly, CoreReferences);
 

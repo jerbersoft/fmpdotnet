@@ -1,8 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <!-- Tests for the DI package (#61): registration, options binding and validation, handler order and reservoir
-       sharing — every one a property of FmpServiceCollectionExtensions, which is the whole package. The core's
-       own tests stay in FmpDotNet.Tests, including the two that build a provider through AddFmp to prove an
+  <!-- Tests for the DI package (#61, #65): registration, options binding and validation, handler order and
+       reservoir sharing, the builder, the factory and the host sugar — every one a property of this package. The
+       core's own tests stay in FmpDotNet.Tests, including the two that build a provider through AddFmp to prove an
        endpoint group is registered; those sit inside files about their groups. -->
   <PropertyGroup>
     <IsPackable>false</IsPackable>
@@ -12,6 +12,11 @@
     <!-- The concrete configuration package: ConfigurationBuilder and AddInMemoryCollection, which every test here
          uses to drive the by-name binding. Nothing under src/ references it, by design. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+    <!-- The concrete container and the concrete host, referenced directly because the tests use them directly:
+         ServiceCollection and BuildServiceProvider throughout, Host.CreateApplicationBuilder in the host-builder
+         tests. Both would arrive transitively; naming them says what the tests are about. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NodaTime" Version="3.2.2" />
     <PackageReference Include="xunit" Version="2.9.3" />

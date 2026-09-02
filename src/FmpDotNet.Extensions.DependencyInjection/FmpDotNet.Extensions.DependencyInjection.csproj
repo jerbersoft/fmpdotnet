@@ -4,10 +4,10 @@
     The container wiring for FmpDotNet, as its own package (#61).
 
     The core's transports and handlers take IOptions<FmpOptions> and ILogger<T> and nothing more, so the core
-    depends on two abstractions packages any library keeps. Everything that touches IServiceCollection,
-    IConfiguration or AddHttpClient is in this one file, and it lives here so that a consumer with their own
-    container can reference FmpDotNet alone — and so that IHostApplicationBuilder sugar, when it comes, lands
-    here rather than putting Microsoft.Extensions.Hosting.Abstractions on the core.
+    depends on the options package, the logging abstractions and NodaTime. Everything that touches
+    IServiceCollection, IConfiguration, AddHttpClient or IHostApplicationBuilder is here, so that a consumer
+    with a container of their own can reference FmpDotNet alone — and so that the hosting abstraction lands here
+    rather than on the core (#65).
 
     Version, authors, repository, licence, README, symbols, Source Link and the documentation and AOT switches
     come from ../Directory.Build.props, shared with FmpDotNet so the pair cannot drift apart.
@@ -19,23 +19,27 @@
 
   <PropertyGroup>
     <PackageId>FmpDotNet.Extensions.DependencyInjection</PackageId>
-    <Description>Registers FmpDotNet into Microsoft.Extensions.DependencyInjection: AddFmp, options binding and validation, and the two typed clients with their throttle, retry and timeout chains.</Description>
-    <PackageTags>fmp;financialmodelingprep;dependency-injection;market-data</PackageTags>
+    <Description>Registers FmpDotNet into Microsoft.Extensions.DependencyInjection: AddFmp with named registrations and a customization surface, IHostApplicationBuilder sugar, a container-free FmpClientFactory, options binding and validation, and the two clients with their throttle, retry and timeout chains.</Description>
+    <PackageTags>fmp;financialmodelingprep;dependency-injection;hosting;market-data</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
     <!-- Packs as a dependency on FmpDotNet at the version this project was built with — the same VersionPrefix
          and VersionSuffix, so a consumer who adds this package gets the matching core. -->
-    <ProjectReference Include="../FmpDotNet/FmpDotNet.csproj" />
+    <ProjectReference Include="..\FmpDotNet\FmpDotNet.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Configuration.Abstractions is what the by-name binding compiles against (IConfiguration, GetSection and
-         the indexer) — listed explicitly rather than left to arrive through Http, because it is what the code
-         uses. NOT Options.ConfigurationExtensions: ConfigurationBinder is neither trim- nor AOT-safe and is never
-         called; AddOptions/Configure/Validate/ValidateOnStart are Microsoft.Extensions.Options, which Http brings.
-         Http also brings DependencyInjection.Abstractions (IServiceCollection, TryAdd*) and Logging. -->
+    <!-- The rule for this list: name what the code compiles against and Http does not already imply.
+         Configuration.Abstractions is IConfiguration, GetSection and the indexer, for the by-name binding.
+         Hosting.Abstractions is IHostApplicationBuilder, for the host sugar; a hosting abstraction belongs in
+         the integration package and never on the core, and PackageBoundaryTests holds the core to that.
+         Http brings the rest: DependencyInjection.Abstractions (IServiceCollection, keyed services, TryAdd*),
+         Options (AddOptions/Configure/Validate/ValidateOnStart — the concrete Options package; there is no
+         Options.Abstractions), Logging, and the concrete container FmpClientFactory builds on.
+         NOT Options.ConfigurationExtensions: ConfigurationBinder is neither trim- nor AOT-safe and is never called. -->
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.9" />
   </ItemGroup>
 
