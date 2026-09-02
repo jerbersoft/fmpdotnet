@@ -40,6 +40,35 @@ public static class FmpServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
-        return FmpRegistration.Register(services, Options.DefaultName, configure);
+        return FmpRegistration.Register(services, Options.DefaultName, configure, null);
     }
+
+    /// <summary>Binds a configuration section and registers both clients, with a customization callback — see
+    /// <see cref="IFmpBuilder"/>. <paramref name="sectionName"/> defaults to <c>"Fmp"</c>.</summary>
+    public static IServiceCollection AddFmp(this IServiceCollection services, IConfiguration configuration,
+        Action<IFmpBuilder> configureBuilder, string? sectionName = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        ArgumentNullException.ThrowIfNull(configureBuilder);
+        var section = SectionNameFor(Options.DefaultName, sectionName);
+        return FmpRegistration.Register(services, Options.DefaultName,
+            o => FmpOptionsBinder.Bind(configuration.GetSection(section), o), configureBuilder);
+    }
+
+    /// <summary>Registers both clients against options configured in code, with a customization callback — see
+    /// <see cref="IFmpBuilder"/>.</summary>
+    public static IServiceCollection AddFmp(this IServiceCollection services, Action<FmpOptions> configure,
+        Action<IFmpBuilder> configureBuilder)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configure);
+        ArgumentNullException.ThrowIfNull(configureBuilder);
+        return FmpRegistration.Register(services, Options.DefaultName, configure, configureBuilder);
+    }
+
+    /// <summary>The configuration section a registration binds by default: <c>"Fmp"</c> for the default
+    /// registration and <c>"Fmp:{name}"</c> for a named one, unless <paramref name="sectionName"/> overrides it.</summary>
+    internal static string SectionNameFor(string name, string? sectionName) =>
+        sectionName ?? (name.Length == 0 ? FmpOptions.SectionName : $"{FmpOptions.SectionName}:{name}");
 }

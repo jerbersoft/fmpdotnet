@@ -24,7 +24,8 @@ internal static class FmpRegistration
     /// <c>AddFmp</c> for the same name re-configures its options and adds nothing else.</summary>
     private sealed class Wired;
 
-    internal static IServiceCollection Register(IServiceCollection services, string name, Action<FmpOptions> configure)
+    internal static IServiceCollection Register(IServiceCollection services, string name, Action<FmpOptions> configure,
+        Action<IFmpBuilder>? configureBuilder)
     {
         services.AddOptions<FmpOptions>(name)
             .Configure(configure)
@@ -69,8 +70,21 @@ internal static class FmpRegistration
         // Everything below this line is wired once per name. A second AddFmp for the same name has re-configured
         // its options above and is done: appending the chain again would put a retry inside a retry.
         if (services.Any(d => d.IsKeyedService && d.ServiceType == typeof(Wired) && Equals(d.ServiceKey, name)))
+        {
+            if (configureBuilder is not null)
+                throw new InvalidOperationException(
+                    $"AddFmp: the {(name.Length == 0 ? "default" : $"\"{name}\"")} FMP registration is already wired. "
+                    + "Builder callbacks apply on the first AddFmp for a name; a later call can only re-configure its options.");
             return services;
+        }
         services.AddKeyedSingleton(name, new Wired());
+
+        var builder = new FmpBuilder(services, name);
+        configureBuilder?.Invoke(builder);
+        // A shared registry, if one was given, is captured by the handler lambdas directly — it must be known
+        // before any rate-limit handler is built, and a service lookup could find a different one.
+        var registry = builder.Registry;
+        if (registry is not null) services.TryAddSingleton(registry);
 
         // NodaTime's clock, not TimeProvider — the SDK's time surface is NodaTime throughout, and a test
         // substitutes NodaTime.Testing.FakeClock here.
@@ -78,22 +92,28 @@ internal static class FmpRegistration
         // One registry per container. Registrations sharing an API key share a reservoir pair through it.
         services.TryAddSingleton(sp => new FmpBucketRegistry(sp.GetRequiredService<ILogger<FmpBucketRegistry>>()));
 
-        // The retry is added FIRST, which makes it the OUTERMOST handler, and that is the point rather than a
-        // detail. FmpRateLimitHandlerBase acquires its token BEFORE delegating, so a retry placed inside it would
-        // be reached after the single token had already been drawn and every attempt after the first would bypass
-        // the reservoir entirely. Outside, each attempt re-acquires — and it is still outside the timeout, so
-        // each attempt gets a fresh RequestTimeout rather than sharing one budget.
+        // Consumer handlers are applied BEFORE the SDK's, so they are outermost: they see one entry per logical
+        // call, and the retry, the throttle wait and the timeout all happen beneath them. IFmpBuilder says why.
+        // The retry is added FIRST among the SDK's own, which makes it the OUTERMOST of those, and that is the
+        // point rather than a detail. FmpRateLimitHandlerBase acquires its token BEFORE delegating, so a retry
+        // placed inside it would be reached after the single token had already been drawn and every attempt
+        // after the first would bypass the reservoir entirely. Outside, each attempt re-acquires — and it is
+        // still outside the timeout, so each attempt gets a fresh RequestTimeout rather than sharing one budget.
         // Explicit construction rather than AddHttpMessageHandler<T>: each link gets THIS registration's options,
         // and the throttle gets this registration's reservoir from the registry. Nothing is activated by reflection.
-        Configure(services.AddHttpClient(FmpServiceCollectionExtensions.StandardClientName(name)), name)
+        var standard = Configure(services.AddHttpClient(FmpServiceCollectionExtensions.StandardClientName(name)), name);
+        foreach (var customize in builder.Standard) customize(standard);
+        standard
             .AddHttpMessageHandler(sp => new FmpRetryHandler(
                 sp.GetRequiredService<IClock>(), Options.Create(OptionsFor(sp, name)),
                 sp.GetRequiredService<ILogger<FmpRetryHandler>>()))
             .AddHttpMessageHandler(sp => new FmpRateLimitHandler(
-                sp.GetRequiredService<IClock>(), BucketsFor(sp, name), Options.Create(OptionsFor(sp, name)),
+                sp.GetRequiredService<IClock>(), BucketsFor(sp, name, registry), Options.Create(OptionsFor(sp, name)),
                 sp.GetRequiredService<ILogger<FmpRateLimitHandler>>()))
             .AddHttpMessageHandler(sp => new FmpTimeoutHandler(Options.Create(OptionsFor(sp, name))));
 
+        // Consumer handlers sit outside the developer cache too, so a tracing handler observes cache hits, and
+        // outside the retry, so a replay is still never retried.
         // The developer cache is added FIRST, which makes it the OUTERMOST handler, and that placement is the
         // point rather than a detail: a replay must not consume a bulk token or start a timeout. A cache hit
         // therefore never reaches the rate limiter at all. It is inert unless
@@ -101,14 +121,16 @@ internal static class FmpRegistration
         // The retry sits INSIDE the cache here, unlike the ordinary client where it is outermost: a replay must
         // never be retried, because a cache hit cannot fail transiently and re-serving it would only multiply the
         // work. FmpOptions.BulkMaxAttempts defaults to 1, so this link is inert unless a caller opts in.
-        Configure(services.AddHttpClient(FmpServiceCollectionExtensions.BulkClientName(name)), name)
+        var bulk = Configure(services.AddHttpClient(FmpServiceCollectionExtensions.BulkClientName(name)), name);
+        foreach (var customize in builder.Bulk) customize(bulk);
+        bulk
             .AddHttpMessageHandler(sp => new FmpDeveloperBulkCacheHandler(
                 Options.Create(OptionsFor(sp, name)), sp.GetRequiredService<ILogger<FmpDeveloperBulkCacheHandler>>()))
             .AddHttpMessageHandler(sp => new FmpBulkRetryHandler(
                 sp.GetRequiredService<IClock>(), Options.Create(OptionsFor(sp, name)),
                 sp.GetRequiredService<ILogger<FmpBulkRetryHandler>>()))
             .AddHttpMessageHandler(sp => new FmpBulkRateLimitHandler(
-                sp.GetRequiredService<IClock>(), BucketsFor(sp, name), Options.Create(OptionsFor(sp, name)),
+                sp.GetRequiredService<IClock>(), BucketsFor(sp, name, registry), Options.Create(OptionsFor(sp, name)),
                 sp.GetRequiredService<ILogger<FmpBulkRateLimitHandler>>()))
             .AddHttpMessageHandler(sp => new FmpBulkTimeoutHandler(Options.Create(OptionsFor(sp, name))));
 
@@ -123,13 +145,13 @@ internal static class FmpRegistration
         services.TryAddKeyedTransient(name, (sp, key) => new FmpClient(
             sp.GetRequiredKeyedService<FmpTransport>(key), sp.GetRequiredKeyedService<FmpBulkTransport>(key)));
 
-        if (name.Length == 0) RegisterDefaultOnly(services);
+        if (name.Length == 0) RegisterDefaultOnly(services, registry);
         return services;
     }
 
     /// <summary>What only the default registration gets: the unkeyed transports and client, the endpoint groups,
     /// and <see cref="FmpBuckets"/> for compatibility.</summary>
-    private static void RegisterDefaultOnly(IServiceCollection services)
+    private static void RegisterDefaultOnly(IServiceCollection services, FmpBucketRegistry? registry)
     {
         var name = Options.DefaultName;
 
@@ -145,7 +167,7 @@ internal static class FmpRegistration
         // cross-handler property through this instance: that the reservoir it resolves is the one the retried
         // attempts drained. Drop this registration and that test would resolve a second, full reservoir and
         // silently assert nothing.
-        services.TryAddSingleton(sp => BucketsFor(sp, name));
+        services.TryAddSingleton(sp => BucketsFor(sp, name, registry));
 
         // The endpoint groups, resolvable on their own for the default registration. Nothing in the repository or
         // the README resolves one directly, but removing these would be a silent break for a consumer who does.
@@ -182,9 +204,10 @@ internal static class FmpRegistration
     private static FmpOptions OptionsFor(IServiceProvider sp, string name) =>
         sp.GetRequiredService<IOptionsMonitor<FmpOptions>>().Get(name);
 
-    /// <summary>This registration's reservoir pair — shared with every other registration on the same API key.</summary>
-    private static FmpBuckets BucketsFor(IServiceProvider sp, string name) =>
-        sp.GetRequiredService<FmpBucketRegistry>().For(name, OptionsFor(sp, name));
+    /// <summary>This registration's reservoir pair — shared with every other registration on the same API key,
+    /// from the registry the registration was given or, failing that, the container's.</summary>
+    private static FmpBuckets BucketsFor(IServiceProvider sp, string name, FmpBucketRegistry? registry) =>
+        (registry ?? sp.GetRequiredService<FmpBucketRegistry>()).For(name, OptionsFor(sp, name));
 
     /// <summary>Everything both clients share.
     ///
