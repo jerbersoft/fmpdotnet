@@ -347,4 +347,34 @@ public class AddFmpTests
 
         Assert.Equal("https://example.test/", http.BaseAddress!.ToString());
     }
+
+    [Fact]
+    public async Task Calling_AddFmp_twice_for_one_registration_wires_the_handler_chain_once()
+    {
+        // Registering the same name twice is the caller re-configuring one registration, not creating two. A
+        // second copy of the chain would be a retry inside a retry: 3 × 3 = 9 sends per call.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        Action<FmpOptions> configure = o => { o.ApiKey = "k"; o.RetryBaseDelay = Duration.FromMilliseconds(1); };
+        var services = new ServiceCollection().AddLogging();
+        services.AddFmp(configure).AddFmp(configure);
+        services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
+        using var provider = services.BuildServiceProvider();
+
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile")).Dispose();
+
+        Assert.Equal(3, upstream.Sends);
+    }
+
+    [Theory]
+    [InlineData(null, "fmp", "fmp-bulk")]
+    [InlineData("", "fmp", "fmp-bulk")]
+    [InlineData("research", "fmp:research", "fmp-bulk:research")]
+    public void Client_names_are_the_constants_for_the_default_registration_and_suffixed_for_a_named_one(
+        string? name, string standard, string bulk)
+    {
+        Assert.Equal(standard, FmpServiceCollectionExtensions.StandardClientName(name));
+        Assert.Equal(bulk, FmpServiceCollectionExtensions.BulkClientName(name));
+    }
 }
