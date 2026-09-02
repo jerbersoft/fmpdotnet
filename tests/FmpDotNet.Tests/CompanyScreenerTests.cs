@@ -8,7 +8,8 @@ using FmpDotNet.Endpoints;
 
 namespace FmpDotNet.Tests;
 
-/// <summary><c>stable/company-screener</c>, checked against responses captured live from FMP on 2026-08-26.
+/// <summary><c>stable/company-screener</c>, checked against responses captured live from FMP on 2026-08-26, and
+/// the fixture re-captured on 2026-09-02 (#58) when the row grew a sixteenth key, <c>avgVolume</c>.
 ///
 /// <para><b>Most of this file is about the query, not the response</b>, and that is the point of the endpoint.
 /// The screener does not reject bad input, it answers it: an unrecognised parameter <i>name</i> is ignored and
@@ -75,6 +76,8 @@ public class CompanyScreenerTests
             BetaLowerThan = 2m,
             VolumeMoreThan = 100_000,
             VolumeLowerThan = 90_000_000,
+            AvgVolumeMoreThan = 5_000_000,
+            AvgVolumeLowerThan = 1_000,
             DividendMoreThan = 0.5m,
             DividendLowerThan = 8m,
             Sector = "Technology",
@@ -99,6 +102,8 @@ public class CompanyScreenerTests
             ["betaLowerThan"] = "2",
             ["volumeMoreThan"] = "100000",
             ["volumeLowerThan"] = "90000000",
+            ["avgVolumeMoreThan"] = "5000000",
+            ["avgVolumeLowerThan"] = "1000",
             ["dividendMoreThan"] = "0.5",
             ["dividendLowerThan"] = "8",
             ["sector"] = "Technology",
@@ -199,8 +204,10 @@ public class CompanyScreenerTests
     // ---- the response -----------------------------------------------------------------------------------------
 
     [Fact]
-    public async Task Maps_all_fifteen_fields_of_a_captured_row()
+    public async Task Maps_all_sixteen_fields_of_a_captured_row()
     {
+        // Sixteen, not the fifteen the record was modelled from: `avgVolume` was not on the wire on 2026-08-26 and
+        // was on every row of two 1,000-row responses on 2026-09-02, so the fixture is the later capture.
         var (endpoints, _) = Build(Fixture("company-screener.head.json"));
 
         var rows = await endpoints.ScreenAsync(new ScreenerCriteria());
@@ -209,13 +216,14 @@ public class CompanyScreenerTests
         var nvda = rows[0];
         Assert.Equal("NVDA", nvda.Symbol);
         Assert.Equal("NVIDIA Corporation", nvda.CompanyName);
-        Assert.Equal(5_078_174_860_000m, nvda.MarketCap);
+        Assert.Equal(5_266_614_240_000m, nvda.MarketCap);
         Assert.Equal("Technology", nvda.Sector);
         Assert.Equal("Semiconductors", nvda.Industry);
         Assert.Equal(2.215m, nvda.Beta);
-        Assert.Equal(209.66m, nvda.Price);
+        Assert.Equal(217.44m, nvda.Price);
         Assert.Equal(0.28m, nvda.LastAnnualDividend);
-        Assert.Equal(145_070_184m, nvda.Volume);
+        Assert.Equal(106_942_626m, nvda.Volume);
+        Assert.Equal(138_836_260m, nvda.AvgVolume);
         Assert.Equal("NASDAQ Global Select", nvda.Exchange);
         Assert.Equal("NASDAQ", nvda.ExchangeShortName);
         Assert.Equal("US", nvda.Country);
@@ -237,6 +245,22 @@ public class CompanyScreenerTests
         var rows = await endpoints.ScreenAsync(new ScreenerCriteria());
 
         Assert.Equal(262507631.5m, rows[0].Volume);
+    }
+
+    [Fact]
+    public async Task A_fractional_avg_volume_deserialises_as_captured()
+    {
+        // Captured, unlike the volume above. On 2026-09-02 one row of the top 1,000 NASDAQ lines by market cap —
+        // FISV — carried `avgVolume` with a decimal point, and the other 999 plain integers. This is the literal
+        // as sent, so the regression is a claim about what FMP does, not about what a `long?` would refuse.
+        var (endpoints, _) = Build("""
+            [{"symbol":"FISV","companyName":"Fiserv, Inc.","marketCap":27553234180,"sector":"Technology","industry":"Information Technology Services","beta":0.798,"price":51.67,"lastAnnualDividend":0,"volume":5441984,"avgVolume":15606482.3,"exchange":"NASDAQ Global Select","exchangeShortName":"NASDAQ","country":"US","isEtf":false,"isFund":false,"isActivelyTrading":true}]
+            """);
+
+        var row = (await endpoints.ScreenAsync(new ScreenerCriteria()))[0];
+
+        Assert.Equal(15_606_482.3m, row.AvgVolume);
+        Assert.Equal(5_441_984m, row.Volume);
     }
 
     [Fact]
