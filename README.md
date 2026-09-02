@@ -18,8 +18,9 @@ to reach the rest.
 
 Every endpoint `Trader.Adapters.MarketData.Fmp` calls is modelled, which is what that adapter's removal was
 waiting on — along with the whole `*-bulk` surface and the universe and directory lists. The supporting
-machinery is in place too: options and validation, `AddFmp`, the two throttle reservoirs, per-attempt timeouts,
-the JSON and CSV pipelines, and a developer disk cache for bulk responses.
+machinery is in place too: options and validation, `AddFmp` in the `FmpDotNet.Extensions.DependencyInjection`
+package, the two throttle reservoirs, per-attempt timeouts, the JSON and CSV pipelines, and a developer disk
+cache for bulk responses.
 
 The upstream behaviour recorded throughout this README was measured rather than read from the documentation, and
 it is re-checked against the live API every week — see [the live smoke suite](#the-live-smoke-suite).
@@ -28,7 +29,7 @@ it is re-checked against the live API every week — see [the live smoke suite](
 
 ```csharp
 using FmpDotNet;
-using FmpDotNet.DependencyInjection;
+using FmpDotNet.Extensions.DependencyInjection;
 using FmpDotNet.Models;
 using NodaTime;
 
@@ -824,8 +825,12 @@ and every note to the fixed wording, so `grep -rn "Plan tier —" src/FmpDotNet/
 
 ## Installing and versioning
 
-The package is published to this repository's **GitHub Packages** NuGet feed, not to nuget.org. Add the source,
-then `dotnet add package FmpDotNet`.
+Two packages are published to this repository's **GitHub Packages** NuGet feed, not to nuget.org. Add the
+source, then `dotnet add package FmpDotNet.Extensions.DependencyInjection`, which brings `FmpDotNet` with it.
+`FmpDotNet` is the client, the models and the transports; `FmpDotNet.Extensions.DependencyInjection` is `AddFmp` —
+the container wiring, options binding and validation — and nothing else. A consumer with a container of its own
+can reference `FmpDotNet` alone. The two are versioned and published together, and everything below applies to
+both.
 
 **Every push to `master` publishes a prerelease** — `0.1.0-ci.7`, `0.1.0-ci.8`, and so on, where the suffix is
 the CI run number. That shape is forced by the feed: GitHub Packages refuses to overwrite an existing version, so
