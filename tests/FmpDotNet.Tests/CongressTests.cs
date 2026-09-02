@@ -640,6 +640,119 @@ public class CongressTests
     }
 
     [Fact]
+    public async Task The_four_filtered_trade_paths_page_like_the_latest_feeds()
+    {
+        // Measured 2026-09-02: house-trades?symbol=AAPL holds 513 rows and a bare call answers 100 of them with
+        // nothing in the body saying so; senate-trades-by-id answers 100 of M001243's 145. `limit` is honoured
+        // up to 250 — 251 and 1000 both answered 250 on house-trades and senate-trades, the cap the latest feeds
+        // measured — and `page` is a page index over it. Sent explicitly, as the latest feeds send theirs.
+        var (endpoints, handler) = Build(
+            StubHandler.Json("[]"), StubHandler.Json("[]"), StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.GetHouseTradesAsync("AAPL");
+        await endpoints.GetSenateTradesAsync("AAPL", page: 2, limit: CongressEndpoints.MaxCongressionalTradePageSize);
+        await endpoints.GetHouseTradesByMemberAsync("P000197", page: 1);
+        await endpoints.GetSenateTradesByMemberAsync("M001243", limit: 5);
+
+        Assert.Equal("?symbol=AAPL&page=0&limit=100", handler.Requests[0].Query);
+        Assert.Equal("?symbol=AAPL&page=2&limit=250", handler.Requests[1].Query);
+        Assert.Equal("?senateID=P000197&page=1&limit=100", handler.Requests[2].Query);
+        Assert.Equal("?senateID=M001243&page=0&limit=5", handler.Requests[3].Query);
+    }
+
+    [Fact]
+    public async Task The_filtered_trade_paths_share_the_latest_feeds_paging_guard()
+    {
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHouseTradesAsync("AAPL", page: -1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetSenateTradesAsync("AAPL", limit: 0));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetHouseTradesByMemberAsync(
+                "P000197", limit: CongressEndpoints.MaxCongressionalTradePageSize + 1));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetSenateTradesByMemberAsync("M001243", page: -1));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task An_empty_criteria_sends_nothing_and_gets_fmp_s_default_page()
+    {
+        // Nothing on the wire is the request the 2026-08-29 fixtures were captured with. What that default IS
+        // differs by path: positions answers 300 of 8,227 rows, and profile answers 500 of the 535 ACTIVE members
+        // — measured 2026-09-02 the bare answer is byte-identical to active=true.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await endpoints.GetPositionsAsync(new CongressPositionCriteria());
+        await endpoints.GetProfilesAsync(new CongressProfileCriteria());
+
+        Assert.Equal("", handler.Requests[0].Query);
+        Assert.Equal("", handler.Requests[1].Query);
+    }
+
+    [Fact]
+    public async Task Every_position_filter_reaches_the_wire_under_fmp_s_spelling()
+    {
+        // `senateID`, capital I-D, on this path as on the four trade paths. Measured 2026-09-02 the filters are
+        // exact and case-sensitive — `republican` answers zero rows at HTTP 200 — so the spelling of the VALUE is
+        // the caller's; the spelling of the NAME is pinned here.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetPositionsAsync(new CongressPositionCriteria
+        {
+            Party = "Republican", Position = "Senator", SenateId = "M001243", Page = 1, Limit = 5,
+        });
+
+        Assert.Equal("?party=Republican&position=Senator&senateID=M001243&page=1&limit=5",
+            handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task Every_profile_filter_reaches_the_wire_and_a_false_active_is_sent_rather_than_dropped()
+    {
+        // Measured 2026-09-02: the bare answer IS active=true, and active=false is the only road to the 720
+        // former members. A false that fell out with the unset properties would answer the active 535 and look
+        // like a filter that worked.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await endpoints.GetProfilesAsync(new CongressProfileCriteria
+        {
+            Active = false, LatestParty = "Independent", LatestPosition = "Vice President",
+            SenateId = "M001243", Page = 1, Limit = 5,
+        });
+
+        Assert.Equal(
+            "?active=false&latestParty=Independent&latestPosition=Vice%20President&senateID=M001243&page=1&limit=5",
+            handler.Requests[0].Query);
+    }
+
+    [Fact]
+    public async Task The_criteria_refuse_paging_fmp_would_clamp_or_answer()
+    {
+        // Measured 2026-09-02: limit=5000 answers 300 on positions and 500 on profile, silently — the same
+        // "trimmed and not told" the latest feeds guard against at 250. A negative page is one more value FMP
+        // answers rather than rejects.
+        var (endpoints, handler) = Build(StubHandler.Json("[]"));
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetPositionsAsync(new CongressPositionCriteria { Page = -1 }));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetPositionsAsync(new CongressPositionCriteria { Limit = 0 }));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetPositionsAsync(new CongressPositionCriteria
+                { Limit = CongressEndpoints.MaxCongressMemberPositionPageSize + 1 }));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+            () => endpoints.GetProfilesAsync(new CongressProfileCriteria
+                { Limit = CongressEndpoints.MaxCongressMemberProfilePageSize + 1 }));
+        await Assert.ThrowsAsync<ArgumentNullException>(() => endpoints.GetProfilesAsync(null!));
+
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
     public async Task Each_path_is_requested_at_the_url_it_lives_at()
     {
         var (endpoints, handler) = Build(
@@ -650,7 +763,7 @@ public class CongressTests
         await endpoints.GetSenateLatestAsync();
         await endpoints.GetHouseTradesAsync("AAPL");
         await endpoints.GetHouseTradesByNameAsync("Pelosi");
-        await endpoints.GetPositionsAsync();
+        await endpoints.GetPositionsAsync(new CongressPositionCriteria());
         await endpoints.GetNetWorthSummaryAsync("H000601");
 
         Assert.Equal("/stable/house-latest", handler.Requests[0].AbsolutePath);

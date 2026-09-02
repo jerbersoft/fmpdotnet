@@ -342,6 +342,8 @@ public partial class EndpointCoverageTests
             };
         }
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria();
+        if (type == typeof(CongressPositionCriteria)) return new CongressPositionCriteria();
+        if (type == typeof(CongressProfileCriteria)) return new CongressProfileCriteria();
 
         // The two custom-DCF assumption records, following the ScreenerCriteria arm above. An EMPTY record
         // rather than a populated one: every property is nullable and FmpRequest.With drops nulls, so this

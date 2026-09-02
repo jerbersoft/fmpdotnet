@@ -552,6 +552,11 @@ internal static class Probe
         // the screener answers an unrecognised filter value with an empty list rather than an error — a typo
         // here would read as "the screener went dark".
         if (type == typeof(ScreenerCriteria)) return new ScreenerCriteria { Limit = 10 };
+        // Empty on purpose: the bare request is what the baseline was recorded against, and on senate-profile
+        // the bare answer is a filter (active=true) rather than the universe — the sweep measures FMP's default
+        // shape, not a corner of it. See CongressProfileCriteria (#52).
+        if (type == typeof(CongressPositionCriteria)) return new CongressPositionCriteria();
+        if (type == typeof(CongressProfileCriteria)) return new CongressProfileCriteria();
 
         // The two custom-DCF assumption records. An EMPTY record on purpose: every property is nullable and
         // FmpRequest.With drops nulls, so the sweep asks for `symbol` alone and baselines FMP's OWN default
@@ -582,6 +587,16 @@ internal static class Probe
             return parameter.Name switch
             {
                 "year" => LiveApi.SettledYear,
+                // 100 on the four filtered congressional trade paths — FMP's own default, and the size their
+                // baseline was recorded at before they took a limit (#52). A disclosure comment is rare and
+                // Populated() counts a blank one as absent: measured 2026-09-02, AAPL's first five House rows
+                // and first five Senate rows all carried "", so five rows would record Comment as never
+                // arriving on two paths where it does. The two latest feeds keep 5, which is what they were
+                // recorded at.
+                "limit" when parameter.Member.DeclaringType == typeof(Endpoints.CongressEndpoints)
+                    && parameter.Member.Name is not (nameof(Endpoints.CongressEndpoints.GetHouseLatestAsync)
+                        or nameof(Endpoints.CongressEndpoints.GetSenateLatestAsync))
+                    => 100,
                 "limit" => 5,
                 "page" => 0,
                 "part" => 0,

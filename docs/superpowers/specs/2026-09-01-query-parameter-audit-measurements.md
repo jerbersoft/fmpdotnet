@@ -27,6 +27,21 @@ the repository.
 > question on both — what an explicit `false` does — is answered: `extended=false` and `nonadjusted=false` are
 > each byte-identical to omission.
 
+> **Groups B and C — settled 2026-09-02 (#52).** The four filtered trade paths take `page` and `limit` since
+> #52, through the latest feeds' guard; `senate-positions` and `senate-profile` take `CongressPositionCriteria`
+> and `CongressProfileCriteria`. Re-measured the same day, beyond the rows below: `limit` caps at **250** on
+> `house-trades` and `senate-trades` (251 and 1000 both answer 250), the latest feeds' cap. **Pages cut ties**:
+> `house-trades?symbol=AAPL` holds 513 rows; six pages of 100 answer 513 rows of which 510 are distinct (three
+> twice, three never, identically on two passes), three pages of 250 answer all 513 once — rows are ordered by
+> `disclosureDate` alone and same-date order depends on the request. The two `-by-name` paths **ignore both
+> parameters** and answer everything in one body (Pelosi 142, Tuberville 1,406). `senate-profile`'s bare answer
+> is **byte-identical to `active=true`**; `active=false` answers 720 former members over two pages, so the
+> universe is 1,255 and the "535 members" measured on 2026-08-29 was the active half. `senate-positions` runs
+> to 8,227 rows over 28 pages of 300. Filters are exact and case-sensitive (`republican`, `Whig` → `[]` at HTTP
+> 200), combine as AND, and page ordinarily (`page=1&limit=5` is rows 6–10 on positions; profile at `limit=50`
+> lost 2 of 535 to tie cuts, at 100 and 250 none). Row order was stable on every path re-checked today —
+> 0 of 142 positions moved on the by-name call that moved 104 on 2026-08-29.
+
 ## The headline is not a missing parameter
 
 **`page` is a working cursor on `earnings-calendar` and `dividends-calendar`, and the SDK does not send it.**

@@ -61,6 +61,10 @@ public sealed record CongressMemberPosition
 /// page 0 answered 500, page 1 answered 35 and page 2 answered none — <b>535 members</b>. <c>limit</c> is
 /// ignored.</para>
 ///
+/// <para><b>535 is the active half, and <c>limit</c> is honoured (#52).</b> Measured 2026-09-02, the bare answer
+/// is byte-identical to <c>active=true</c>; <c>active=false</c> answers a further 720 over two pages, 1,255 in
+/// all, and <c>limit=5</c> answers 5. Both are reached through <see cref="CongressProfileCriteria"/>.</para>
+///
 /// <para>Serves the House as well as the Senate, like <see cref="CongressMemberPosition"/>. Measured
 /// 2026-08-29 <see cref="LatestPosition"/> also carries <c>Vice President</c>.</para></summary>
 public sealed record CongressMemberProfile
@@ -92,7 +96,10 @@ public sealed record CongressMemberProfile
     /// <summary>FMP's headshot URL.</summary>
     [JsonPropertyName("image")] public string? Image { get; init; }
 
-    /// <summary>Whether the member currently serves.
+    /// <summary>Whether the member currently serves. Measured 2026-09-02 (#52) this is <see langword="true"/> on
+    /// every row of a bare request, because the bare request <i>is</i> <c>active=true</c>; the 720 rows where it
+    /// is <see langword="false"/> come only from <see cref="CongressProfileCriteria.Active"/> =
+    /// <see langword="false"/>.
     ///
     /// <para><b>A genuine JSON boolean</b>, unlike
     /// <see cref="CongressionalTrade.CapitalGainsOver200Usd"/> which is the string <c>"False"</c>. The two are
