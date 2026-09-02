@@ -6,7 +6,7 @@ using FmpDotNet.Http;
 
 using NodaTime;
 
-namespace FmpDotNet.Tests;
+namespace FmpDotNet.Extensions.DependencyInjection.Tests;
 
 public class AddFmpTests
 {
