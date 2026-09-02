@@ -5,7 +5,20 @@ No issue yet; one should be opened before implementation, per CONTRIBUTING.
 **Revised 2026-09-01, after #44 merged** (`f505748`). The first draft was written against a three-link
 chain and assumed #44 was still open. It is not, and the retry handler it added takes the outermost slot
 this design wanted to hand to consumers. Every section below that touched handler order has been
-rewritten rather than patched; see "Handler order" and "Risks". Line citations are against `f505748`.
+rewritten rather than patched; see "Handler order" and "Risks". Line citations were against `f505748`.
+
+**Revised 2026-09-02, after #61 merged** (`e33ed85`). `AddFmp` no longer lives in the core: #61 moved
+`FmpServiceCollectionExtensions.cs` into a second package, `FmpDotNet.Extensions.DependencyInjection`,
+and cut the core down to `Microsoft.Extensions.Options`, `Microsoft.Extensions.Logging.Abstractions` and
+NodaTime, with `PackageBoundaryTests` pinning that cut. Everything this design adds to the DI layer now
+lands in that package, the container-free factory moves off `FmpClient` because the core can no longer
+call `AddFmp`, and the one dependency this design was worried about adding to the core is added to the
+extensions package instead. The sections that changed are "Global constraints", "The pivot", "Reservoirs",
+"The container-free factory", "Host-builder sugar", "Public surface added", "File layout", "Testing" and
+"Risks". Line citations are now against `e33ed85`. Two files moved without their line numbers changing —
+`FmpServiceCollectionExtensions.cs` is now `src/FmpDotNet.Extensions.DependencyInjection/` and
+`AddFmpTests.cs` is now `tests/FmpDotNet.Extensions.DependencyInjection.Tests/` — so a citation into
+either names the same line at the new path.
 
 `AddFmp` already registers the SDK into anything holding an `IServiceCollection` — ASP.NET Core, a Worker
 Service, a console app built on `Host.CreateApplicationBuilder`. `FmpDotNet.SmokeTests/LiveApi.cs:41`
@@ -39,21 +52,26 @@ loudly.
   transports are untouched; see "No handler changes" below for why that falls out rather than being an
   aspiration.
 - **Not a tier map.** Unchanged: entitlement moves and varies per key.
-- **No environment-variable convention.** `FmpClient.Create()` will not read `FMP_API_KEY`. The smoke
+- **No environment-variable convention.** `FmpClientFactory.Create()` will not read `FMP_API_KEY`. The smoke
   suite reads it, a host can pass it in one line, and a library that silently picks up ambient
   credentials is worse than one that does not.
 
 ## Global constraints
 
-- Target `net10.0`. No reflection: the library declares `IsAotCompatible` and `IL2026`/`IL3050` are build
-  errors. This design *reduces* reflective activation — explicit factory lambdas replace reflective
-  `TryAddTransient<T>()` for the per-name registrations.
+- Target `net10.0`. No reflection: both packages declare `IsAotCompatible` through
+  `src/Directory.Build.props`, and `IL2026`/`IL3050` are build errors in each. This design *reduces*
+  reflective activation — explicit factory lambdas replace reflective `TryAddTransient<T>()` for the
+  per-name registrations.
 - NodaTime only in public signatures.
 - Every new public member carries an XML doc comment. `CS1591` is not suppressed outside the eight
   documented model files, so an undocumented member fails the build.
 - `TreatWarningsAsErrors` is on solution-wide.
 - Every existing test in `AddFmpTests` must pass **unmodified**. That is the compatibility proof, and it
-  is achievable — see "Compatibility".
+  is achievable — see "Compatibility". The file now lives in the extensions package's own test project.
+- **The core gains no package reference.** Its three dependencies after #61 are the whole list, and
+  `tests/FmpDotNet.Tests/PackageBoundaryTests.cs` fails the build that adds a fourth. This design adds
+  `Microsoft.Extensions.Hosting.Abstractions` to that test's negative list, so "never to the core" is
+  pinned rather than promised. The extensions package is where new references go.
 
 ## The pivot: an `FmpClient` is a composition of two transports
 
@@ -74,7 +92,7 @@ public sealed class FmpClient : IDisposable
 
     public FmpClient(FmpTransport standard, FmpBulkTransport bulk) : this(standard, bulk, null) { }
 
-    private FmpClient(FmpTransport standard, FmpBulkTransport bulk, IDisposable? owned)
+    public FmpClient(FmpTransport standard, FmpBulkTransport bulk, IDisposable? owned)
     {
         _owned = owned;
         Company = new CompanyEndpoints(standard);
@@ -86,6 +104,15 @@ public sealed class FmpClient : IDisposable
     // …
 }
 ```
+
+**Why the ownership constructor is public.** The first draft made the three-argument constructor private,
+because `Create` sat on `FmpClient` itself. After #61 the factory lives in the extensions package, another
+assembly, and the core cannot see `AddFmp` to build the provider it would hand over. The choices were a
+public constructor or an `InternalsVisibleTo` from the core to the extensions package. The constructor
+wins: "a client may own one disposable that goes with it" is a legitimate thing for the core to say about
+itself, while `InternalsVisibleTo` would open, across the exact boundary #61 drew, a door that
+`PackageBoundaryTests` exists to keep shut. The parameter is an `IDisposable?`, not a `ServiceProvider`,
+so the core still knows nothing about containers.
 
 **Why this is safe to change.** `new FmpClient(` appears nowhere — not in `src/`, not in `tests/`, not in
 `README.md`. The 25-argument constructor is public but has no caller, in this repository or in its
@@ -129,6 +156,13 @@ public sealed class FmpBucketRegistry
 |---|---|
 | `AddFmp("a", ApiKey=K1)` + `AddFmp("b", ApiKey=K1)` | one pair, shared — the emitted rate stays at the cap |
 | `AddFmp("a", ApiKey=K1)` + `AddFmp("c", ApiKey=K2)` | two pairs — an Ultimate key is not dragged to a Premium key's cap |
+
+**It lives in the core, in `Http/` beside `FmpBuckets`.** Not because the handlers take it — they take
+`FmpBuckets`, which the registry hands out — but because it is a rate-limiting concept with no DI in it:
+a dictionary, a hash, and an `ILogger` for the cap-conflict warning, all of which the core already has
+(`Microsoft.Extensions.Logging.Abstractions` stayed). The extensions package's `UseBucketRegistry` and
+`FmpClientFactory.Create(registry:)` take it as a plain parameter. The #61 spec's one-line reason for this
+placement ("because the handlers take it") was wrong; the placement was right.
 
 Registered `TryAddSingleton`, so **the registry is per container**. Within one host, registrations
 sharing a key share a reservoir, which is the case that matters. A separate container or a
@@ -190,8 +224,8 @@ The bulk client adds the same four links #44 gave it, in the same order: develop
 All seven handler classes keep their `IOptions<FmpOptions>` constructors exactly as they are. The closure
 hands them `Options.Create(monitor.Get(name))`, and `FmpRateLimitHandler` gets its `FmpBuckets` from the
 registry directly — which its base already takes as a constructor parameter
-(`FmpRateLimitHandler.cs:26`). The whole feature is additive in the DI layer. Nothing in `Http/` is
-touched.
+(`FmpRateLimitHandler.cs:26`). The whole feature is additive in the DI layer. No existing file in `Http/` is
+touched; the registry is a new file beside `FmpBuckets`.
 
 **#44's two handlers cost this design nothing**, which is worth checking rather than assuming:
 `FmpRetryHandler` and `FmpBulkRetryHandler` take `(IClock, IOptions<FmpOptions>, ILogger<T>)`
@@ -222,7 +256,7 @@ class Report([FromKeyedServices("research")] FmpClient fmp) { … }
 ```
 
 Keyed `FmpTransport`, `FmpBulkTransport` and `FmpClient` per name. The default registration additionally
-registers **unkeyed** `FmpTransport` and `FmpBulkTransport`, because README:526 and README:539 document
+registers **unkeyed** `FmpTransport` and `FmpBulkTransport`, because README:528 and README:541 document
 those as the supported way to reach one of FMP's endpoints the SDK has not modelled — that escape hatch
 must not become keyed-only.
 
@@ -340,7 +374,7 @@ order.
 ```csharp
 var shared = new FmpBucketRegistry();
 services.AddFmp(o => o.ApiKey = "K", fmp => fmp.UseBucketRegistry(shared));
-using var side = FmpClient.Create(o => o.ApiKey = "K", registry: shared);
+using var side = FmpClientFactory.Create(o => o.ApiKey = "K", registry: shared);
 ```
 
 Without it, a console tool that both registers the SDK and spins up a side client on the same key emits
@@ -355,14 +389,21 @@ convention is regular and the override exists for hosts whose configuration is s
 ## The container-free factory
 
 ```csharp
-using var fmp = FmpClient.Create("apikey");
+using var fmp = FmpClientFactory.Create("apikey");
 
-using var fmp = FmpClient.Create(
+using var fmp = FmpClientFactory.Create(
     o => { o.ApiKey = "…"; o.PerMinuteCap = 2640; },
     loggerFactory: factory,          // optional
     registry: shared,                // optional
     configure: b => b.ConfigureStandardClient(…));   // optional
 ```
+
+`FmpClientFactory` is a static class in the extensions package, namespace
+`FmpDotNet.Extensions.DependencyInjection`. The first draft put `Create` on `FmpClient`; after #61 the core
+cannot reference `AddFmp`, and a factory that did not go through `AddFmp` would be the second wiring path
+this design exists to avoid. So the method moves, and keeps its one-wiring-path property. A consumer who
+references only the core does not get it, and does not need it: a core-only consumer has a container of
+their own, by the README's own definition of who references the core alone.
 
 `Create` builds a private `ServiceProvider` through `AddFmp` and holds it:
 
@@ -374,17 +415,17 @@ var sp = new ServiceCollection()
 
 return new FmpClient(sp.GetRequiredService<FmpTransport>(),
                      sp.GetRequiredService<FmpBulkTransport>(),
-                     sp);            // the private 3-arg ctor: sp is what Dispose disposes
+                     sp);            // the public 3-arg ctor: sp is what Dispose disposes
 ```
 
 **Why a private container rather than hand-wiring.** One wiring path. The handler order is contractual
 and getting it wrong fails silently — a throttle inside a timeout still works, it just stops obeying the
 cap under back-pressure. A hand-wired second copy would have to be kept in sync with `AddFmp` by
 inspection, forever, including for every handler added later. It costs no new dependency: the concrete
-`Microsoft.Extensions.DependencyInjection` container already ships to every consumer today, pulled in by
-`Microsoft.Extensions.Logging` via `Microsoft.Extensions.Http` (verified against
-`src/FmpDotNet/obj/project.assets.json`). The cost is a container the caller did not ask for and a few
-milliseconds at construction.
+`Microsoft.Extensions.DependencyInjection` container already ships to every consumer of the extensions
+package, pulled in by `Microsoft.Extensions.Logging` via `Microsoft.Extensions.Http` — which, after #61,
+is exactly the package the factory lives in. The core does not carry it and does not need to. The cost
+is a container the caller did not ask for and a few milliseconds at construction.
 
 **Disposal.** `Dispose` disposes `_owned` and nothing else, so it is a no-op on a DI-resolved client.
 `ServiceProvider.Dispose` is idempotent, so double disposal is safe.
@@ -422,8 +463,13 @@ public static IHostApplicationBuilder AddFmp(
 ```
 
 Delegates to `builder.Services.AddFmp(builder.Configuration, …)`. This is the **only new package
-dependency in the design**: `Microsoft.Extensions.Hosting.Abstractions`, which is not currently in the
-graph. It is also the lowest-value item of the four per unit of public surface — see "Risks".
+dependency in the design**: `Microsoft.Extensions.Hosting.Abstractions`, added to
+`FmpDotNet.Extensions.DependencyInjection` and never to the core. Before #61 that reference would have
+landed on the core, which this design flagged as its first thing to cut; #61 retired the concern rather
+than the feature. A third package for the hosting sugar alone was considered and rejected: it would carry
+two extension methods, and a consumer using `IHostApplicationBuilder` already has every abstraction the
+DI package pulls in. It is still the lowest-value item of the four per unit of public surface — see
+"Risks".
 
 ## Public surface added
 
@@ -457,6 +503,7 @@ or `string`, and the two callback types are distinct. `AddFmp(configuration, fmp
 overload; `AddFmp(o => o.ApiKey = "…", fmp => …)` binds the fourth.
 
 ```csharp
+// FmpDotNet.Extensions.DependencyInjection.FmpClientFactory
 public static FmpClient Create(string apiKey);
 public static FmpClient Create(Action<FmpOptions> configure, ILoggerFactory? loggerFactory = null,
                                FmpBucketRegistry? registry = null,
@@ -465,16 +512,20 @@ public static FmpClient Create(Action<FmpOptions> configure, ILoggerFactory? log
 
 ### Everything added
 
-| type / member | where |
-|---|---|
-| `FmpClient(FmpTransport, FmpBulkTransport)` | replaces the 25-arg constructor |
-| `FmpClient : IDisposable` | new |
-| `FmpClient.Create(…)` ×2 overloads | new |
-| `FmpBucketRegistry` | `Http/` |
-| `IFmpBuilder` | `DependencyInjection/` |
-| four `AddFmp` overloads, above | `FmpServiceCollectionExtensions` |
-| `StandardClientName(string?)`, `BulkClientName(string?)` | `FmpServiceCollectionExtensions` |
-| `IHostApplicationBuilder.AddFmp(…)` ×2 | `FmpHostApplicationBuilderExtensions` |
+| type / member | package | where |
+|---|---|---|
+| `FmpClient(FmpTransport, FmpBulkTransport)` | `FmpDotNet` | replaces the 25-arg constructor |
+| `FmpClient(FmpTransport, FmpBulkTransport, IDisposable?)` | `FmpDotNet` | new — the ownership constructor the factory uses |
+| `FmpClient : IDisposable` | `FmpDotNet` | new |
+| `FmpBucketRegistry` | `FmpDotNet` | `Http/` |
+| `FmpClientFactory.Create(…)` ×2 overloads | `FmpDotNet.Extensions.DependencyInjection` | new static class |
+| `IFmpBuilder` | `FmpDotNet.Extensions.DependencyInjection` | new |
+| four `AddFmp` overloads, above | `FmpDotNet.Extensions.DependencyInjection` | `FmpServiceCollectionExtensions` |
+| `StandardClientName(string?)`, `BulkClientName(string?)` | `FmpDotNet.Extensions.DependencyInjection` | `FmpServiceCollectionExtensions` |
+| `IHostApplicationBuilder.AddFmp(…)` ×2 | `FmpDotNet.Extensions.DependencyInjection` | `FmpHostApplicationBuilderExtensions` |
+
+The core's public surface grows by one constructor pair, one interface implementation and one class in
+`Http/`. Everything that knows what a container is sits in the extensions package.
 
 ## Compatibility
 
@@ -518,19 +569,34 @@ documentation.
 ## File layout
 
 `FmpServiceCollectionExtensions.cs` is ~200 lines after #44 and would reach ~400. Splitting it is part of
-this work, not a follow-up:
+this work, not a follow-up. Two projects now, and the split falls along the package boundary #61 drew:
+
+**`src/FmpDotNet.Extensions.DependencyInjection/`** — everything that knows what a container is
 
 | file | contents |
 |---|---|
-| `DependencyInjection/FmpServiceCollectionExtensions.cs` | public entry points only |
-| `DependencyInjection/FmpRegistration.cs` | internal, name-parameterised core — the one wiring path |
-| `DependencyInjection/FmpOptionsBinder.cs` | the existing `Bind` method, already self-contained |
-| `DependencyInjection/IFmpBuilder.cs`, `FmpBuilder.cs` | new |
-| `DependencyInjection/FmpHostApplicationBuilderExtensions.cs` | new |
+| `FmpServiceCollectionExtensions.cs` | public entry points only |
+| `FmpRegistration.cs` | internal, name-parameterised core — the one wiring path |
+| `FmpOptionsBinder.cs` | the existing `Bind` method, already self-contained |
+| `IFmpBuilder.cs`, `FmpBuilder.cs` | new |
+| `FmpClientFactory.cs` | new — the container-free path, built on `AddFmp` |
+| `FmpHostApplicationBuilderExtensions.cs` | new |
+| `FmpDotNet.Extensions.DependencyInjection.csproj` | add `Microsoft.Extensions.Hosting.Abstractions` 10.0.9 |
+
+**`src/FmpDotNet/`** — the core, which gains no reference
+
+| file | contents |
+|---|---|
 | `Http/FmpBucketRegistry.cs` | new |
-| `FmpClient.cs` | 2-arg ctor, `IDisposable`, `Create` |
-| `FmpDotNet.csproj` | add `Microsoft.Extensions.Hosting.Abstractions` |
-| `README.md` | a "Registering the SDK" section covering all four paths |
+| `FmpClient.cs` | 2-arg and 3-arg ctors, `IDisposable` |
+| `FmpDotNet.csproj` | unchanged |
+
+**Elsewhere**
+
+| file | contents |
+|---|---|
+| `tests/FmpDotNet.Tests/PackageBoundaryTests.cs` | one more `InlineData`: `Microsoft.Extensions.Hosting.Abstractions` |
+| `README.md` | a "Registering the SDK" section covering all four paths, and the Installing section saying the factory and the host sugar are in the extensions package |
 
 The binder moves unchanged. Its long comment about `TimeSpan.TryParse("45")` meaning forty-five days is
 the reason it is worth having its own file rather than being buried mid-registration. Two small
@@ -538,11 +604,22 @@ corrections belong with the move, both left behind by #44: the binder's own doc 
 "Seven explicit reads" when there are now eleven, and `FmpServiceCollectionExtensions.cs:192` still
 describes the chain as "throttle → timeout → network". Neither is this slice's doing; both are in files
 this slice rewrites, and leaving a stale contractual comment in a file being restructured is worse than
-fixing it in passing.
+fixing it in passing. #63 tracks the second of these among the follow-ups from #61, which kept the moved
+file byte-identical on purpose; if #63 lands first, this slice inherits the fix, and if this slice lands
+first, it closes that item.
 
 ## Testing
 
-New coverage, one test per claim this design makes:
+New coverage, one test per claim this design makes. Tests follow their subject's package:
+`FmpBucketRegistryTests` and the `PackageBoundaryTests` addition go in `tests/FmpDotNet.Tests/`; every
+other file below goes in `tests/FmpDotNet.Extensions.DependencyInjection.Tests/`, which gains the
+concrete `Microsoft.Extensions.Hosting` 10.0.9 so `FmpHostBuilderTests` can call
+`Host.CreateApplicationBuilder`. Nothing new needs `InternalsVisibleTo`: `FmpRegistration` is internal
+to the extensions package and is exercised only through `AddFmp`.
+
+**`PackageBoundaryTests`** (existing, core)
+- `Microsoft.Extensions.Hosting.Abstractions` joins the four assemblies the core must not reference. Green
+  before this slice and after it; its job is the commit that puts the hosting sugar in the wrong project.
 
 **`FmpBucketRegistryTests`**
 - same key, two registration names → `Assert.Same` on both `Standard` and `Bulk`
@@ -556,7 +633,7 @@ New coverage, one test per claim this design makes:
 - same key across two names → one reservoir pair; different keys → two
 - a named registration's options validate under its own name
 - the unkeyed `FmpTransport`/`FmpBulkTransport` still resolve when a default registration exists
-  (the README:526 escape hatch)
+  (the README:528 escape hatch)
 
 **`FmpBuilderTests`**
 - a consumer handler added via `ConfigureStandardClient` sits **outside the retry handler**. #44 makes
@@ -587,8 +664,10 @@ New coverage, one test per claim this design makes:
 README already warns that a minor bump may break. Items 1 (the transport-pair pivot) and 3 (named
 registrations) are load-bearing — the first because everything else rests on it, the second because it is
 the only one that cannot be approximated by a few lines in a consumer's own code. The
-`IHostApplicationBuilder` sugar is the weakest per unit of surface and carries the design's only new
-package dependency; it is the first thing to cut if the surface starts feeling wide. This is recorded as
+`IHostApplicationBuilder` sugar is the weakest per unit of surface. Before #61 it also carried the
+design's only new package dependency, onto the core; that reference now lands on the extensions package,
+where a hosting abstraction is at home, so the cost is public surface alone. It is still the first thing
+to cut if the surface starts feeling wide. This is recorded as
 a reservation, not an objection: all four are in scope as agreed.
 
 **Per-key reservoirs make a misconfiguration quieter than a crash.** Two registrations sharing a key with
