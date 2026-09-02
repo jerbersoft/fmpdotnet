@@ -67,6 +67,35 @@ public static class FmpServiceCollectionExtensions
         return FmpRegistration.Register(services, Options.DefaultName, configure, configureBuilder);
     }
 
+    /// <summary>Registers a <b>named</b> FMP configuration bound from configuration, so one process can hold more
+    /// than one — a second API key, a second tier. Resolve it with <c>[FromKeyedServices(name)]</c>: the
+    /// <see cref="FmpClient"/>, <see cref="FmpTransport"/> and <see cref="FmpBulkTransport"/> are keyed by
+    /// <paramref name="name"/>, its options validate under that name, and its <c>HttpClient</c>s are
+    /// <see cref="StandardClientName"/> and <see cref="BulkClientName"/> of it. Binds <c>"Fmp:{name}"</c> unless
+    /// <paramref name="sectionName"/> says otherwise. Registrations sharing an API key share a reservoir pair —
+    /// see <see cref="FmpDotNet.Http.FmpBucketRegistry"/>. An empty name is the default registration.</summary>
+    public static IServiceCollection AddFmp(this IServiceCollection services, string name, IConfiguration configuration,
+        Action<IFmpBuilder>? configureBuilder = null, string? sectionName = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(configuration);
+        var section = SectionNameFor(name, sectionName);
+        return FmpRegistration.Register(services, name,
+            o => FmpOptionsBinder.Bind(configuration.GetSection(section), o), configureBuilder);
+    }
+
+    /// <summary>Registers a <b>named</b> FMP configuration from code. Everything on the configuration-bound
+    /// overload applies.</summary>
+    public static IServiceCollection AddFmp(this IServiceCollection services, string name, Action<FmpOptions> configure,
+        Action<IFmpBuilder>? configureBuilder = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(name);
+        ArgumentNullException.ThrowIfNull(configure);
+        return FmpRegistration.Register(services, name, configure, configureBuilder);
+    }
+
     /// <summary>The configuration section a registration binds by default: <c>"Fmp"</c> for the default
     /// registration and <c>"Fmp:{name}"</c> for a named one, unless <paramref name="sectionName"/> overrides it.</summary>
     internal static string SectionNameFor(string name, string? sectionName) =>
