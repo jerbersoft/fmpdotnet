@@ -11,10 +11,10 @@ public static class FmpHostApplicationBuilderExtensions
     /// registration, <c>"Fmp:{name}"</c> for a named one, or <paramref name="sectionName"/> if given. See
     /// <see cref="FmpServiceCollectionExtensions.AddFmp(Microsoft.Extensions.DependencyInjection.IServiceCollection, string, Microsoft.Extensions.Configuration.IConfiguration, Action{IFmpBuilder}, string)"/>.</summary>
     public static IHostApplicationBuilder AddFmp(this IHostApplicationBuilder builder, string? name = null,
-        string? sectionName = null, Action<IFmpBuilder>? configure = null)
+        string? sectionName = null, Action<IFmpBuilder>? configureBuilder = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder.Services.AddFmp(name ?? "", builder.Configuration, configure, sectionName);
+        builder.Services.AddFmp(name ?? "", builder.Configuration, configureBuilder, sectionName);
         return builder;
     }
 

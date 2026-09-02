@@ -57,6 +57,7 @@ public sealed class FmpClient : IDisposable
         Fundraisers = new FundraisersEndpoints(standard);
         DiscountedCashFlow = new DiscountedCashFlowEndpoints(standard);
     }
+
     /// <summary>Company profiles and identifiers.</summary>
     public CompanyEndpoints Company { get; }
 
@@ -244,6 +245,11 @@ public sealed class FmpClient : IDisposable
     public DiscountedCashFlowEndpoints DiscountedCashFlow { get; }
 
     /// <summary>Disposes whatever this client owns — the private container behind a factory-built client — and
-    /// nothing else. A no-op on a client resolved from dependency injection, and safe to call twice.</summary>
+    /// nothing else. A no-op on a client resolved from dependency injection, and safe to call twice.
+    ///
+    /// <para>Because the client is disposable, a container tracks one it resolves until the resolving scope ends;
+    /// resolved from a root provider, that is the provider's lifetime. Resolve it inside a scope — an ASP.NET Core
+    /// request already is one — or hold one instance, rather than resolving a new client per call from the
+    /// root.</para></summary>
     public void Dispose() => Interlocked.Exchange(ref _owned, null)?.Dispose();
 }

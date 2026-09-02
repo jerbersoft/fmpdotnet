@@ -114,6 +114,11 @@ come from and how the client is reached.
 **A host with a container.** The default: `AddFmp` on the `IServiceCollection`, from configuration or from code,
 then resolve `FmpClient`. That is the Usage block above.
 
+`FmpClient` is disposable so the factory path below can own its container. That has one consequence for the
+container path: a client resolved from a container is tracked by the scope it came from, and a root provider keeps
+it until the provider is disposed. Resolve it inside a scope — an ASP.NET Core request already is one — or hold one
+instance, rather than resolving a new client per call from the root.
+
 **A host built on `IHostApplicationBuilder`** — ASP.NET Core, a Worker Service, `Host.CreateApplicationBuilder`:
 
 ```csharp
@@ -149,9 +154,9 @@ Registrations that share an API key share a reservoir pair, because FMP meters p
 different keys get their own. Two registrations sharing a key but declaring different caps cannot both be
 honoured: the first to resolve sizes the pair, and the second is logged as a warning naming both.
 
-**Putting your own handlers on the clients.** Every `AddFmp` overload takes an optional callback over
-`IFmpBuilder`, which configures the `HttpClient` behind the ordinary endpoints, the one behind the bulk
-endpoints, or both:
+**Putting your own handlers on the clients.** The `AddFmp` overloads added for this — required on the two
+default-registration forms, optional on the named ones — take a callback over `IFmpBuilder`, which configures the
+`HttpClient` behind the ordinary endpoints, the one behind the bulk endpoints, or both:
 
 ```csharp
 services.AddFmp(configuration, fmp => fmp
@@ -914,8 +919,8 @@ no-op rather than a failure.
 changes under you. Pinning also makes "which SDK did this commit build against" answerable from your own git
 history — which is how `trader` consumes it. A project that references both packages directly pins them to the
 same version: the extensions package depends on the core as a floor, not an exact version, so NuGet will pair
-an older `AddFmp` with a newer core, and that pairing can fail at resolve time once a later core adds
-something the older wiring does not know about.
+an older `AddFmp` with a newer core, and that pairing breaks the first time the core reshapes something the
+older wiring constructs — the constructor change in #65 is the live example.
 
 A release is cut by packing without a suffix, giving a plain `0.1.0`. NuGet orders a release above every
 prerelease of the same version, so a hand-cut build always supersedes the CI ones it follows. Until 1.0, treat a

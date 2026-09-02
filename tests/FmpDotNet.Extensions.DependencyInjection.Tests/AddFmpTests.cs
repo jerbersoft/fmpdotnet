@@ -403,9 +403,9 @@ public class AddFmpTests
         // is untouched.
         var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
         var services = new ServiceCollection().AddLogging();
-        services.AddFmp("a", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
-        services.AddFmp("b", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
-        services.AddFmp("c", o => { o.ApiKey = "K2"; o.PerMinuteCap = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.AddFmp("a", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.AddFmp("b", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.AddFmp("c", o => { o.ApiKey = "K2"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
         services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
         using var provider = services.BuildServiceProvider();
 
@@ -445,7 +445,7 @@ public class AddFmpTests
             .AddFmp("research", o => o.ApiKey = "r")
             .BuildServiceProvider();
 
-        // README:528 and :541 — reaching an unmodelled endpoint resolves the default transports by type, and a
+        // The README's "Reaching an endpoint that is not modelled" section resolves the default transports by type, and a
         // named registration beside them must not make that keyed-only.
         Assert.NotNull(provider.GetRequiredService<FmpTransport>());
         Assert.NotNull(provider.GetRequiredService<FmpBulkTransport>());

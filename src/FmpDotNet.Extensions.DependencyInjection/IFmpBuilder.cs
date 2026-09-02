@@ -41,12 +41,16 @@ public interface IFmpBuilder
     IFmpBuilder ConfigureBulkClient(Action<IHttpClientBuilder> configure);
 
     /// <summary>Configures both clients: the same as <see cref="ConfigureStandardClient"/> and
-    /// <see cref="ConfigureBulkClient"/> with the same callback.</summary>
+    /// <see cref="ConfigureBulkClient"/> with the same callback. The callback runs once per client, so a handler
+    /// it adds must come from the factory lambda each time — a single captured <c>DelegatingHandler</c> instance
+    /// would be given two inner handlers and throw after the first send.</summary>
     IFmpBuilder ConfigureAllClients(Action<IHttpClientBuilder> configure);
 
     /// <summary>Draws this registration's reservoirs from <paramref name="registry"/> rather than from the
     /// container's own, which is how a container and a factory-built client on the same API key share a pair
     /// instead of emitting at twice the cap. The registry also becomes the container's, unless the container
-    /// already has one.</summary>
+    /// already has one — in which case an earlier registration keeps drawing from the container's while this one
+    /// draws from the given one, and two registrations on one key would emit at twice the cap. Hand every
+    /// registration the same registry.</summary>
     IFmpBuilder UseBucketRegistry(FmpBucketRegistry registry);
 }

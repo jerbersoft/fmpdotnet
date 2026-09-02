@@ -27,6 +27,20 @@ internal static class FmpRegistration
     internal static IServiceCollection Register(IServiceCollection services, string name, Action<FmpOptions> configure,
         Action<IFmpBuilder>? configureBuilder)
     {
+        // A second AddFmp for a name that is already wired re-configures its options and does nothing else: the
+        // validators and the chain are in place, and appending the chain again would put a retry inside a retry.
+        // A builder callback on that second call is refused rather than dropped — the SDK's handlers are already
+        // added, so nothing given now could land outermost.
+        if (services.Any(d => d.IsKeyedService && d.ServiceType == typeof(Wired) && Equals(d.ServiceKey, name)))
+        {
+            if (configureBuilder is not null)
+                throw new InvalidOperationException(
+                    $"AddFmp: the {(name.Length == 0 ? "default" : $"\"{name}\"")} FMP registration is already wired. "
+                    + "Builder callbacks apply on the first AddFmp for a name; a later call can only re-configure its options.");
+            services.Configure(name, configure);
+            return services;
+        }
+
         services.AddOptions<FmpOptions>(name)
             .Configure(configure)
             // BaseUrl reaches `new Uri(...)` inside HttpClientFactory on first resolve, which throws a
@@ -67,16 +81,6 @@ internal static class FmpRegistration
         // The API key is deliberately NOT validated. An SDK cannot know whether its caller intends to make a
         // request; the host that does know should assert it.
 
-        // Everything below this line is wired once per name. A second AddFmp for the same name has re-configured
-        // its options above and is done: appending the chain again would put a retry inside a retry.
-        if (services.Any(d => d.IsKeyedService && d.ServiceType == typeof(Wired) && Equals(d.ServiceKey, name)))
-        {
-            if (configureBuilder is not null)
-                throw new InvalidOperationException(
-                    $"AddFmp: the {(name.Length == 0 ? "default" : $"\"{name}\"")} FMP registration is already wired. "
-                    + "Builder callbacks apply on the first AddFmp for a name; a later call can only re-configure its options.");
-            return services;
-        }
         services.AddKeyedSingleton(name, new Wired());
 
         var builder = new FmpBuilder(services, name);
@@ -155,11 +159,16 @@ internal static class FmpRegistration
     {
         var name = Options.DefaultName;
 
-        // README:528 and :541 document GetRequiredService<FmpTransport>() and <FmpBulkTransport>() as the way to
-        // reach an endpoint the SDK has not modelled. That escape hatch stays unkeyed.
+        // The README's "Reaching an endpoint that is not modelled" section documents
+        // GetRequiredService<FmpTransport>() and <FmpBulkTransport>() as the way to reach an endpoint the SDK has
+        // not modelled. That escape hatch stays unkeyed.
         services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpTransport>(name));
         services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpBulkTransport>(name));
-        services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpClient>(name));
+        // Constructed here rather than forwarded to the keyed client: FmpClient is disposable, and a forwarding
+        // factory would hand the same instance to two transient call sites, so a root-resolved client would be
+        // tracked by the scope twice. Built once, tracked once.
+        services.TryAddTransient(sp => new FmpClient(
+            sp.GetRequiredService<FmpTransport>(), sp.GetRequiredService<FmpBulkTransport>()));
 
         // COMPATIBILITY, and load-bearing for a test that cannot fail loudly without it. GetRequiredService<FmpBuckets>()
         // resolves to the SAME pair the default registration's handlers draw from, because the registry caches
@@ -199,8 +208,9 @@ internal static class FmpRegistration
         services.TryAddTransient<DiscountedCashFlowEndpoints>();
     }
 
-    /// <summary>This registration's options. For the default registration this is exactly what
-    /// <c>IOptions&lt;FmpOptions&gt;.Value</c> returns, validated the same way.</summary>
+    /// <summary>This registration's options. For the default registration these are equal to what
+    /// <c>IOptions&lt;FmpOptions&gt;.Value</c> returns — the same values from the same factory, validated the same
+    /// way — though not the same instance, since the monitor and <c>IOptions</c> cache separately.</summary>
     private static FmpOptions OptionsFor(IServiceProvider sp, string name) =>
         sp.GetRequiredService<IOptionsMonitor<FmpOptions>>().Get(name);
 

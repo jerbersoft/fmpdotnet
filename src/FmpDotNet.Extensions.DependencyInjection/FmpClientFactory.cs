@@ -18,7 +18,12 @@ namespace FmpDotNet.Extensions.DependencyInjection;
 /// a slow run needs to see. Pass the host's factory.</para>
 ///
 /// <para>Reads no environment variable. A host can pass its key in one line; a library that silently picks up
-/// ambient credentials is worse than one that does not.</para></summary>
+/// ambient credentials is worse than one that does not.</para>
+///
+/// <para>Disposing the client closes its two <c>HttpClient</c>s and the container. The pooled primary handler
+/// behind them lives on for up to <c>HttpClientFactory</c>'s handler lifetime — two minutes by default — plus its
+/// cleanup cycle; that is standard factory behaviour, and worth knowing in a tool that creates a client per
+/// command.</para></summary>
 public static class FmpClientFactory
 {
     /// <summary>A client for one API key, every other option at its default, and no logging.</summary>
