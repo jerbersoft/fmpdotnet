@@ -31,6 +31,7 @@ it is re-checked against the live API every week — see [the live smoke suite](
 using FmpDotNet;
 using FmpDotNet.Extensions.DependencyInjection;
 using FmpDotNet.Models;
+using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 
 services.AddFmp(configuration);              // binds the "Fmp" section
@@ -102,6 +103,77 @@ await foreach (var bar in fmp.Bulk.StreamEndOfDayAsync(new LocalDate(2025, 10, 2
 // The whole-universe profile feed, streamed a part at a time.
 await foreach (var p in fmp.Bulk.StreamAllProfilesAsync(ct))
     Console.WriteLine($"{p.Symbol} {p.Sector} {p.Industry}");
+```
+
+## Registering the SDK
+
+Four ways in, one wiring path. Every one of them ends in the same registration routine, so the handler chain —
+whose order is contractual — exists in one place, and the differences between them are only where the options
+come from and how the client is reached.
+
+**A host with a container.** The default: `AddFmp` on the `IServiceCollection`, from configuration or from code,
+then resolve `FmpClient`. That is the Usage block above.
+
+**A host built on `IHostApplicationBuilder`** — ASP.NET Core, a Worker Service, `Host.CreateApplicationBuilder`:
+
+```csharp
+var builder = Host.CreateApplicationBuilder(args);
+builder.AddFmp();                                  // binds "Fmp" off builder.Configuration
+builder.AddFmp("research");                        // binds "Fmp:research" — a named registration, below
+```
+
+**No container at all.** `FmpClientFactory.Create` builds a private container through `AddFmp` and the client
+owns it, so the same chain is wired and nothing is hand-assembled. Dispose the client. Logging is none unless you
+pass a factory, and no environment variable is read:
+
+```csharp
+using var fmp = FmpClientFactory.Create("apikey");
+
+using var fmp = FmpClientFactory.Create(
+    o => { o.ApiKey = "…"; o.PerMinuteCap = 2640; },
+    loggerFactory: factory);                       // optional; without it the throttle's warnings go nowhere
+```
+
+**More than one FMP configuration in one process.** A named registration is the same wiring under a name. Its
+options bind from `Fmp:{name}` and validate under the name; its client, its transports and its `HttpClient`s are
+keyed by it:
+
+```csharp
+services.AddFmp("research", configuration);        // binds "Fmp:research"
+services.AddFmp("research", o => { o.ApiKey = "…"; o.PerMinuteCap = 2640; });
+
+sealed class Report([FromKeyedServices("research")] FmpClient fmp) { … }
+```
+
+Registrations that share an API key share a reservoir pair, because FMP meters per key; registrations on
+different keys get their own. Two registrations sharing a key but declaring different caps cannot both be
+honoured: the first to resolve sizes the pair, and the second is logged as a warning naming both.
+
+**Putting your own handlers on the clients.** Every `AddFmp` overload takes an optional callback over
+`IFmpBuilder`, which configures the `HttpClient` behind the ordinary endpoints, the one behind the bulk
+endpoints, or both:
+
+```csharp
+services.AddFmp(configuration, fmp => fmp
+    .ConfigureStandardClient(b => b.ConfigurePrimaryHttpMessageHandler(() => corporateProxyHandler))
+    .ConfigureBulkClient(b => b.ConfigurePrimaryHttpMessageHandler(() => stub)));
+```
+
+Your handlers sit **outermost**: they see one entry per logical call, and the SDK's retry, throttle wait and
+timeout all happen beneath them. That is the right default for a proxy, a tracing span or a stubbed primary
+handler in a test, and it means a handler added to observe retries will not see them. **Do not add a second retry
+policy.** The SDK already retries transient failures (`MaxAttempts`, three by default); a retry stacked on top
+multiplies with it — two policies of three attempts each are nine sends per call — and a consumer of this SDK
+has already been burned by `AddStandardResilienceHandler` doing exactly that. Tune the SDK's retry through
+`FmpOptions` instead.
+
+**Sharing reservoirs across containers.** A host that registers the SDK and also spins up a side client on the
+same key would emit at twice its cap. Hand both the same `FmpBucketRegistry`:
+
+```csharp
+var shared = new FmpBucketRegistry();
+services.AddFmp(o => o.ApiKey = "K", fmp => fmp.UseBucketRegistry(shared));
+using var side = FmpClientFactory.Create(o => o.ApiKey = "K", registry: shared);
 ```
 
 ## Endpoint coverage
@@ -827,10 +899,10 @@ and every note to the fixed wording, so `grep -rn "Plan tier —" src/FmpDotNet/
 
 Two packages are published to this repository's **GitHub Packages** NuGet feed, not to nuget.org. Add the
 source, then `dotnet add package FmpDotNet.Extensions.DependencyInjection`, which brings `FmpDotNet` with it.
-`FmpDotNet` is the client, the models and the transports; `FmpDotNet.Extensions.DependencyInjection` is `AddFmp` —
-the container wiring, options binding and validation — and nothing else. A consumer with a container of its own
-can reference `FmpDotNet` alone. The two are versioned and published together, and everything below applies to
-both.
+`FmpDotNet` is the client, the models and the transports; `FmpDotNet.Extensions.DependencyInjection` is the
+registration surface — `AddFmp` in every form, the `IHostApplicationBuilder` sugar and `FmpClientFactory` — and
+nothing else. A consumer with a container of its own can reference `FmpDotNet` alone. The two are versioned and
+published together, and everything below applies to both.
 
 **Every push to `master` publishes a prerelease** — `0.1.0-ci.7`, `0.1.0-ci.8`, and so on, where the suffix is
 the CI run number. That shape is forced by the feed: GitHub Packages refuses to overwrite an existing version, so
@@ -840,7 +912,10 @@ no-op rather than a failure.
 
 **Pin an exact prerelease.** A floating reference to a feed that gains a version on every push is a build that
 changes under you. Pinning also makes "which SDK did this commit build against" answerable from your own git
-history — which is how `trader` consumes it.
+history — which is how `trader` consumes it. A project that references both packages directly pins them to the
+same version: the extensions package depends on the core as a floor, not an exact version, so NuGet will pair
+an older `AddFmp` with a newer core, and that pairing can fail at resolve time once a later core adds
+something the older wiring does not know about.
 
 A release is cut by packing without a suffix, giving a plain `0.1.0`. NuGet orders a release above every
 prerelease of the same version, so a hand-cut build always supersedes the CI ones it follows. Until 1.0, treat a
@@ -874,6 +949,10 @@ steps from your code into this SDK's source at the exact commit the binary was b
 Timeouts bind to NodaTime `Duration` and accept both `"00:00:30"` and a bare number of seconds (`"30"`). The
 bare-number form is checked first on purpose: `TimeSpan.TryParse("45")` means *45 days*, so the other order would
 turn `RequestTimeout=45` into a timeout that never fires.
+
+A named registration binds the same keys under `Fmp:{name}` — `Fmp:research:ApiKey` configures
+`AddFmp("research", configuration)` — unless the call names another section. Named options validate
+independently, so a bad `research` registration fails at startup naming `research`.
 
 The API key is not validated — an SDK cannot know whether its caller intends to make a request; assert it in the
 host that does.
