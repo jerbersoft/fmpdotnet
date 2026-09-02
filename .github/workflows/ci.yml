@@ -155,8 +155,15 @@ jobs:
       # This produces a .snupkg beside the .nupkg, and the build is deterministic here and only here: the project
       # sets ContinuousIntegrationBuild when GITHUB_ACTIONS is true, which normalises source paths so the same
       # commit packs to the same bytes on any runner.
+      # Two explicit lines rather than `dotnet pack FmpDotNet.slnx`, so the workflow names what ships and a third
+      # project does not start publishing by being added to the solution. Packing the extensions project builds
+      # the core again as its ProjectReference but does not produce a second FmpDotNet.nupkg — it emits a
+      # dependency on it, at this same version. The Push step's glob and --skip-duplicate cover both packages,
+      # and the symbol upload's glob covers both .snupkg files.
       - name: Pack
-        run: dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
+        run: |
+          dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
+          dotnet pack src/FmpDotNet.Extensions.DependencyInjection/FmpDotNet.Extensions.DependencyInjection.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
 
       # --no-symbols is not a preference, it is what this feed supports. Checked against the registry's own
       # service index, which advertises PackagePublish/2.0.0 and no SymbolPackagePublish resource of any version:
