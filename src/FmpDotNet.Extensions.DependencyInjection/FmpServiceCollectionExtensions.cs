@@ -6,7 +6,7 @@ using FmpDotNet.Endpoints;
 using FmpDotNet.Http;
 using NodaTime;
 
-namespace FmpDotNet.DependencyInjection;
+namespace FmpDotNet.Extensions.DependencyInjection;
 
 /// <summary>Registers the FMP clients.</summary>
 public static class FmpServiceCollectionExtensions

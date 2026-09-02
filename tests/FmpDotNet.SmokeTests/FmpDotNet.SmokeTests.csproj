@@ -39,6 +39,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FmpDotNet\FmpDotNet.csproj" />
+    <ProjectReference Include="..\..\src\FmpDotNet.Extensions.DependencyInjection\FmpDotNet.Extensions.DependencyInjection.csproj" />
   </ItemGroup>
 
 </Project>

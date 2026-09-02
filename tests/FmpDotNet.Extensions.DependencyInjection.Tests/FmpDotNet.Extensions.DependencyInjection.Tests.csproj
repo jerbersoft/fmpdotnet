@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Tests for the DI package (#61): registration, options binding and validation, handler order and reservoir
+       sharing — every one a property of FmpServiceCollectionExtensions, which is the whole package. The core's
+       own tests stay in FmpDotNet.Tests, including the two that build a provider through AddFmp to prove an
+       endpoint group is registered; those sit inside files about their groups. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The concrete configuration package: ConfigurationBuilder and AddInMemoryCollection, which every test here
+         uses to drive the by-name binding. Nothing under src/ references it, by design. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="NodaTime" Version="3.2.2" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The core arrives through this reference. No InternalsVisibleTo is needed: everything AddFmp wires, and
+         everything these tests inspect (FmpBuckets, TokenBucket.Acquire, IOptions<FmpOptions>), is public. -->
+    <ProjectReference Include="..\..\src\FmpDotNet.Extensions.DependencyInjection\FmpDotNet.Extensions.DependencyInjection.csproj" />
+  </ItemGroup>
+
+</Project>

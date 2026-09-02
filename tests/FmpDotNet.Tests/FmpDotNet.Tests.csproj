@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Configuration (ConfigurationBuilder, AddInMemoryCollection) reached this project only through
+         Options.ConfigurationExtensions on the core, which #61 removed. Referenced directly, because it is used
+         directly, by the tests that build an in-memory configuration to drive AddFmp. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageReference Include="NodaTime" Version="3.2.2" />
     <PackageReference Include="NodaTime.Testing" Version="3.2.2" />
@@ -33,6 +37,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FmpDotNet\FmpDotNet.csproj" />
+    <!-- For the tests that build a provider through AddFmp to prove a group is registered
+         (DirectoryEndpointsTests, CompanyScreenerTests). The concrete container and AddLogging arrive through
+         this reference's Microsoft.Extensions.Http, as they did through the core's until #61. -->
+    <ProjectReference Include="..\..\src\FmpDotNet.Extensions.DependencyInjection\FmpDotNet.Extensions.DependencyInjection.csproj" />
   </ItemGroup>
 
 </Project>

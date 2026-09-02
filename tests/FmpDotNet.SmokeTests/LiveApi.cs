@@ -1,4 +1,4 @@
-using FmpDotNet.DependencyInjection;
+using FmpDotNet.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection;
 using NodaTime;
 

@@ -1,0 +1,106 @@
+<Project>
+
+  <!--
+    Everything a package under src/ ships with, shared so that the two packages cannot disagree about which SDK
+    they are — a version bumped in one csproj and not the other would publish a pair that do not match.
+
+    MSBuild auto-imports only the NEAREST Directory.Build.props, so this file REPLACES the root one for every
+    project under src/ unless it imports it. The root carries the build policy shared with the test projects
+    (target framework, nullable, implicit usings, warnings as errors); this file carries what only a shipped
+    package needs. The tests set IsPackable=false and want none of this, which is why it sits here and not at the
+    root.
+  -->
+  <Import Project="$([MSBuild]::GetPathOfFileAbove('Directory.Build.props', '$(MSBuildThisFileDirectory)../'))" />
+
+  <PropertyGroup>
+    <IsAotCompatible>true</IsAotCompatible>
+
+    <!--
+      XML documentation ships with the package, so a consumer gets the measured upstream quirks in IntelliSense
+      rather than having to open this repo to find them. That is most of the value the docs carry.
+
+      CS1591 ("missing XML comment for publicly visible type or member") is NOT suppressed here, and that is the
+      #21 change worth noting. It used to be, project-wide, because turning the doc file on reported 262 of them
+      — all in the seven period-shaped fundamentals models from #4, whose properties are flat transcriptions of
+      FMP's wire fields. Documenting those individually would bury each type's real documentation, which is the
+      type-level note recording what the endpoint actually does.
+
+      The cost of the project-wide suppression was that a NEW undocumented public member, anywhere in the SDK,
+      compiled silently. Each of those seven models now carries a file-scoped `#pragma warning disable CS1591`
+      instead, with the count and the reasoning at the top of the file, and #40 added an eighth — CotReport, 128
+      properties of CFTC column names. The exemption is visible where it applies and the zero-warning bar holds
+      everywhere else — so an undocumented endpoint, option or converter added later fails the build. The same
+      bar applies to every package under src/.
+
+      Turning this on for the first time also caught a real defect it is worth recording: KeyMetrics carried
+      `R&D` unescaped in a doc comment, which is malformed XML (CS1570). That one is fixed, not deferred.
+    -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <!--
+    Package identity shared by every package under src/. PackageId, Description and PackageTags are each
+    package's own and stay in its csproj.
+
+    VersionPrefix, not Version. CI packs with `-p:VersionSuffix=ci.<run number>` so every push to master
+    publishes a distinct prerelease (0.1.0-ci.7, 0.1.0-ci.8, ...). That matters because GitHub Packages
+    REFUSES to overwrite an existing NuGet version: a fixed version would make the second push of any given
+    version fail the build. A local `dotnet pack` with no suffix yields a plain 0.1.0, which outranks every
+    prerelease, so a hand-cut release is always newer than the CI builds it supersedes. The scheme is written
+    down for consumers under "Installing and versioning" in the README, not only in this comment.
+
+    One VersionPrefix for both packages is also what makes the pair consistent: `dotnet pack` of a project with
+    a ProjectReference emits a dependency on the referenced package at the version it was built with, so
+    FmpDotNet.Extensions.DependencyInjection 0.1.0-ci.N depends on FmpDotNet >= 0.1.0-ci.N, and the two are
+    published together from one CI run.
+  -->
+  <PropertyGroup>
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Herbert Sabanal</Authors>
+    <RepositoryUrl>https://github.com/jerbersoft/fmpdotnet</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/jerbersoft/fmpdotnet</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- An SPDX expression rather than PackageLicenseFile: NuGet renders it as a link to the canonical licence
+         text and clients can read the terms without unpacking anything. The LICENSE file is packed as well, so
+         the package is self-contained either way. No PackageIcon — nothing is branded yet, and an invented mark
+         would only have to be replaced. -->
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+  <!--
+    Debuggability of a shipped build.
+
+    A .snupkg carries the PDBs separately, so the main package stays small and a consumer who never debugs into
+    the SDK downloads nothing extra. Source Link is what makes those PDBs useful: it stamps the commit into the
+    PDB so a debugger can fetch the exact source for the binary being stepped through. It needs no PackageReference
+    — the .NET SDK has carried Microsoft.SourceLink.GitHub in-box since .NET 8 and resolves the provider from the
+    git remote.
+
+    EmbedUntrackedSources covers the generated files. Every model in FmpDotNet is deserialised through code the
+    JSON source generator emits from FmpJsonContext, and none of that is in git — so without this, stepping into
+    deserialisation reaches a file Source Link cannot resolve.
+
+    ContinuousIntegrationBuild is set only under GitHub Actions. It normalises source paths so the same commit
+    packs to the same bytes anywhere — which is the property that makes a build reproducible, and also the one
+    that would replace a local developer's real paths with placeholders and break stepping into a local `dotnet
+    pack`. CI wants it, a laptop does not.
+  -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The repository README is the package README, for both packages. It is the endpoint table plus the
+         measured upstream-behaviour notes, and it is also where AddFmp and the "Fmp" configuration section are
+         documented — so it is the right package page for the DI package as well as for the core. Addressed from
+         this file's directory rather than as ../../README.md so the path does not depend on project depth. -->
+    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+
+</Project>

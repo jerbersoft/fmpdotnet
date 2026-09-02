@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/FmpDotNet/FmpDotNet.csproj" />
+    <Project Path="src/FmpDotNet.Extensions.DependencyInjection/FmpDotNet.Extensions.DependencyInjection.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/FmpDotNet.Tests/FmpDotNet.Tests.csproj" />
     <Project Path="tests/FmpDotNet.SmokeTests/FmpDotNet.SmokeTests.csproj" />
+    <Project Path="tests/FmpDotNet.Extensions.DependencyInjection.Tests/FmpDotNet.Extensions.DependencyInjection.Tests.csproj" />
   </Folder>
 </Solution>
