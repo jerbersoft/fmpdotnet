@@ -7,6 +7,15 @@ documentation, and nothing is taken from `fmpsdk`'s parameter list — that list
 The API key travels in the query string, so no built URL appears in this document and no capture was kept in
 the repository.
 
+> **Two honoured parameters outside these 26 paths — settled 2026-09-02 (#58).** `company-screener` honours
+> `avgVolumeMoreThan` and `avgVolumeLowerThan`, and the SDK did not send them. This audit could not have found
+> that: they are not in `fmpsdk`'s parameter list, which is what was under test here. They were found by diffing
+> the SDK against FMP's own `api-docs.md` (#55), measured at the boundary — `avgVolumeMoreThan=5006432` keeps
+> the row whose average is exactly that and `5006433` drops it; `avgVolumeLowerThan=748` keeps and `747` drops,
+> so the pair is inclusive like every other bound on the screener — and are sent since #58, together with the
+> `avgVolume` field they filter on, which joined the screener row between 2026-08-26 (fifteen keys) and
+> 2026-09-01 (sixteen). Nothing in the 40 verdicts below changes.
+
 ## The headline is not a missing parameter
 
 **`page` is a working cursor on `earnings-calendar` and `dividends-calendar`, and the SDK does not send it.**

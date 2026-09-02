@@ -22,8 +22,9 @@ namespace FmpDotNet;
 /// <c>…MoreThan</c> and <c>…LowerThan</c> and the SDK keeps those names so they map onto FMP's own documentation,
 /// but both were measured as <c>&gt;=</c> and <c>&lt;=</c>: <c>priceLowerThan=1</c> returns securities priced at
 /// exactly <c>1</c>, <c>betaLowerThan=0</c> returns beta exactly <c>0</c>, and <c>betaMoreThan=2.215</c> returns
-/// the security whose beta is exactly <c>2.215</c>. Two adjacent ranges built as
-/// <c>LowerThan = x</c> and <c>MoreThan = x</c> therefore overlap on the boundary rather than
+/// the security whose beta is exactly <c>2.215</c>; and on 2026-09-02 (#58) <c>avgVolumeMoreThan=5006432</c>
+/// kept the row whose average is exactly <c>5006432</c> while <c>5006433</c> dropped it. Two adjacent ranges built
+/// as <c>LowerThan = x</c> and <c>MoreThan = x</c> therefore overlap on the boundary rather than
 /// partitioning.</para></summary>
 public sealed record ScreenerCriteria
 {
@@ -53,6 +54,24 @@ public sealed record ScreenerCriteria
 
     /// <summary>Highest volume to include. Inclusive.</summary>
     public long? VolumeLowerThan { get; init; }
+
+    /// <summary>Lowest average daily volume to include. Inclusive, measured 2026-09-02 (#58) at the boundary:
+    /// <c>avgVolumeMoreThan=5006432</c> kept the row whose average is exactly <c>5006432</c>, and <c>5006433</c>
+    /// dropped it.
+    ///
+    /// <para><c>0</c> is inert here — every row satisfies it — and <b><c>1</c> is the useful floor</b>: it drops
+    /// every zero-average row, and all but a handful of those are the mutual funds. See
+    /// <see cref="Models.ScreenerResult.AvgVolume"/>.</para></summary>
+    public long? AvgVolumeMoreThan { get; init; }
+
+    /// <summary>Highest average daily volume to include. Inclusive, measured 2026-09-02 (#58):
+    /// <c>avgVolumeLowerThan=748</c> kept the row whose average is exactly <c>748</c>, and <c>747</c> dropped it.
+    ///
+    /// <para>Any low bound sweeps in the zero-average rows, and there are more than a page of them:
+    /// <c>avgVolumeLowerThan=0</c> on NASDAQ filled the 1,000-row default page with zeros alone. Pair with
+    /// <see cref="IsFund"/> = <see langword="false"/> or <see cref="AvgVolumeMoreThan"/> = <c>1</c> to keep only
+    /// the lines that trade.</para></summary>
+    public long? AvgVolumeLowerThan { get; init; }
 
     /// <summary>Smallest last-annual-dividend to include, as an amount per share rather than a yield. Inclusive.
     /// Note that a security paying nothing reports <c>0</c> here, so <c>DividendMoreThan = 0</c> does not exclude
@@ -134,6 +153,8 @@ public sealed record ScreenerCriteria
             .With("betaLowerThan", Number(BetaLowerThan))
             .With("volumeMoreThan", Number(VolumeMoreThan))
             .With("volumeLowerThan", Number(VolumeLowerThan))
+            .With("avgVolumeMoreThan", Number(AvgVolumeMoreThan))
+            .With("avgVolumeLowerThan", Number(AvgVolumeLowerThan))
             .With("dividendMoreThan", Number(DividendMoreThan))
             .With("dividendLowerThan", Number(DividendLowerThan))
             .With("sector", Sector)

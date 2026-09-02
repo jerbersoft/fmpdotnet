@@ -8,6 +8,11 @@ namespace FmpDotNet.Models;
 /// 1,000, with none missing and none extra. Every filter on <see cref="ScreenerCriteria"/> screens on one of the
 /// fields below, so a result can always be checked against the criteria that produced it.</para>
 ///
+/// <para><b>Sixteen since 2026-09-01 (#58).</b> <c>avgVolume</c> was not among the fifteen on 2026-08-26 and was on
+/// every row of two 1,000-row responses measured 2026-09-02 — FMP added one key between the two dates, and only
+/// that one. The sentence about filters still holds: <see cref="ScreenerCriteria.AvgVolumeMoreThan"/> and
+/// <see cref="ScreenerCriteria.AvgVolumeLowerThan"/> screen on <see cref="AvgVolume"/>.</para>
+///
 /// <para>Rows arrive ordered by <see cref="MarketCap"/> descending, largest first, on every combination of filters
 /// measured. Nothing in the API lets a caller change that, which is what makes
 /// <see cref="ScreenerCriteria.Limit"/> a "top N by market cap" control rather than an arbitrary
@@ -67,6 +72,21 @@ public sealed record ScreenerResult
     /// <see cref="AftermarketQuote.Volume"/>, <see cref="BulkCompanyProfile.Volume"/> and
     /// <see cref="ShortQuote.Volume"/>.</summary>
     [JsonPropertyName("volume")] public decimal? Volume { get; init; }
+
+    /// <summary>Average daily share volume — on the wire since a day between 2026-08-26, when the row had fifteen
+    /// keys, and 2026-09-01, when it had sixteen.
+    ///
+    /// <para><see langword="decimal"/> for a captured reason, unlike <see cref="Volume"/>'s: on 2026-09-02
+    /// <c>FISV</c> carried <c>15606482.3</c>, and the other 999 of the top 1,000 NASDAQ lines by market cap plain
+    /// integers. The same width as <see cref="Volume"/> and <see cref="EtfInfo.AvgVolume"/>.</para>
+    ///
+    /// <para><b>Zero is a real zero here, unlike <see cref="Beta"/>'s.</b> Measured the same day, 685 of the top
+    /// 1,000 NASDAQ rows and 334 of the default 1,000 were zero; 680 and 328 of those are <see cref="IsFund"/>
+    /// rows, and all but four in each set carry <c>volume=0</c> as well — a mutual fund has no exchange volume to
+    /// average. The few that remain carry a day's <see cref="Volume"/> and no average yet: <c>BDXA</c> answered
+    /// <c>6151137</c> against <c>0</c>. <see cref="ScreenerCriteria.AvgVolumeMoreThan"/> = <c>1</c> excludes all
+    /// of them.</para></summary>
+    [JsonPropertyName("avgVolume")] public decimal? AvgVolume { get; init; }
 
     /// <summary>The exchange's <b>long</b> name — <c>NASDAQ Global Select</c>, <c>New York Stock Exchange</c>.
     ///

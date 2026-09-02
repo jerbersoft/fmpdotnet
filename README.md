@@ -68,6 +68,7 @@ var large = await fmp.Search.ScreenAsync(new ScreenerCriteria
     Sector = "Technology",     // spelling must come from GetSectorsAsync — see below
     Country = "US",
     IsEtf = false,
+    AvgVolumeMoreThan = 1,     // zero averages are the mutual funds and a few new listings; 1 drops them
     Limit = 500,
 });
 
