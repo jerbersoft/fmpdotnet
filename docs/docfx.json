@@ -1,0 +1,71 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dotnet/docfx/main/schemas/docfx.schema.json",
+
+  "metadata": [
+    {
+      "//": [
+        "The two shipping projects, named one by one rather than globbed as ../src/**/*.csproj. A glob would",
+        "silently pick up a third project the day one is added, and whether it belongs in the published reference",
+        "is a decision somebody should make in a diff. DocsSiteTests pins this list to the projects under src/, so",
+        "the decision cannot be skipped by omission in either direction.",
+        "",
+        "TargetFramework is pinned because DocFX loads these through MSBuildWorkspace and a multi-targeted project",
+        "would otherwise be ambiguous. There is only net10.0 today; the property keeps this honest if that changes."
+      ],
+      "src": [
+        {
+          "src": "../src",
+          "files": [
+            "FmpDotNet/FmpDotNet.csproj",
+            "FmpDotNet.Extensions.DependencyInjection/FmpDotNet.Extensions.DependencyInjection.csproj"
+          ]
+        }
+      ],
+      "dest": "api",
+      "properties": {
+        "TargetFramework": "net10.0",
+        "Configuration": "Release"
+      }
+    }
+  ],
+
+  "build": {
+    "//": [
+      "Content is enumerated rather than globbed as **/*.md for one concrete reason: docs/superpowers/ holds the",
+      "designs, plans and measurements, which are working material. A broad glob would publish the next plan",
+      "somebody writes. guides/ is listed, superpowers/ is not, and that is the whole rule.",
+      "",
+      "README.md is the repository README, rendered from the same file: one copy of the reference, on GitHub,",
+      "inside both packages, and here. DocFX accepts the relative parent path (and rejects an absolute one).",
+      "Guides link to it as ../../README.md#section and the build validates every anchor (#71)."
+    ],
+    "content": [
+      { "files": ["index.md", "toc.yml", "changelog.md"] },
+      { "files": ["guides/**.md", "guides/**/toc.yml"] },
+      { "files": ["api/**.yml", "api/index.md"] },
+      { "files": ["README.md"], "src": ".." }
+    ],
+    "output": "_site",
+    "template": ["default", "modern"],
+
+    "//sitemap": [
+      "The one place in this repository that spells out the public URL. DocFX emits relative links everywhere",
+      "else, which is why the site works unchanged under a /fmpdotnet/ path — but a sitemap has to carry absolute",
+      "ones. If this ever needs to change, the reason will be a Pages setting outside this repository."
+    ],
+    "sitemap": {
+      "baseUrl": "https://jerbersoft.github.io/fmpdotnet/",
+      "changefreq": "weekly"
+    },
+    "globalMetadata": {
+      "_appName": "FmpDotNet",
+      "_appTitle": "FmpDotNet",
+      "_appFooter": "FmpDotNet — an independent .NET client for the Financial Modeling Prep API. MIT. The README is the reference; where a guide and the README disagree, the README wins.",
+      "_enableSearch": true,
+      "_gitContribute": {
+        "repo": "https://github.com/jerbersoft/fmpdotnet",
+        "branch": "master"
+      }
+    }
+  }
+}
