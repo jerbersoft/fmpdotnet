@@ -6,7 +6,7 @@
 from the same file, and an API reference generated from both packages' doc comments — built with
 `--warningsAsErrors` on every push, deployed from `master`, with the wiki disabled once it is live.
 
-**Architecture:** `docs/` gains `docfx.json`, the navigation, a landing page and thirteen pages moved from the wiki
+**Architecture:** `docs/` gains `docfx.json`, the navigation, a landing page and fourteen pages moved from the wiki
 with their links rewritten to relative forms the build validates. The README is listed as content from `..`, so
 guides link to `../../README.md#section` and a stale anchor is a red build. A separate `docs.yml` workflow builds
 on every push and deploys only from `master`; two unit tests pin what DocFX does not check.
@@ -52,7 +52,7 @@ docs/index.md                             Task 2   new — the landing page (rep
 docs/api/index.md                         Task 2   new — hand-written front of the generated reference
 docs/changelog.md                         Task 1   moved from the wiki; Task 5 adds this issue's entry
 docs/guides/toc.yml                       Task 1   new — the sidebar, the wiki's five groups
-docs/guides/*.md                          Task 1   twelve pages moved from the wiki; Task 5 extends two
+docs/guides/*.md                          Task 1   thirteen pages moved from the wiki; Task 5 extends two
 README.md                                 Task 2   ## Documentation; two spec links made absolute
 CONTRIBUTING.md                           Task 4   seven links to the site
 SECURITY.md                               Task 4   three links to the site
@@ -70,7 +70,7 @@ call it `$SCRATCH` below.
 
 ---
 
-### Task 1: Move the thirteen wiki pages into `docs/` with their links rewritten
+### Task 1: Move the fourteen wiki pages into `docs/` with their links rewritten
 
 **Files:**
 - Create: `docs/guides/getting-started.md`, `docs/guides/configuration.md`, `docs/guides/endpoint-coverage.md`,
@@ -81,13 +81,13 @@ call it `$SCRATCH` below.
 - Throwaway: `$SCRATCH/migrate-wiki.py` (not committed)
 
 **Interfaces:**
-- Produces: the thirteen files at the paths above, which Tasks 2, 3 and 5 rely on by name; `docs/guides/toc.yml`
+- Produces: the fourteen files at the paths above, which Tasks 2, 3 and 5 rely on by name; `docs/guides/toc.yml`
   with `href:` lines naming every guide, which `DocsSiteTests.EveryGuideIsInTheSidebar` (Task 3) reads.
 
 - [ ] **Step 1: Confirm the source**
 
 Run: `git -C "$SCRATCH/wiki" rev-parse --short HEAD && ls "$SCRATCH/wiki"/*.md | wc -l`
-Expected: `662a4ac` and `16`.
+Expected: `662a4ac` and `17`.
 
 - [ ] **Step 2: Write the migration script**
 
@@ -95,7 +95,7 @@ Write `$SCRATCH/migrate-wiki.py`:
 
 ```python
 #!/usr/bin/env python3
-"""Copies the thirteen wiki pages into docs/ with their links rewritten (#71).
+"""Copies the fourteen wiki pages into docs/ with their links rewritten (#71).
 
 One-shot and throwaway: it lives in the scratchpad, not the repository. The rules it applies are the three in
 the design's "Link rewrites" table, and nothing else about a page changes.
@@ -160,12 +160,12 @@ Expected: fourteen lines of the form `Getting-Started.md -> guides/getting-start
 Run each; the expected values were counted on the wiki clone on 2026-09-03:
 
 ```bash
-ls docs/guides/*.md | wc -l                                                          # 12
+ls docs/guides/*.md | wc -l                                                          # 13
 grep -rho '\[\[' docs/guides docs/changelog.md | wc -l                               # 0  — no wiki-style link survives
 grep -rho '\](\(\.\./\)\?\(guides/\)\?[a-z-]*\.md)' docs/guides docs/changelog.md | wc -l  # 70 — one per wiki link
 grep -rho 'README\.md#[a-z0-9-]*' docs/guides docs/changelog.md | wc -l              # 17 — one per README link
 grep -rho 'README\.md#[a-z0-9-]*' docs/guides docs/changelog.md | sort -u | wc -l    # 10 — distinct anchors
-grep -rho 'github\.com/jerbersoft/fmpdotnet/blob/master/README' docs | wc -l         # 0
+grep -rho 'github\.com/jerbersoft/fmpdotnet/blob/master/README' docs/guides docs/changelog.md | wc -l   # 0
 grep -rho 'blob/master/docs/superpowers/specs/[^)]*' docs/guides | wc -l             # 2  — unchanged, absolute
 grep -rho '\.\./\.\./README\.md' docs/guides | wc -l                                 # 17 — every README link from a guide
 grep -rho '](guides/[a-z-]*\.md)' docs/changelog.md | wc -l                          # 4  — the changelog's links point into guides/
@@ -250,16 +250,16 @@ Write `docs/guides/toc.yml`:
 ```
 
 Run: `grep -c 'href:' docs/guides/toc.yml && for f in $(grep -o 'href: .*' docs/guides/toc.yml | cut -d' ' -f2); do test -f "docs/guides/$f" || echo "missing $f"; done`
-Expected: `12` and no `missing` line.
+Expected: `13` and no `missing` line.
 
 - [ ] **Step 7: Commit**
 
 ```bash
 git add docs/guides docs/changelog.md
 git commit -F - <<'EOF'
-docs: move the wiki's thirteen pages into docs/, links rewritten to forms the build can check (#71)
+docs: move the wiki's fourteen pages into docs/, links rewritten to forms the build can check (#71)
 
-Twelve guides and the changelog, from the wiki at 662a4ac. Prose is untouched; the 70 wiki-style links
+Thirteen guides and the changelog, from the wiki at 662a4ac. Prose is untouched; the 70 wiki-style links
 become relative markdown links, the 17 README links become ../../README.md#section so DocFX validates the
 anchor, and the two links to the endpoint-inventory spec stay absolute because specs are not on the site.
 One sentence that called the guides "this wiki" now calls them this site.
@@ -996,7 +996,7 @@ The wiki's pages, the README and the API reference on one site:
 - `PackageProjectUrl` is the site, so a package page's "Project website" lands on the documentation.
 
 **Changed**
-- The thirteen wiki pages moved into `docs/guides/` and `docs/changelog.md`, prose unchanged; the wiki is disabled,
+- The fourteen wiki pages moved into `docs/guides/` and `docs/changelog.md`, prose unchanged; the wiki is disabled,
   and its URLs redirect to the repository. `CONTRIBUTING.md` and `SECURITY.md` link to the site.
 
 ```

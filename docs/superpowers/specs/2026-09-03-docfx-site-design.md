@@ -4,8 +4,8 @@ No issue yet; one should be opened before implementation, per CONTRIBUTING.
 
 This repository documents itself in three places that do not know about each other. The README is the
 reference: the generated endpoint table, the measured upstream behaviour, the registration paths, the
-versioning scheme. The XML doc comments ship inside the packages and reach IntelliSense. And a sixteen-page
-GitHub wiki carries the guides, the runbooks, the FAQ and the changelog, links into the README for every
+versioning scheme. The XML doc comments ship inside the packages and reach IntelliSense. And a
+seventeen-page GitHub wiki carries the guides, the runbooks, the FAQ and the changelog, links into the README for every
 measured number, and lives in a separate git repository that no pull request here can touch.
 
 This design replaces the third of those with a DocFX site at **`https://jerbersoft.github.io/fmpdotnet/`**
@@ -224,7 +224,7 @@ it cheaply. The `deploy` job is not required: it does not run on PRs.
 
 ## The migration
 
-Sixteen wiki files. Thirteen move, three are superseded:
+Seventeen wiki files. Fourteen move — thirteen guides and the changelog — and three are superseded:
 
 | Wiki page | Becomes |
 |---|---|
@@ -249,7 +249,7 @@ Sixteen wiki files. Thirteen move, three are superseded:
 The source is the clone at the session scratchpad, at wiki commit `662a4ac`, which is the wiki's head
 after this session's three updates (#61, #65, #69). Kebab-case filenames, as `databentodotnet` uses.
 
-**Link rewrites**, counted on 2026-09-03 across the thirteen pages, applied by a throwaway script so the
+**Link rewrites**, counted on 2026-09-03 across the fourteen pages, applied by a throwaway script so the
 diff is mechanical and a reviewer can check the rule rather than every instance:
 
 | Form | Count | Becomes |
@@ -327,7 +327,7 @@ repository root the way `EndpointCoverageTests` does (walking up to `FmpDotNet.s
   made for the reference.
 - **Every `docs/guides/*.md` is in `docs/guides/toc.yml`, and every `href` there exists.** DocFX builds
   a page nobody links to without a word. A regex over `href:` lines is enough; the test project has no
-  YAML dependency and should not gain one for a twelve-line file.
+  YAML dependency and should not gain one for a sidebar.
 
 Neither test needs DocFX installed, so `.NET — build + test` runs them as it runs everything else.
 
@@ -349,7 +349,7 @@ docs/index.md                             new — the landing page
 docs/changelog.md                         moved from the wiki
 docs/api/index.md                         new — hand-written front of the reference
 docs/guides/toc.yml                       new — the sidebar
-docs/guides/*.md                          twelve pages moved from the wiki
+docs/guides/*.md                          thirteen pages moved from the wiki
 docs/superpowers/                         unchanged, unlisted
 README.md                                 ## Documentation; two spec links made absolute
 CONTRIBUTING.md                           seven links to the site
