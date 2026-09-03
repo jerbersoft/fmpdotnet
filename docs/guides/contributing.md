@@ -1,7 +1,7 @@
 # Contributing
 
-Thanks for looking. This page covers the workflow around a change; **[Development](development.md)** covers building and testing
-the code itself.
+Thanks for looking. This page covers the workflow around a change; **[Development](development.md)** covers building and
+testing the code itself.
 
 ## The short version
 
@@ -68,7 +68,8 @@ chore: ignore .env variants and the developer bulk cache
 Prefixes in use: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`, `build`, `ci`.
 
 **Breaking changes take `!`** — `refactor!:` — and there have been two. Both *removed* public members after
-measurement showed they were the wrong shape. Until 1.0 that is expected; see **[Releases and Versioning](releases-and-versioning.md)**.
+measurement showed they were the wrong shape. Until 1.0 that is expected; see
+**[Releases and Versioning](releases-and-versioning.md)**.
 
 The subject line is doing real work in this repository. `fix: market cap is fractional on stable/profile, so it
 cannot be a long` tells you the finding *and* the consequence. `fix: market cap type` tells you neither.
@@ -136,8 +137,8 @@ rather than becoming a dead link nobody reports. [Development](development.md) h
   itself meaningful, and for `FmpPlanRestrictedException` 402 and 403 mean different things;
 * what you expected versus what arrived.
 
-Please check **[Troubleshooting](troubleshooting.md)** first — a good number of surprises on this API are already recorded there
-with the measurement behind them.
+Please check **[Troubleshooting](troubleshooting.md)** first — a good number of surprises on this API are already
+recorded there with the measurement behind them.
 
 **Never paste an API key**, including inside a URL. The SDK redacts keys from its own exception messages and
 request renderings, so an unmodified stack trace is safe to share.

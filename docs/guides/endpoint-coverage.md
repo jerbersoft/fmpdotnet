@@ -148,11 +148,11 @@ await foreach (var row in transport.StreamCsvAsync(
 }
 ```
 
-Read **[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)** first. Bulk errors arrive under HTTP 200, and a naive parse reads a
-throttle refusal as "no data today".
+Read **[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)** first. Bulk errors arrive under HTTP 200, and a naive
+parse reads a throttle refusal as "no data today".
 
 ### Modelling one properly instead
 
-If the endpoint is one the SDK should carry, that is a welcome contribution — **[Contributing](contributing.md)** describes the
-measure-first workflow, which exists because most of the hard-won knowledge in this SDK came from probing the live
-API rather than reading the docs.
+If the endpoint is one the SDK should carry, that is a welcome contribution — **[Contributing](contributing.md)**
+describes the measure-first workflow, which exists because most of the hard-won knowledge in this SDK came from probing
+the live API rather than reading the docs.

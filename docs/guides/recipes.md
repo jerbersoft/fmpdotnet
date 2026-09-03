@@ -245,8 +245,8 @@ await foreach (var p in fmp.Bulk.StreamAllProfilesAsync(ct))
 whole point of the `IAsyncEnumerable` is that a row is mapped and released rather than accumulated. That part was
 streamed at 2,571,137 rows and **0.2 MB of peak live memory**.
 
-Read **[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)** before running any of this — the bulk throttle is two calls a minute by
-default, errors arrive under HTTP 200, and FMP restricts keys it considers abusive.
+Read **[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)** before running any of this — the bulk throttle is
+two calls a minute by default, errors arrive under HTTP 200, and FMP restricts keys it considers abusive.
 
 ### The first page is not a sample
 

@@ -30,8 +30,8 @@ The wiki's pages, the README and the API reference on one site:
 - `PackageProjectUrl` is the site, so a package page's "Project website" lands on the documentation.
 
 **Changed**
-- The fourteen wiki pages moved into `docs/guides/` and `docs/changelog.md`, prose unchanged; the wiki is disabled,
-  and its URLs redirect to the repository. `CONTRIBUTING.md` and `SECURITY.md` link to the site.
+- The fourteen wiki pages moved into `docs/guides/` and `docs/changelog.md`, prose unchanged; the wiki is being retired,
+  and once disabled its URLs redirect to the repository. `CONTRIBUTING.md` and `SECURITY.md` link to the site.
 
 ### Host registration — #65 · 2026-09-02 → 2026-09-03
 

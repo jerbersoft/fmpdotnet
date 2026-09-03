@@ -26,8 +26,8 @@ transport, every concurrent caller draws from the same reservoir — which is wh
 The default of **660/min** is ~88% of Premium's 750/min, the lowest paid tier the SDK targets. The headroom is
 measured, not superstition: the emitted rate runs about 10% above target under real concurrency.
 
-**On Ultimate, raise it to `2640`** — see **[Configuration](configuration.md)**. The default is deliberately not tuned to the key
-you hold, because one sized for a higher tier would trip 429s for everyone below it.
+**On Ultimate, raise it to `2640`** — see **[Configuration](configuration.md)**. The default is deliberately not tuned
+to the key you hold, because one sized for a higher tier would trip 429s for everyone below it.
 
 ### What happens on a 429
 

@@ -181,8 +181,9 @@ FMP_API_KEY=… dotnet test tests/FmpDotNet.SmokeTests
 | **Live smoke** (`smoke.yml`) | Mondays 06:17 UTC, or manual dispatch | that FMP still sends the shapes the SDK reads |
 
 They are separate because the smoke suite's answer **changes with the market rather than with the commit** — a
-push-triggered run would report yesterday's earnings calendar as a regression in today's diff — and because its
-bulk tier spends the key's standing.
+push-triggered run would report yesterday's earnings calendar as a regression in today's diff — and because its bulk
+tier spends the key's standing. Docs is separate so that a broken cross-reference fails under its own name rather than
+as "CI failed".
 
 Branch pushes are built, not just PRs, because work here happens on feature branches that may sit a while before
 one is opened.
@@ -192,7 +193,7 @@ one is opened.
 The CI job is called **`.NET — build + test`** and the docs build job **`Docs — build`**, and `master`'s ruleset
 requires both checks **by name**.
 
-Rename the job and the rule stops matching. GitHub does not report an error — it reports a check that is
+Rename either job and the rule stops matching. GitHub does not report an error — it reports a check that is
 "expected" and never arrives, so every PR waits forever on something that already passed under a different name.
 **If you rename either, update the ruleset in the same change:**
 

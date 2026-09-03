@@ -73,10 +73,10 @@ code used which.
 Because FMP populates fields inconsistently and renames them without notice, and a `required` property turns
 either into an exception that costs the caller **the whole response** rather than one field.
 
-The trade-off is real and is named rather than hidden: a rename **does not fail**. `System.Text.Json` deserialises
-the missing name to null and hands back the same rows of the same type. That is exactly the blind spot the
-**[Live Smoke Suite](live-smoke-suite.md)** exists to cover — it records which fields carried a *value*, not merely that a call
-succeeded.
+The trade-off is real and is named rather than hidden: a rename **does not fail**. `System.Text.Json` deserialises the
+missing name to null and hands back the same rows of the same type. That is exactly the blind spot the
+**[Live Smoke Suite](live-smoke-suite.md)** exists to cover — it records which fields carried a *value*, not merely
+that a call succeeded.
 
 ---
 
@@ -244,11 +244,10 @@ using var fmp = FmpClientFactory.Create(
 Dispose the client: that disposes the container and both `HttpClient`s, and a disposed client refuses to send.
 Options validate in `Create`, not on the first request. No environment variable is read.
 
-Constructing the pieces by hand is also possible — `FmpClient(FmpTransport, FmpBulkTransport)` and the handler
-types are public — but you would be reassembling the throttle and the handler order yourself, and the handler
-**order** is load-bearing (see **[Architecture](architecture.md)**). If the process also has a container registering the SDK on
-the same key, hand both the same `FmpBucketRegistry` so they share one reservoir pair rather than emitting at
-twice the cap.
+Constructing the pieces by hand is also possible — `FmpClient(FmpTransport, FmpBulkTransport)` and the handler types
+are public — but you would be reassembling the throttle and the handler order yourself, and the handler **order** is
+load-bearing (see **[Architecture](architecture.md)**). If the process also has a container registering the SDK on the
+same key, hand both the same `FmpBucketRegistry` so they share one reservoir pair rather than emitting at twice the cap.
 
 ---
 

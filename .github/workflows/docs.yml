@@ -55,11 +55,14 @@ jobs:
         with:
           global-json-file: global.json
 
+      # Its own key rather than ci.yml's: the DocFX tool package is what this workflow adds to the cache, and a key
+      # shared with ci.yml would be saved first by whichever run finished first — never with docfx in it. ci.yml's
+      # key is the restore-keys fallback, so a docs run still starts from CI's packages.
       - name: Cache NuGet packages
         uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
-          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          key: ${{ runner.os }}-nuget-docs-${{ hashFiles('**/*.csproj', '.config/dotnet-tools.json') }}
           restore-keys: ${{ runner.os }}-nuget-
 
       # DocFX is pinned at 2.78.5 in .config/dotnet-tools.json with rollForward: false, so this restores that exact

@@ -57,7 +57,8 @@ a secret in either repository.
     GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-If restore fails here, **[Troubleshooting](troubleshooting.md)** has the four failure modes and what each one looks like.
+If restore fails here, **[Troubleshooting](troubleshooting.md)** has the four failure modes and what each one looks
+like.
 
 ## 2. Install, pinned
 
@@ -159,7 +160,8 @@ Twenty-five groups hang off `FmpClient`. The ten most people start with:
 | `fmp.Economics` | The macro release calendar |
 | `fmp.Bulk` | The `*-bulk` whole-universe CSV feeds, streamed |
 
-Which specific paths are modelled is in **[Endpoint Coverage](endpoint-coverage.md)**; the table itself is generated from the code.
+Which specific paths are modelled is in **[Endpoint Coverage](endpoint-coverage.md)**; the table itself is generated
+from the code.
 
 ## 6. Handle the failures that will actually happen
 
@@ -184,7 +186,8 @@ catch (FmpRateLimitedException ex)                                     // 429, a
 }
 ```
 
-A `null` return is never one of these. **[Error Handling](error-handling.md)** covers the full hierarchy and what null means where.
+A `null` return is never one of these. **[Error Handling](error-handling.md)** covers the full hierarchy and what null
+means where.
 
 ## Two gotchas that catch everyone
 

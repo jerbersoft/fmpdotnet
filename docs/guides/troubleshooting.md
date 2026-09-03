@@ -70,8 +70,8 @@ Most common:
 Options are bound **by name, explicitly** — not by reflection, because `ConfigurationBinder.Bind` is neither trim-
 nor AOT-safe. So a **misspelled key is silently ignored** rather than throwing.
 
-Check the property names against **[Configuration](configuration.md)**. `PerMinuteCap` binds; `PerMinuteLimit` is silently
-nothing.
+Check the property names against **[Configuration](configuration.md)**. `PerMinuteCap` binds; `PerMinuteLimit` is
+silently nothing.
 
 ### A timeout I set is never firing
 
@@ -129,9 +129,9 @@ rather than partitioning. Offset one side.
 Two very different causes, and it matters which.
 
 **FMP renamed a field.** Almost every model property is nullable and none are `required`, so `System.Text.Json`
-deserialises a missing name to null, hands back the same number of rows of the same type, and reports nothing at
-all. This is precisely the failure the **[Live Smoke Suite](live-smoke-suite.md)** exists to catch. If you suspect it, run the sweep
-and read the baseline diff — `set X` becoming `null X` is the alarm.
+deserialises a missing name to null, hands back the same number of rows of the same type, and reports nothing at all.
+This is precisely the failure the **[Live Smoke Suite](live-smoke-suite.md)** exists to catch. If you suspect it, run
+the sweep and read the baseline diff — `set X` becoming `null X` is the alarm.
 
 **You are looking at a bulk shape that genuinely omits it.** The bulk float rows carry five fields where the
 per-symbol endpoint carries six: there is no `source`. Null there means "this shape omits it".
@@ -257,9 +257,10 @@ Set the cap to ~88% of your tier's published limit: `660` for Premium, `2640` fo
 
 ### `FmpApiException` on a bulk call with a null `StatusCode`
 
-You were **throttled**, not given empty data. Bulk reports throttling as HTTP 200 with a JSON error body, and a
-null `StatusCode` is exactly that signal. Retry later — and read **[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)**, because FMP
-warns it restricts keys for frequent bulk abuse.
+You were **throttled**, not given empty data. Bulk reports throttling as HTTP 200 with a JSON error body, and a null
+`StatusCode` is exactly that signal. Retry later — and read
+**[Rate Limits and Bulk Data](rate-limits-and-bulk-data.md)**, because FMP warns it restricts keys for frequent bulk
+abuse.
 
 ### `TimeoutException` on a bulk download
 
@@ -285,6 +286,7 @@ blocks indefinitely. Startup validation rejects this, so it can only happen if y
 * Check whether the behaviour is already recorded in
   [upstream behaviour](../../README.md#upstream-behaviour-the-sdk-handles-for-you).
   Most surprises here are already written down there with the measurement that established them.
-* Run the **[Live Smoke Suite](live-smoke-suite.md)** — it answers "is the SDK still reading the shape FMP is still sending".
+* Run the **[Live Smoke Suite](live-smoke-suite.md)** — it answers "is the SDK still reading the shape FMP is still
+  sending".
 * [Open an issue](https://github.com/jerbersoft/fmpdotnet/issues), including the endpoint, the exception type, and
   the `StatusCode` if there was one.

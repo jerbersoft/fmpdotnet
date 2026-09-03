@@ -10,8 +10,9 @@ Everything on this page applies to both.
 https://nuget.pkg.github.com/jerbersoft/index.json
 ```
 
-GitHub Packages requires authentication for every restore, including for public packages — there is no anonymous
-read. Setup is in **[Getting Started](getting-started.md)**; the reasoning for not being on nuget.org is in the **[FAQ](faq.md)**.
+GitHub Packages requires authentication for every restore, including for public packages — there is no anonymous read.
+Setup is in **[Getting Started](getting-started.md)**; the reasoning for not being on nuget.org is in the
+**[FAQ](faq.md)**.
 
 ## Every push to `master` publishes a prerelease
 
@@ -63,7 +64,8 @@ dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts
 giving a plain `0.1.0`. **NuGet orders a release above every prerelease of the same version**, so a hand-cut build
 always supersedes the CI ones it follows — `0.1.0` outranks `0.1.0-ci.999`.
 
-**No release has been cut yet.** Everything published so far is a `ci.N` prerelease. See the **[Changelog](../changelog.md)**.
+**No release has been cut yet.** Everything published so far is a `ci.N` prerelease. See the
+**[Changelog](../changelog.md)**.
 
 ## Stability policy
 
