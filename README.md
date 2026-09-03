@@ -10,7 +10,7 @@ being spoken to, not the publisher.
 Build order follows what consumers actually call rather than what FMP documents first: FMP documents 243 unique
 `stable/` paths across 29 sections — the asset-class sections re-document `/stable/quote` and friends rather than
 adding endpoints. That count was
-[enumerated and cross-checked](https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md) against two independent
+[enumerated and cross-checked][inventory] against two independent
 sources on 2026-08-27. See [endpoint coverage](#endpoint-coverage) for exactly which of them are modelled, and how
 to reach the rest.
 
@@ -577,7 +577,7 @@ reach is now modelled.
 The balance is lopsided toward equities, and for a structural reason. What has been built so far is price plumbing
 — Quote, Chart and Bulk are complete — and one `GetQuoteAsync` serves equities, ETFs, indices, commodities, forex
 and crypto alike, so the asset-class breadth came free while the equity depth never got built. The
-[endpoint inventory](https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md) splits the remainder section by
+[endpoint inventory][inventory] splits the remainder section by
 section and marks which side of that line each falls on.
 
 That remainder is tracked as one issue under the epic, of 7 paths, carrying the measured path list for its
@@ -1095,3 +1095,4 @@ It is off by default, it applies only to the bulk client — never to the per-sy
 warning the first time it serves anything, so it cannot be on without saying so. Responses that look like an error
 payload are delivered but never kept, so a failure cannot be replayed forever as if it were data.
 
+[inventory]: https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md
