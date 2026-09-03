@@ -167,9 +167,10 @@ by the decision `src/Directory.Build.props` records. The type-level remarks on e
 
 `docs/index.md` with `_layout: landing`, replacing the wiki's Home. In order: the name and one-sentence
 lead; buttons to Getting Started, Reference and the API reference; the three-line usage snippet Home
-opens with; Home's "three things worth knowing up front" (everything throws, bulk is a different animal,
-time is NodaTime); and an Install section that names the feed, gives the two `dotnet add package` lines,
-says to pin an exact prerelease, and links to the README's "Installing and versioning" for the rest. No
+opens with; an Install section that names the feed, gives the two `dotnet add package` lines, says to pin
+an exact prerelease, and links to the README's "Installing and versioning" for the rest; Home's "three
+things worth knowing up front" (everything throws, bulk is a different animal, time is NodaTime); and
+Home's Status paragraph, pointing at the generated coverage table and at Releases and Versioning. No
 version badges: GitHub Packages has none, and a version typed onto the page is the one number on the site
 that goes stale on every push. Home's "What this wiki is, and is not" is not carried over; its content is
 the navigation.
@@ -190,7 +191,9 @@ disagree about what they cost.
 
 1. checkout;
 2. `actions/setup-dotnet` with `global-json-file: global.json`;
-3. the NuGet cache step from `ci.yml`, keyed off the project files;
+3. the NuGet cache step from `ci.yml`, keyed off the project files and `.config/dotnet-tools.json` under a
+   `docs-` prefix, with `ci.yml`'s key as the fallback — the DocFX tool package is what this workflow adds
+   to the cache, and a key shared with `ci.yml` would never save it;
 4. `dotnet tool restore` — the pinned DocFX;
 5. `dotnet restore FmpDotNet.slnx` — so a restore failure is reported as one, rather than from inside
    DocFX's MSBuildWorkspace;
@@ -258,8 +261,10 @@ diff is mechanical and a reviewer can check the rule rather than every instance:
 | `https://github.com/jerbersoft/fmpdotnet/blob/master/README.md#anchor` | 17, at 10 distinct anchors, all in guides | `../../README.md#anchor` — the build validates every one. (The wiki's five other README links were on Home, the sidebar and the footer, none of which move) |
 | `https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/...` | 2 | Unchanged: absolute, because specs are not on the site |
 
-**Two sentences describe "this wiki"** and are reworded to describe the site: the footer's, which
-becomes `_appFooter`, and `Contributing` line 113 ("This wiki holds guides and process…"). Version
+**Two sentences describe "this wiki".** `Contributing` line 113 ("This wiki holds guides and process…") is
+reworded to describe the site. The footer's is replaced: `_appFooter` names the project, its licence and
+the rule the footer carried ("the README is the reference; where a guide and the README disagree, the
+README wins") — the sentence about what the wiki holds has no meaning on the site itself. Version
 examples such as `0.1.0-ci.79` in Getting Started and Releases and Versioning stay as they are; they
 are examples of a shape, and the README's "Installing and versioning" is the canonical description.
 
