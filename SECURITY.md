@@ -67,8 +67,8 @@ and holds an API key. Things that are **in scope**:
   dependencies already **fail the build** — `TreatWarningsAsErrors` covers `NU*` codes, so a newly published
   advisory against any package, direct or transitive, breaks CI rather than adding a line nobody reads.
 * `DeveloperBulkCacheDirectory` serving stale data. That is
-  [documented, warned-about behaviour](https://jerbersoft.github.io/fmpdotnet/guides/rate-limits-and-bulk-data.html) of a
-  development aid that is off by default and logs a warning the first time it serves anything.
+  [documented, warned-about behaviour](https://jerbersoft.github.io/fmpdotnet/guides/rate-limits-and-bulk-data.html)
+  of a development aid that is off by default and logs a warning the first time it serves anything.
 * Anything requiring the attacker to already control the configuration or the process.
 
 ## Handling your own key
