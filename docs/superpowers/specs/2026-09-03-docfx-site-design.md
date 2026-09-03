@@ -182,7 +182,7 @@ stopped compiling into a page; a red step inside CI sends somebody to the test o
 
 **Triggers** match `ci.yml`: every branch push, pull requests to `master`, and manual dispatch. Branch
 pushes are built for the reason `ci.yml` gives — work sits on feature branches before a PR exists, and
-that is when feedback is worth most. Runner minutes are free on this public repository, and two of
+that is when feedback is worth most. Runner minutes are free on this public repository, and three of
 `ci.yml`'s comments that call it private are corrected in the same change so the two workflows do not
 disagree about what they cost.
 
@@ -341,7 +341,7 @@ it is inconvenient.
 ```
 .config/dotnet-tools.json                 new — docfx 2.78.5, rollForward false
 .github/workflows/docs.yml                new — Docs — build, Docs — deploy
-.github/workflows/ci.yml                  two comment lines corrected: the repository is public
+.github/workflows/ci.yml                  three comments corrected: the repository is public
 .gitignore                                docs/_site/, docs/api/*.yml, docs/api/.manifest
 docs/docfx.json                           new
 docs/toc.yml                              new — the top navigation
@@ -381,7 +381,8 @@ tests/FmpDotNet.Tests/DocsSiteTests.cs    new — the two tests above
 - `dotnet tool restore && dotnet docfx docs/docfx.json --warningsAsErrors` is green locally: 0 warnings
 - Every page in the migration table is reachable from the navigation, and the top nav is Guides →
   Reference → API reference → Changelog → Packages → GitHub
-- `git grep fmpdotnet/wiki` over tracked files finds nothing
+- `git grep fmpdotnet/wiki` over tracked files outside `docs/superpowers/` finds nothing (the design and plan name
+  the URL as the thing being retired)
 - `dotnet test FmpDotNet.slnx` is green with `DocsSiteTests` included
 - Merged; `Docs — deploy` green; the four URLs in "Retirement" step 2 return 200
 - `Docs — build` is a required check on `master`

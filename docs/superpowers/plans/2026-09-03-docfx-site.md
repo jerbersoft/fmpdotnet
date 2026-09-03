@@ -57,7 +57,7 @@ README.md                                 Task 2   ## Documentation; two spec li
 CONTRIBUTING.md                           Task 4   seven links to the site
 SECURITY.md                               Task 4   three links to the site
 src/Directory.Build.props                 Task 4   PackageProjectUrl → the site
-.github/workflows/ci.yml                  Task 4   two comment lines: the repository is public
+.github/workflows/ci.yml                  Task 4   three comments corrected: the repository is public
 .github/workflows/docs.yml                Task 6   new — Docs — build, Docs — deploy
 tests/FmpDotNet.Tests/DocsSiteTests.cs    Task 3   new — two tests
 docs/superpowers/specs/2026-09-03-docfx-site-design.md   Task 5   line 3: the issue number
@@ -767,10 +767,11 @@ EOF
 - Modify: `CONTRIBUTING.md:3-4`, `CONTRIBUTING.md:57`, `CONTRIBUTING.md:83`, `CONTRIBUTING.md:94-97`
 - Modify: `SECURITY.md:42`, `SECURITY.md:70`, `SECURITY.md:86`
 - Modify: `src/Directory.Build.props:62`
-- Modify: `.github/workflows/ci.yml:46-48`, `.github/workflows/ci.yml:65-66`
+- Modify: `.github/workflows/ci.yml:46-48`, `.github/workflows/ci.yml:65-66`, `.github/workflows/ci.yml:104-105`
 
 **Interfaces:**
-- Produces: no tracked file contains `fmpdotnet/wiki`, which Task 7's definition of done checks with `git grep`.
+- Produces: no tracked file outside `docs/superpowers/` contains `fmpdotnet/wiki`, which Task 7's definition of done checks
+  with `git grep`. The spec and this plan name the URL as the thing being retired; they are records, not links.
 
 - [ ] **Step 1: Point `CONTRIBUTING.md` and `SECURITY.md` at the site**
 
@@ -805,7 +806,7 @@ Thanks for looking. This is the short version; the full guide is
 **[Contributing](https://jerbersoft.github.io/fmpdotnet/guides/contributing.html)** on the documentation site.
 ```
 
-Run: `git grep -n "fmpdotnet/wiki" -- . ; echo "---"; grep -c "jerbersoft.github.io/fmpdotnet/guides/" CONTRIBUTING.md SECURITY.md`
+Run: `git grep -n "fmpdotnet/wiki" -- . ':!docs/superpowers' ; echo "---"; grep -c "jerbersoft.github.io/fmpdotnet/guides/" CONTRIBUTING.md SECURITY.md`
 Expected: nothing before `---`; then `CONTRIBUTING.md:7` and `SECURITY.md:3`.
 
 - [ ] **Step 2: `PackageProjectUrl` becomes the site**
@@ -850,7 +851,7 @@ with:
 # its runs are the record for a merged commit and should complete even if another merge lands behind them.
 ```
 
-and lines 65-66:
+lines 65-66:
 
 ```
     # Explicit, because the GitHub default is 360 minutes. On a billed private repo a single hung step would
@@ -864,7 +865,21 @@ with:
     # before anyone noticed.
 ```
 
-Run: `grep -n -i "private\|billed" .github/workflows/ci.yml; echo "exit $?"`
+and lines 104-105:
+
+```
+      # Failure only. These are read when something broke; uploading them on every green run bills artifact
+      # storage on a private repo for files nobody opens.
+```
+
+with:
+
+```
+      # Failure only. These are read when something broke; uploading them on every green run would store
+      # artifacts nobody opens.
+```
+
+Run: `grep -n -i "private\|billed\|bills" .github/workflows/ci.yml; echo "exit $?"`
 Expected: no matches, `exit 1`.
 
 - [ ] **Step 4: Commit**
@@ -1210,7 +1225,7 @@ taken only with the repository owner's go-ahead, the way a merge is.
 
 - [ ] **Step 1: Green on the branch**
 
-Run: `dotnet test FmpDotNet.slnx -- RunConfiguration.TreatNoTestsAsError=true && dotnet docfx docs/docfx.json --warningsAsErrors >/dev/null && git grep -n "fmpdotnet/wiki" -- . ; echo "grep exit $?"`
+Run: `dotnet test FmpDotNet.slnx -- RunConfiguration.TreatNoTestsAsError=true && dotnet docfx docs/docfx.json --warningsAsErrors >/dev/null && git grep -n "fmpdotnet/wiki" -- . ':!docs/superpowers' ; echo "grep exit $?"`
 Expected: every test project green, the site built, `grep exit 1`.
 
 - [ ] **Step 2: Open the pull request**
