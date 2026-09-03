@@ -256,7 +256,7 @@ class Report([FromKeyedServices("research")] FmpClient fmp) { … }
 ```
 
 Keyed `FmpTransport`, `FmpBulkTransport` and `FmpClient` per name. The default registration additionally
-registers **unkeyed** `FmpTransport` and `FmpBulkTransport`, because README:528 and README:541 document
+registers **unkeyed** `FmpTransport` and `FmpBulkTransport`, because the README's "Reaching an endpoint that is not modelled" section documents
 those as the supported way to reach one of FMP's endpoints the SDK has not modelled — that escape hatch
 must not become keyed-only.
 
@@ -635,7 +635,7 @@ to the extensions package and is exercised only through `AddFmp`.
 - same key across two names → one reservoir pair; different keys → two
 - a named registration's options validate under its own name
 - the unkeyed `FmpTransport`/`FmpBulkTransport` still resolve when a default registration exists
-  (the README:528 escape hatch)
+  (the README's "Reaching an endpoint that is not modelled" escape hatch)
 
 **`FmpBuilderTests`**
 - a consumer handler added via `ConfigureStandardClient` sits **outside the retry handler**. #44 makes

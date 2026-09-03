@@ -445,8 +445,8 @@ public class AddFmpTests
             .AddFmp("research", o => o.ApiKey = "r")
             .BuildServiceProvider();
 
-        // The README's "Reaching an endpoint that is not modelled" section resolves the default transports by type, and a
-        // named registration beside them must not make that keyed-only.
+        // The README's "Reaching an endpoint that is not modelled" section shows a consumer resolving the default
+        // transports by type, and a named registration beside them must not make that keyed-only.
         Assert.NotNull(provider.GetRequiredService<FmpTransport>());
         Assert.NotNull(provider.GetRequiredService<FmpBulkTransport>());
         Assert.NotNull(provider.GetRequiredKeyedService<FmpTransport>("research"));

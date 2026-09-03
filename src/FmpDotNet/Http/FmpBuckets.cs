@@ -1,10 +1,15 @@
 namespace FmpDotNet.Http;
 
-/// <summary>The process-wide throttle reservoirs, one per traffic class.
+/// <summary>A registration's throttle reservoirs, one per traffic class.
 ///
-/// <para>Registered as a single singleton rather than two so the invariant "exactly one reservoir per class" is
+/// <para>One object holding both rather than two, so the invariant "exactly one reservoir per class" is
 /// structural. Handlers are transient and <c>HttpClientFactory</c> rebuilds them; a per-handler bucket meant
-/// several independent reservoirs and an aggregate rate above the cap.</para></summary>
+/// several independent reservoirs and an aggregate rate above the cap.</para>
+///
+/// <para>Pairs are handed out by <see cref="FmpBucketRegistry"/>, one per API key within a container, so every
+/// registration on the same key draws from the same pair. The default registration also exposes its pair as an
+/// unkeyed singleton, which is what <c>GetRequiredService&lt;FmpBuckets&gt;()</c> returned before registrations
+/// had names.</para></summary>
 public sealed class FmpBuckets
 {
     /// <summary>Creates the pair from an options snapshot.</summary>

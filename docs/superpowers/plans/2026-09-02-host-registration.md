@@ -729,8 +729,9 @@ internal static class FmpRegistration
     {
         var name = Options.DefaultName;
 
-        // README:528 and :541 document GetRequiredService<FmpTransport>() and <FmpBulkTransport>() as the way to
-        // reach an endpoint the SDK has not modelled. That escape hatch stays unkeyed.
+        // The README's "Reaching an endpoint that is not modelled" section documents
+        // GetRequiredService<FmpTransport>() and <FmpBulkTransport>() as the way to reach an endpoint the SDK has
+        // not modelled. That escape hatch stays unkeyed.
         services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpTransport>(name));
         services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpBulkTransport>(name));
         services.TryAddTransient(sp => sp.GetRequiredKeyedService<FmpClient>(name));
@@ -1461,8 +1462,8 @@ Append to `AddFmpTests.cs`, before the class's closing brace. `FailingHandler` i
             .AddFmp("research", o => o.ApiKey = "r")
             .BuildServiceProvider();
 
-        // README:528 and :541 — reaching an unmodelled endpoint resolves the default transports by type, and a
-        // named registration beside them must not make that keyed-only.
+        // The README's "Reaching an endpoint that is not modelled" section shows a consumer resolving the default
+        // transports by type, and a named registration beside them must not make that keyed-only.
         Assert.NotNull(provider.GetRequiredService<FmpTransport>());
         Assert.NotNull(provider.GetRequiredService<FmpBulkTransport>());
         Assert.NotNull(provider.GetRequiredKeyedService<FmpTransport>("research"));
@@ -2333,4 +2334,4 @@ Wait for **`.NET — build + test`** to go green before merging.
 
 **Type and name consistency.** `FmpRegistration.Register` is three-argument in Task 3 and four-argument from Task 4 on; Tasks 5, 6 and 7 call the four-argument form through the public overloads. `BucketsFor(sp, name)` in Task 3 becomes `BucketsFor(sp, name, registry)` in Task 4, and `RegisterDefaultOnly` gains the same parameter. `StandardClientName`/`BulkClientName` are defined in Task 3 and used in Tasks 3, 5 and 6 with the same spelling. `IFmpBuilder`'s four methods are named the same in Task 4's interface, Task 4's tests, Task 6's factory and Task 8's README. `FmpClientFactory.Create`'s parameter names — `configure`, `loggerFactory`, `registry`, `configureBuilder` — match between Task 6's code, Task 6's tests (which use them as named arguments) and Task 8's README. The host overloads' parameter names — `name`, `sectionName`, `configure` / `configure`, `name`, `configureBuilder` — match between Task 7's code and tests. Test counts chain: 1,463 → 1,466 (Task 1, +3) → 1,471 (Task 2, +5) → 1,472 (Task 7, +1); 23 → 27 (Task 3, +4) → 34 (Task 4, +7) → 39 (Task 5, +5) → 45 (Task 6, +6) → 48 (Task 7, +3).
 
-**Facts verified against the tree rather than assumed.** Every endpoint group's primary constructor takes exactly one transport (`grep` across `src/FmpDotNet/Endpoints/`, 25 hits, one `FmpBulkTransport`). `new FmpClient(` has no caller in `src/`, `tests/` or `README.md`. The seven handler constructors' shapes are as Task 3 cites them. `FmpTransport` reads `options.Value` in a field initialiser, so `Options.Create` of an unvalidated `FmpOptions` is enough for Task 1's tests. `stable/available-sectors` answers one-property objects under `sector` (`DirectoryEndpoints.cs:70-83`), which is why Task 6's stub returns `[{"sector":"Technology"}]`. `Microsoft.Extensions.Hosting` and `.Hosting.Abstractions` at 10.0.9 are in the local package cache. `TryAddKeyedTransient` with a `(IServiceProvider, object?)` factory is in `DependencyInjection.Abstractions` 10.0.9. The README's escape-hatch code is at lines 528 and 541 after #61.
+**Facts verified against the tree rather than assumed.** Every endpoint group's primary constructor takes exactly one transport (`grep` across `src/FmpDotNet/Endpoints/`, 25 hits, one `FmpBulkTransport`). `new FmpClient(` has no caller in `src/`, `tests/` or `README.md`. The seven handler constructors' shapes are as Task 3 cites them. `FmpTransport` reads `options.Value` in a field initialiser, so `Options.Create` of an unvalidated `FmpOptions` is enough for Task 1's tests. `stable/available-sectors` answers one-property objects under `sector` (`DirectoryEndpoints.cs:70-83`), which is why Task 6's stub returns `[{"sector":"Technology"}]`. `Microsoft.Extensions.Hosting` and `.Hosting.Abstractions` at 10.0.9 are in the local package cache. `TryAddKeyedTransient` with a `(IServiceProvider, object?)` factory is in `DependencyInjection.Abstractions` 10.0.9. The README's escape-hatch code is its "Reaching an endpoint that is not modelled" section (lines 528 and 541 after #61; Task 8's README additions move it, so the code cites the section by name).
