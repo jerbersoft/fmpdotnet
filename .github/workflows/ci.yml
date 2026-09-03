@@ -101,8 +101,8 @@ jobs:
       - name: Test
         run: dotnet test FmpDotNet.slnx --no-build --logger trx -- RunConfiguration.TreatNoTestsAsError=true
 
-      # Failure only. These are read when something broke; uploading them on every green run bills artifact
-      # storage on a private repo for files nobody opens.
+      # Failure only. These are read when something broke; uploading them on every green run would store
+      # artifacts nobody opens.
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7
