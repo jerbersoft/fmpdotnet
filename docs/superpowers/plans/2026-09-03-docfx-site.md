@@ -1274,7 +1274,9 @@ for rule in r["rules"]:
     if rule["type"] == "required_status_checks":
         checks = rule["parameters"]["required_status_checks"]
         if not any(c["context"] == "Docs — build" for c in checks):
-            checks.append({"context": "Docs — build"})
+            # integration_id 15368 is GitHub Actions, the same id the existing check carries; without it the
+            # rule would accept a check of that name from any app.
+            checks.append({"context": "Docs — build", "integration_id": 15368})
 body = {k: r[k] for k in ("name", "target", "enforcement", "bypass_actors", "conditions", "rules")}
 pathlib.Path(str(p) + ".put").write_text(json.dumps(body))
 EOF
