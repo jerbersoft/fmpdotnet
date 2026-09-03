@@ -1,0 +1,23 @@
+# The top navigation bar.
+#
+# Guides first, the README second, the member list third: a reader who lands here needs to be taught the
+# library, then to look a measured fact up, and only then a member list. Reference is the repository README
+# rendered from the same file (see docfx.json), so it has no page of its own under docs/.
+#
+# href on a folder entry makes the folder's toc.yml the sidebar; topicHref is the page the nav link opens. Without
+# topicHref an entry lands on whichever page sorts first, and the hand-written index is built but unreachable.
+
+- name: Guides
+  href: guides/
+  topicHref: guides/getting-started.md
+- name: Reference
+  href: ../README.md
+- name: API reference
+  href: api/
+  topicHref: api/index.md
+- name: Changelog
+  href: changelog.md
+- name: Packages
+  href: https://github.com/jerbersoft/fmpdotnet/packages
+- name: GitHub
+  href: https://github.com/jerbersoft/fmpdotnet

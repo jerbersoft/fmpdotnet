@@ -1,0 +1,48 @@
+# The guides sidebar. Grouping and order are the wiki's _Sidebar.md, carried over rather than reinvented: it is
+# the navigation readers already knew, and #71 moved these pages without rewriting them, so reordering them here
+# would have been an undiscussed second change. Changelog left the Releases group for the top navigation, where a
+# reader arriving from a package version looks for it.
+#
+# DocsSiteTests checks that every guides/*.md is listed here and that every href exists — DocFX builds an orphan
+# page without a word.
+
+- name: Using it
+  items:
+    - name: Getting Started
+      href: getting-started.md
+    - name: Configuration
+      href: configuration.md
+    - name: Endpoint Coverage
+      href: endpoint-coverage.md
+    - name: Recipes
+      href: recipes.md
+    - name: Error Handling
+      href: error-handling.md
+
+- name: Operating it
+  items:
+    - name: Rate Limits and Bulk Data
+      href: rate-limits-and-bulk-data.md
+    - name: Troubleshooting
+      href: troubleshooting.md
+
+- name: Understanding it
+  items:
+    - name: FAQ
+      href: faq.md
+    - name: Architecture
+      href: architecture.md
+
+- name: Contributing
+  items:
+    - name: Contributing
+      href: contributing.md
+    - name: Development
+      href: development.md
+    - name: Live Smoke Suite
+      href: live-smoke-suite.md
+
+- name: Releases
+  items:
+    - name: Releases and Versioning
+      href: releases-and-versioning.md

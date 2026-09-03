@@ -1,7 +1,7 @@
 # Contributing to FmpDotNet
 
-Thanks for looking. This is the short version; the full guide lives in the
-**[wiki](https://github.com/jerbersoft/fmpdotnet/wiki/Contributing)**.
+Thanks for looking. This is the short version; the full guide is
+**[Contributing](https://jerbersoft.github.io/fmpdotnet/guides/contributing.html)** on the documentation site.
 
 ## The one principle
 
@@ -54,7 +54,7 @@ FMPDOTNET_UPDATE_README=1 dotnet test
 until a consumer hits it. An offline test enforces this, so forgetting it fails the build.
 
 **Re-record the smoke baseline**, after reading the diff —
-see [Live Smoke Suite](https://github.com/jerbersoft/fmpdotnet/wiki/Live-Smoke-Suite).
+see [Live Smoke Suite](https://jerbersoft.github.io/fmpdotnet/guides/live-smoke-suite.html).
 
 ## Design conventions
 
@@ -80,7 +80,7 @@ Each of these has a reason, and the reason is not taste:
 `StatusCode` if there was one — for `FmpApiException` a **null** `StatusCode` is itself meaningful, and for
 `FmpPlanRestrictedException` 402 and 403 mean different things.
 
-Please check [Troubleshooting](https://github.com/jerbersoft/fmpdotnet/wiki/Troubleshooting) first.
+Please check [Troubleshooting](https://jerbersoft.github.io/fmpdotnet/guides/troubleshooting.html) first.
 
 **Never paste an API key**, including inside a URL. The SDK redacts keys from its own exception messages and
 request renderings, so an unmodified stack trace is safe to share.
@@ -91,7 +91,7 @@ For a security problem, see [SECURITY.md](SECURITY.md) — please do not open a 
 
 | | |
 |---|---|
-| Full contributing guide | [wiki/Contributing](https://github.com/jerbersoft/fmpdotnet/wiki/Contributing) |
-| Building, testing, adding an endpoint | [wiki/Development](https://github.com/jerbersoft/fmpdotnet/wiki/Development) |
-| How the pieces fit | [wiki/Architecture](https://github.com/jerbersoft/fmpdotnet/wiki/Architecture) |
-| The live API sweep | [wiki/Live-Smoke-Suite](https://github.com/jerbersoft/fmpdotnet/wiki/Live-Smoke-Suite) |
+| Full contributing guide | [Contributing](https://jerbersoft.github.io/fmpdotnet/guides/contributing.html) |
+| Building, testing, adding an endpoint | [Development](https://jerbersoft.github.io/fmpdotnet/guides/development.html) |
+| How the pieces fit | [Architecture](https://jerbersoft.github.io/fmpdotnet/guides/architecture.html) |
+| The live API sweep | [Live Smoke Suite](https://jerbersoft.github.io/fmpdotnet/guides/live-smoke-suite.html) |

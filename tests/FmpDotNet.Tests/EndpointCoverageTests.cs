@@ -1,6 +1,5 @@
 using System.Net;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using FmpDotNet.Models;
@@ -476,15 +475,6 @@ public partial class EndpointCoverageTests
         return markdown.Append(EndMarker).ToString().ReplaceLineEndings("\n");
     }
 
-    /// <summary>Locates the README from this file's compile-time path, so the test does not depend on the working
-    /// directory a runner happens to choose.</summary>
-    private static string ReadmePath([CallerFilePath] string here = "")
-    {
-        var directory = new DirectoryInfo(Path.GetDirectoryName(here)!);
-        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "FmpDotNet.slnx")))
-            directory = directory.Parent;
-
-        Assert.NotNull(directory);
-        return Path.Combine(directory.FullName, "README.md");
-    }
+    /// <summary>Locates the README under <see cref="RepositoryLayout.Root"/>.</summary>
+    private static string ReadmePath() => Path.Combine(RepositoryLayout.Root(), "README.md");
 }
