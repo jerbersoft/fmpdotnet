@@ -254,8 +254,8 @@ diff is mechanical and a reviewer can check the rule rather than every instance:
 
 | Form | Count | Becomes |
 |---|---|---|
-| `[[Page Name]]`, one of them `[[FAQ\|FAQ]]` | 102 | `[Page Name](page-name.md)` from a guide; `guides/page-name.md` from `changelog.md`; `[[Changelog]]` from a guide is `../changelog.md`; the one `[[Home]]` is `../index.md` |
-| `https://github.com/jerbersoft/fmpdotnet/blob/master/README.md#anchor` | 22, at 10 distinct anchors | `../../README.md#anchor` from a guide, `../README.md#anchor` from `changelog.md` — the build validates every one |
+| `[[Page Name]]`, one of them `[[FAQ\|FAQ]]` | 70 | `[Page Name](page-name.md)` from a guide; `guides/page-name.md` from `changelog.md`; `[[Changelog]]` from a guide is `../changelog.md`. No migrating page links to `Home` |
+| `https://github.com/jerbersoft/fmpdotnet/blob/master/README.md#anchor` | 17, at 10 distinct anchors, all in guides | `../../README.md#anchor` — the build validates every one. (The wiki's five other README links were on Home, the sidebar and the footer, none of which move) |
 | `https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/...` | 2 | Unchanged: absolute, because specs are not on the site |
 
 **Two sentences describe "this wiki"** and are reworded to describe the site: the footer's, which
