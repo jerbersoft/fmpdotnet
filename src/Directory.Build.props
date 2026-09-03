@@ -44,14 +44,16 @@
 
     VersionPrefix, not Version. publish.yml packs a release with no suffix and a prerelease with
     `-p:VersionSuffix=ci.<CI run number>`, so every push that passes CI on master publishes a distinct prerelease
-    (0.9.0-ci.91, 0.9.0-ci.92, ...) and a published GitHub Release publishes the plain VersionPrefix. nuget.org
-    refuses to overwrite an existing version, exactly as GitHub Packages did, so the suffix is not optional.
+    (0.10.0-ci.94, 0.10.0-ci.95, ...) and a published GitHub Release publishes the plain VersionPrefix.
+    nuget.org refuses to overwrite an existing version, exactly as GitHub Packages did, so the suffix is not
+    optional.
 
     THE VALUE HERE IS THE VERSION BEING PREPARED, NOT THE ONE LAST RELEASED. NuGet orders every prerelease of a
-    version BELOW the release of that version, so leaving this at 0.9.0 after 0.9.0 ships would publish
-    0.9.0-ci.N builds that no consumer can ever resolve as the latest — permanently invisible, and occupying
+    version BELOW the release of that version, so leaving this at 0.9.0 after 0.9.0 shipped would publish
+    0.9.0-ci.N builds that no consumer could ever resolve as the latest — permanently invisible, and occupying
     permanent public version slots, because nuget.org has no delete. Cutting a release is therefore two steps:
-    tag it, then bump this. The procedure is written down under "Cutting a release" in
+    tag it, then bump this. 0.9.0 was released on 2026-09-03 and this was bumped the same day, which is the
+    pattern to follow. The procedure is written down under "Cutting a release" in
     docs/guides/releases-and-versioning.md, not only in this comment.
 
     One VersionPrefix for both packages is also what makes the pair consistent: `dotnet pack` of a project with
@@ -60,7 +62,7 @@
     together from one run.
   -->
   <PropertyGroup>
-    <VersionPrefix>0.9.0</VersionPrefix>
+    <VersionPrefix>0.10.0</VersionPrefix>
     <Authors>Herbert Sabanal</Authors>
     <RepositoryUrl>https://github.com/jerbersoft/fmpdotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
