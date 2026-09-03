@@ -19,6 +19,18 @@ solution green and offline.
 The SDK feature band is pinned in `global.json`, so your machine and the CI runner resolve the same compiler. Do
 not pass `--dotnet-version` anywhere; it would let the two disagree silently.
 
+**The documentation site** builds from `docs/` with DocFX, pinned at 2.78.5 in `.config/dotnet-tools.json`:
+
+```bash
+dotnet tool restore
+dotnet docfx docs/docfx.json --warningsAsErrors    # what docs.yml runs: metadata, then build; a warning fails it
+dotnet docfx docs/docfx.json --serve               # the same, then serves the site locally
+```
+
+A DocFX warning is nearly always a link that will not resolve — a README section that was renamed, a guide that
+moved — which on a published site is a dead link nobody reports. `docs/api/*.yml` and `docs/_site/` are generated
+and gitignored; `docs/api/index.md` is hand-written.
+
 ## Layout
 
 ```
@@ -45,6 +57,13 @@ src/FmpDotNet.Extensions.DependencyInjection/     the registration package
 tests/FmpDotNet.Tests/                                  stub-driven unit suite — runs everywhere, no key
 tests/FmpDotNet.Extensions.DependencyInjection.Tests/   the registration surface, against a real container
 tests/FmpDotNet.SmokeTests/                             live API sweep — skips itself without a key
+
+docs/                                   the documentation site — jerbersoft.github.io/fmpdotnet
+  docfx.json, toc.yml, index.md         configuration, top navigation, landing page
+  guides/                               these pages, and their sidebar toc.yml
+  api/index.md                          hand-written front of the generated API reference
+  changelog.md
+  superpowers/                          designs, plans and measurements; never published
 ```
 
 ## Build policy
@@ -153,11 +172,12 @@ For the smoke suite, pass the key on the command line rather than storing it:
 FMP_API_KEY=… dotnet test tests/FmpDotNet.SmokeTests
 ```
 
-## The two workflows
+## The three workflows
 
 | Workflow | Trigger | What it guards |
 |---|---|---|
 | **CI** (`ci.yml`) | every push to any branch, PRs to `master` | build + test, then publish to GitHub Packages on `master` |
+| **Docs** (`docs.yml`) | every push to any branch, PRs to `master` | that the site builds with zero warnings; deploys it from `master` |
 | **Live smoke** (`smoke.yml`) | Mondays 06:17 UTC, or manual dispatch | that FMP still sends the shapes the SDK reads |
 
 They are separate because the smoke suite's answer **changes with the market rather than with the commit** — a
@@ -167,13 +187,14 @@ bulk tier spends the key's standing.
 Branch pushes are built, not just PRs, because work here happens on feature branches that may sit a while before
 one is opened.
 
-### One name you must not change casually
+### Two names you must not change casually
 
-The CI job is called **`.NET — build + test`**, and `master`'s ruleset requires that check **by name**.
+The CI job is called **`.NET — build + test`** and the docs build job **`Docs — build`**, and `master`'s ruleset
+requires both checks **by name**.
 
 Rename the job and the rule stops matching. GitHub does not report an error — it reports a check that is
 "expected" and never arrives, so every PR waits forever on something that already passed under a different name.
-**If you rename it, update the ruleset in the same change:**
+**If you rename either, update the ruleset in the same change:**
 
 ```bash
 gh api repos/jerbersoft/fmpdotnet/rulesets

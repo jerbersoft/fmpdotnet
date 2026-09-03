@@ -16,6 +16,23 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 Everything below is in `master` and available in the latest `0.1.0-ci.N` prerelease.
 
+### The documentation site — #71 · 2026-09-03
+
+The wiki's pages, the README and the API reference on one site:
+[jerbersoft.github.io/fmpdotnet](https://jerbersoft.github.io/fmpdotnet/). The design is at
+`docs/superpowers/specs/2026-09-03-docfx-site-design.md`.
+
+**Added**
+- A DocFX site built from `docs/` on every push by `docs.yml` with `--warningsAsErrors`, and deployed from `master`:
+  the guides, the README rendered as Reference from the same file, an API reference generated from the doc
+  comments of both packages, and this changelog. A guide's link to a README section is validated by the build.
+- `DocsSiteTests` — every project under `src/` is in the API reference, and every guide is in the sidebar.
+- `PackageProjectUrl` is the site, so a package page's "Project website" lands on the documentation.
+
+**Changed**
+- The fourteen wiki pages moved into `docs/guides/` and `docs/changelog.md`, prose unchanged; the wiki is disabled,
+  and its URLs redirect to the repository. `CONTRIBUTING.md` and `SECURITY.md` link to the site.
+
 ### Host registration — #65 · 2026-09-02 → 2026-09-03
 
 Four ways to register the SDK, one wiring path. The design is at

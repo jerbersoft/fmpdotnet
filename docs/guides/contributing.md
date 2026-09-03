@@ -113,6 +113,20 @@ The README is the canonical reference and is expected to change with the code. I
 * The guides on this site hold the how-to and the process. They deliberately **link into the README** for measured
   numbers rather than restating them, so there is only ever one copy to keep true. Please keep it that way.
 
+**Where a fact lives.** One canonical copy of each, and a change to behaviour lands in the same pull request as the
+change to the page describing it:
+
+| Content | Home |
+|---|---|
+| Guides, runbooks, troubleshooting, FAQ | `docs/guides/`, on this site |
+| Measured upstream behaviour, the endpoint table, the registration paths, versioning | `README.md`, rendered on this site as [Reference](../../README.md) |
+| API | The XML doc comments; the [API reference](../api/index.md) renders them and does not restate them |
+| Changelog | [`docs/changelog.md`](../changelog.md) |
+| Designs, plans and measurements | `docs/superpowers/`, never published |
+
+The site is built with `--warningsAsErrors`, so a link to a README section that no longer exists fails the build
+rather than becoming a dead link nobody reports. [Development](development.md) has the build command.
+
 ## Reporting a problem
 
 [Open an issue](https://github.com/jerbersoft/fmpdotnet/issues) with:

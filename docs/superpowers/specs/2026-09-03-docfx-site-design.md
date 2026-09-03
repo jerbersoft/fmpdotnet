@@ -1,6 +1,6 @@
 # The documentation site — design, 2026-09-03
 
-No issue yet; one should be opened before implementation, per CONTRIBUTING.
+Issue: #71. Plan: `docs/superpowers/plans/2026-09-03-docfx-site.md`.
 
 This repository documents itself in three places that do not know about each other. The README is the
 reference: the generated endpoint table, the measured upstream behaviour, the registration paths, the
