@@ -75,12 +75,12 @@ public sealed class FmpApiException : FmpException
 /// which is exactly what FMP warns it will do to a key that abuses the bulk endpoints. Reporting both as "your
 /// plan does not cover this" sends someone to the billing page over a broken credential.</para>
 ///
-/// <para><b>Gating is not permanent and must not be cached as if it were.</b> Trader's adapter recorded
+/// <para><b>Gating is not permanent and must not be cached as if it were.</b> A consumer's adapter recorded
 /// <c>profile-bulk</c> and <c>shares-float-all</c> as 402 on Premium; both answered 200 when re-probed on
 /// 2026-08-26. Code that decides once that an endpoint is unavailable goes stale silently, and the SDK
 /// deliberately carries no tier map for the same reason — entitlement moves, and it varies per key.</para>
 ///
-/// <para><b>The evidence in that paragraph was misread — corrected 2026-09-02 (#45).</b> Trader's record has
+/// <para><b>The evidence in that paragraph was misread — corrected 2026-09-02 (#45).</b> That consumer's record has
 /// <c>profile-bulk</c> at 402 on a <i>free</i> key (2026-07-23), and <c>shares-float-all</c> was never 402 there at
 /// all: it answered 200 with a partial page on free and on Premium, "NOT 402" in the regression test's own words.
 /// The 2026-08-26 re-probe was on this repository's key, which is Ultimate — so those two facts show a ladder,

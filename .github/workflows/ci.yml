@@ -111,7 +111,7 @@ jobs:
           path: '**/TestResults/*.trx'
           retention-days: 14
 
-  # Publishes the SDK to this repository's GitHub Packages NuGet feed, which is how `trader` consumes it (#10).
+  # Publishes the SDK to this repository's GitHub Packages NuGet feed (#10).
   #
   # Only on master, and only after the build+test job is green — a package that exists is a package someone can
   # restore, so publishing an unverified one is worse than publishing nothing.
@@ -119,16 +119,16 @@ jobs:
   # VERSIONING. Every push publishes 0.1.0-ci.<run number>. Two facts force this shape:
   #   * GitHub Packages REFUSES to overwrite an existing NuGet version. A fixed 0.1.0 would publish once and
   #     then fail this job on every subsequent push — a red CI that means nothing.
-  #   * A consumer pinning an exact prerelease gets a build that cannot drift. `trader` pins one, so "which SDK
-  #     did this trader commit build against" is answerable from trader's own git history.
+  #   * A consumer pinning an exact prerelease gets a build that cannot drift, and "which SDK did this commit
+  #     build against" is answerable from the consumer's own git history.
   # `github.run_number` increments per workflow run and never resets, so versions are monotonic. A RE-RUN keeps
   # the same number, which is why --skip-duplicate is here: re-running a green build should be a no-op, not a
   # failure. A hand-cut release later packs without the suffix, and plain 0.1.0 outranks every 0.1.0-ci.N.
   #
-  # No PAT. GITHUB_TOKEN can write to its OWN repository's package registry given `packages: write`. Trader's
-  # CI reads this feed with ITS own GITHUB_TOKEN, which works because each package grants the trader repository
-  # read access under that package's "Manage Actions access" setting — a one-off grant in the package settings,
-  # not a secret in either repo. The grant is per package, not per repository: a package that does not exist yet
+  # No PAT. GITHUB_TOKEN can write to its OWN repository's package registry given `packages: write`. A consumer's
+  # CI reads this feed with ITS own GITHUB_TOKEN, which works once each package grants that repository read
+  # access under the package's "Manage Actions access" setting — a one-off grant in the package settings, not a
+  # secret in either repo. The grant is per package, not per repository: a package that does not exist yet
   # cannot carry it, so the first publish of a new package (FmpDotNet.Extensions.DependencyInjection, #61) is
   # followed by repeating the grant on it. That is the only manual step in the whole chain.
   publish:
