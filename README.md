@@ -7,17 +7,17 @@ called `FinancialModelingPrep` reads as something FMP publishes and supports, an
 client. Types keep the `Fmp` prefix (`FmpClient`, `FmpOptions`, `FmpTransport`) because they name the API
 being spoken to, not the publisher.
 
-Built to be adopted by the `trader` repository, so build order follows what trader calls rather than what FMP
-documents first: FMP documents 243 unique `stable/` paths across 29 sections — the asset-class sections
-re-document `/stable/quote` and friends rather than adding endpoints. That count was
+Build order follows what consumers actually call rather than what FMP documents first: FMP documents 243 unique
+`stable/` paths across 29 sections — the asset-class sections re-document `/stable/quote` and friends rather than
+adding endpoints. That count was
 [enumerated and cross-checked](docs/superpowers/specs/2026-08-27-endpoint-inventory.md) against two independent
 sources on 2026-08-27. See [endpoint coverage](#endpoint-coverage) for exactly which of them are modelled, and how
 to reach the rest.
 
 ## Status
 
-Every endpoint `Trader.Adapters.MarketData.Fmp` calls is modelled, which is what that adapter's removal was
-waiting on — along with the whole `*-bulk` surface and the universe and directory lists. The supporting
+The endpoints an application typically calls are modelled, along with the whole `*-bulk` surface and the universe
+and directory lists. The supporting
 machinery is in place too: options and validation, `AddFmp` in the `FmpDotNet.Extensions.DependencyInjection`
 package, the two throttle reservoirs, per-attempt timeouts, the JSON and CSV pipelines, and a developer disk
 cache for bulk responses.
@@ -917,10 +917,10 @@ no-op rather than a failure.
 
 **Pin an exact prerelease.** A floating reference to a feed that gains a version on every push is a build that
 changes under you. Pinning also makes "which SDK did this commit build against" answerable from your own git
-history — which is how `trader` consumes it. A project that references both packages directly pins them to the
-same version: the extensions package depends on the core as a floor, not an exact version, so NuGet will pair
-an older `AddFmp` with a newer core, and that pairing breaks the first time the core reshapes something the
-older wiring constructs — the constructor change in #65 is the live example.
+history. A project that references both packages directly pins them to the same version: the extensions package
+depends on the core as a floor, not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and
+that pairing breaks the first time the core reshapes something the older wiring constructs — the constructor
+change in #65 is the live example.
 
 A release is cut by packing without a suffix, giving a plain `0.1.0`. NuGet orders a release above every
 prerelease of the same version, so a hand-cut build always supersedes the CI ones it follows. Until 1.0, treat a

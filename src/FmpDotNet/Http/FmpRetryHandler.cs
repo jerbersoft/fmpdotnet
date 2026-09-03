@@ -11,7 +11,7 @@ namespace FmpDotNet.Http;
 /// answered, and answered better than a re-send could: <see cref="FmpRateLimitHandlerBase"/> drains the SHARED
 /// reservoir and holds it for the advised <c>Retry-After</c>, so every caller in the process meets back-pressure
 /// rather than only the one that drew the refusal. Re-sending on top of that amplifies load at precisely the moment
-/// FMP is already refusing us. A consumer of this SDK has measured the harm: trader had to strip
+/// FMP is already refusing us. A consumer of this SDK has measured the harm: it had to strip
 /// <c>AddStandardResilienceHandler</c> off both clients because its retry did exactly this and its circuit breaker
 /// then cascaded a handful of 429s into thousands of skipped symbols.</para>
 ///
