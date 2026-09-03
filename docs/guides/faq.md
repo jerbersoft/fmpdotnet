@@ -15,27 +15,29 @@ it, and a type name is a claim about what it talks to.
 
 ---
 
-### Why is the package not on nuget.org?
+### Why is 0.9.0 not 1.0?
 
-It is published to this repository's GitHub Packages feed instead. The consumer driving the SDK is a private
-repository, and the surface is still being shaped by what the live API turns out to do — two releases so far have
-**removed public members** after measurement showed they were the wrong shape.
+Because the surface is still being shaped by what the live API turns out to do. Two releases so far have **removed
+public members** after measurement showed they were the wrong shape, and the endpoint surface is still growing.
 
-Publishing to nuget.org is a commitment to strangers that the surface is settled. It is not yet.
-
-The practical cost is that GitHub Packages requires authentication for every restore — see
-**[Getting Started](getting-started.md)**.
+1.0 is a promise that a minor bump cannot break you; until then a minor bump can, and the version number says so.
+What 0.9.0 does promise is that the packages are on nuget.org, restore anonymously, and will not vanish —
+nuget.org has no delete, only unlisting, so a pin keeps restoring whatever happens next.
 
 ---
 
 ### Why does every push publish a new version?
 
-Because GitHub Packages **refuses to overwrite an existing NuGet version**. A fixed `0.1.0` would publish once and
-then fail CI on every subsequent push — a red build that means nothing.
+So that what has landed on `master` is installable without waiting for a release, and so that *"which SDK did this
+commit build against"* is answerable from your own git history.
 
-So every push publishes `0.1.0-ci.<run number>`. Run numbers never reset, so versions are monotonic; a re-run
-keeps its number and is pushed with `--skip-duplicate`, which makes re-running a green build a no-op rather than a
-failure. Full detail in **[Releases and Versioning](releases-and-versioning.md)**.
+Every push that passes CI publishes the version being prepared with `-ci.<CI run number>` on the end. NuGet orders
+every prerelease **below** the release of the same version, so those builds never overtake a release and
+`dotnet add package` ignores them unless you pass `--prerelease` or name one exactly. Run numbers never reset, so
+they are monotonic; a re-run keeps its number and is pushed with `--skip-duplicate`, which makes re-running a
+green build a no-op rather than a failure. And nuget.org refuses to overwrite an existing version, so the suffix
+is not decoration — a fixed version would fail the publish on the second push. Full detail in
+**[Releases and Versioning](releases-and-versioning.md)**.
 
 ---
 
