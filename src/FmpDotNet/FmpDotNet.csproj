@@ -19,8 +19,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Two abstractions packages and NodaTime, and nothing else. The transports and handlers take
-         IOptions<FmpOptions> and ILogger<T>; everything that touches a container is in
+    <!-- The options package, the logging abstractions and NodaTime, and nothing else. The transports and handlers
+         take IOptions<FmpOptions> and ILogger<T>; everything that touches a container or a host is in
          FmpDotNet.Extensions.DependencyInjection. PackageBoundaryTests pins this list. -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.9" />

@@ -347,4 +347,127 @@ public class AddFmpTests
 
         Assert.Equal("https://example.test/", http.BaseAddress!.ToString());
     }
+
+    [Fact]
+    public async Task Calling_AddFmp_twice_for_one_registration_wires_the_handler_chain_once()
+    {
+        // Registering the same name twice is the caller re-configuring one registration, not creating two. A
+        // second copy of the chain would be a retry inside a retry: 3 × 3 = 9 sends per call.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        Action<FmpOptions> configure = o => { o.ApiKey = "k"; o.RetryBaseDelay = Duration.FromMilliseconds(1); };
+        var services = new ServiceCollection().AddLogging();
+        services.AddFmp(configure).AddFmp(configure);
+        services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
+        using var provider = services.BuildServiceProvider();
+
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClient)
+            .GetAsync("stable/profile")).Dispose();
+
+        Assert.Equal(3, upstream.Sends);
+    }
+
+    [Theory]
+    [InlineData(null, "fmp", "fmp-bulk")]
+    [InlineData("", "fmp", "fmp-bulk")]
+    [InlineData("research", "fmp:research", "fmp-bulk:research")]
+    public void Client_names_are_the_constants_for_the_default_registration_and_suffixed_for_a_named_one(
+        string? name, string standard, string bulk)
+    {
+        Assert.Equal(standard, FmpServiceCollectionExtensions.StandardClientName(name));
+        Assert.Equal(bulk, FmpServiceCollectionExtensions.BulkClientName(name));
+    }
+
+    [Fact]
+    public void Named_registrations_resolve_keyed_and_distinct_and_create_no_default()
+    {
+        using var provider = new ServiceCollection().AddLogging()
+            .AddFmp("a", o => o.ApiKey = "K1")
+            .AddFmp("b", o => o.ApiKey = "K2")
+            .BuildServiceProvider();
+
+        Assert.NotSame(provider.GetRequiredKeyedService<FmpClient>("a"), provider.GetRequiredKeyedService<FmpClient>("b"));
+        Assert.NotNull(provider.GetRequiredKeyedService<FmpTransport>("a"));
+        Assert.NotNull(provider.GetRequiredKeyedService<FmpBulkTransport>("b"));
+
+        // Named registrations alone do not conjure a default one.
+        Assert.Null(provider.GetService<FmpClient>());
+        Assert.Null(provider.GetService<FmpTransport>());
+    }
+
+    [Fact]
+    public async Task Named_registrations_sharing_a_key_draw_from_one_reservoir_pair()
+    {
+        // Modelled on Every_retry_attempt_draws_its_own_token…: a capacity-3 reservoir emptied through "a" is
+        // empty for "b" too, because FMP meters per key and both hold the same one. "c" holds another key and
+        // is untouched.
+        var upstream = new FailingHandler(System.Net.HttpStatusCode.ServiceUnavailable);
+        var services = new ServiceCollection().AddLogging();
+        services.AddFmp("a", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.AddFmp("b", o => { o.ApiKey = "K1"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.AddFmp("c", o => { o.ApiKey = "K2"; o.PerMinuteCap = 3; o.MaxAttempts = 3; o.RetryBaseDelay = Duration.FromMilliseconds(1); });
+        services.ConfigureHttpClientDefaults(b => b.ConfigurePrimaryHttpMessageHandler(() => upstream));
+        using var provider = services.BuildServiceProvider();
+
+        (await provider.GetRequiredService<IHttpClientFactory>()
+            .CreateClient(FmpServiceCollectionExtensions.StandardClientName("a"))
+            .GetAsync("stable/profile")).Dispose();
+        Assert.Equal(3, upstream.Sends);
+
+        var registry = provider.GetRequiredService<FmpBucketRegistry>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<FmpOptions>>();
+        var now = SystemClock.Instance.GetCurrentInstant().ToUnixTimeTicks() / (double)NodaConstants.TicksPerSecond;
+        Assert.True(registry.For("b", monitor.Get("b")).Standard.Acquire(now) > Duration.Zero,
+            "\"b\" shares \"a\"'s key and should have found its reservoir drained");
+        Assert.Equal(Duration.Zero, registry.For("c", monitor.Get("c")).Standard.Acquire(now));
+    }
+
+    [Fact]
+    public void A_named_registrations_options_validate_under_its_own_name()
+    {
+        using var provider = new ServiceCollection().AddLogging()
+            .AddFmp("research", o => { o.ApiKey = "k"; o.PerMinuteCap = 0; })
+            .BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<FmpOptions>>();
+
+        var failure = Assert.Throws<OptionsValidationException>(() => monitor.Get("research"));
+        Assert.Equal("research", failure.OptionsName);
+
+        // Nothing was registered under the default name, so its options are the defaults, and valid.
+        Assert.Equal(660, provider.GetRequiredService<IOptions<FmpOptions>>().Value.PerMinuteCap);
+    }
+
+    [Fact]
+    public void The_unkeyed_transports_still_resolve_beside_a_named_registration()
+    {
+        using var provider = new ServiceCollection().AddLogging()
+            .AddFmp(o => o.ApiKey = "k")
+            .AddFmp("research", o => o.ApiKey = "r")
+            .BuildServiceProvider();
+
+        // The README's "Reaching an endpoint that is not modelled" section resolves the default transports by type, and a
+        // named registration beside them must not make that keyed-only.
+        Assert.NotNull(provider.GetRequiredService<FmpTransport>());
+        Assert.NotNull(provider.GetRequiredService<FmpBulkTransport>());
+        Assert.NotNull(provider.GetRequiredKeyedService<FmpTransport>("research"));
+    }
+
+    [Fact]
+    public void A_named_registration_binds_Fmp_colon_name_unless_a_section_is_given()
+    {
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["Fmp:ApiKey"] = "default-key",
+            ["Fmp:research:ApiKey"] = "research-key",
+            ["Vendors:Fmp:ApiKey"] = "vendor-key",
+        }).Build();
+        using var provider = new ServiceCollection().AddLogging()
+            .AddFmp("research", configuration)
+            .AddFmp("vendor", configuration, sectionName: "Vendors:Fmp")
+            .BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<FmpOptions>>();
+
+        Assert.Equal("research-key", monitor.Get("research").ApiKey);
+        Assert.Equal("vendor-key", monitor.Get("vendor").ApiKey);
+    }
 }

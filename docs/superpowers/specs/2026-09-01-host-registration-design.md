@@ -430,12 +430,14 @@ is a container the caller did not ask for and a few milliseconds at construction
 **Disposal.** `Dispose` disposes `_owned` and nothing else, so it is a no-op on a DI-resolved client.
 `ServiceProvider.Dispose` is idempotent, so double disposal is safe.
 
-**On making `FmpClient` disposable at all.** A transient `IDisposable` is tracked by the container until
-its scope ends, which for one resolved from the *root* provider means it is retained for the provider's
-life. That is worth stating and then putting in proportion: it already happens today, because
-`AddHttpClient<FmpTransport>` registers a transient wrapping a disposable `HttpClient`. This adds one
-tracked object beside ones already tracked; it does not introduce a new class of leak. In an ASP.NET Core
-request scope — the normal case — it is disposed with the request.
+**On making `FmpClient` disposable at all.** A transient `IDisposable` is tracked by the scope it is resolved from,
+which for a client resolved from the *root* provider means it is retained for the provider's life. That is new:
+before this design nothing the container resolved for the SDK was disposable — `FmpTransport` is not, and the typed
+client's `HttpClient` was created by the factory inside its registration lambda rather than resolved as a service.
+The cost is bounded and documented rather than designed away: resolve the client inside a scope (an ASP.NET Core
+request already is one) or hold one instance, rather than resolving per call from the root; the doc on `Dispose`
+and the README's registration section both say so. The default registration constructs its unkeyed client directly
+from the transports rather than forwarding to the keyed one, so a root-resolved client is tracked once, not twice.
 
 **Logging defaults to none.** With no `ILoggerFactory` the clamped-`Retry-After` warning
 (`FmpRateLimitHandler.cs:61`) and the cap-conflict warning go nowhere. Documented on the overload,
@@ -455,7 +457,7 @@ builder.AddFmp("research");                        // binds "Fmp:research"
 ```csharp
 public static IHostApplicationBuilder AddFmp(
     this IHostApplicationBuilder builder,
-    string? name = null, string? sectionName = null, Action<IFmpBuilder>? configure = null);
+    string? name = null, string? sectionName = null, Action<IFmpBuilder>? configureBuilder = null);
 
 public static IHostApplicationBuilder AddFmp(
     this IHostApplicationBuilder builder,
