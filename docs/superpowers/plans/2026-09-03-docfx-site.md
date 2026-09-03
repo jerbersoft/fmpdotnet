@@ -538,7 +538,7 @@ remarks, which are where the real documentation is: what the endpoint actually d
 do it.
 
 The measured behaviour behind these types — plan gating, the two timezone conventions, what a `null` means — is in
-the [README](../README.md#upstream-behaviour-the-sdk-handles-for-you), rendered on this site as Reference, and the
+the [README](../../README.md#upstream-behaviour-the-sdk-handles-for-you), rendered on this site as Reference, and the
 guides link there rather than restating it.
 ```
 
