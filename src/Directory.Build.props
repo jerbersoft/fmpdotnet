@@ -59,7 +59,13 @@
     <Authors>Herbert Sabanal</Authors>
     <RepositoryUrl>https://github.com/jerbersoft/fmpdotnet</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageProjectUrl>https://github.com/jerbersoft/fmpdotnet</PackageProjectUrl>
+    <!-- NuGet renders this as "Project website", and it is the documentation site rather than the repository (#71).
+         The repository is rendered separately as "Source repository" from RepositoryUrl above, which is unchanged
+         and is what Source Link uses. A github.io URL is weaker than the repository URL — renaming the repository
+         breaks it without a redirect — but the README this build freezes into every package page already carries
+         site URLs, so this adds no new class of permanence risk; it only stops "Project website" going somewhere
+         less useful than the README rendered beneath it. -->
+    <PackageProjectUrl>https://jerbersoft.github.io/fmpdotnet/</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- An SPDX expression rather than PackageLicenseFile: NuGet renders it as a link to the canonical licence
          text and clients can read the terms without unpacking anything. The LICENSE file is packed as well, so

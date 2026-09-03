@@ -39,7 +39,7 @@ Please give a reasonable window for a fix before disclosing publicly.
 | Older `ci.N` prereleases | ❌ — fixes land on `master` and publish as a new prerelease |
 
 **No stable release has been cut yet.** Everything published so far is a CI prerelease; see
-[Releases and Versioning](https://github.com/jerbersoft/fmpdotnet/wiki/Releases-and-Versioning). Until 1.0, the
+[Releases and Versioning](https://jerbersoft.github.io/fmpdotnet/guides/releases-and-versioning.html). Until 1.0, the
 supported version is simply the newest one.
 
 ## Scope
@@ -67,7 +67,7 @@ and holds an API key. Things that are **in scope**:
   dependencies already **fail the build** — `TreatWarningsAsErrors` covers `NU*` codes, so a newly published
   advisory against any package, direct or transitive, breaks CI rather than adding a line nobody reads.
 * `DeveloperBulkCacheDirectory` serving stale data. That is
-  [documented, warned-about behaviour](https://github.com/jerbersoft/fmpdotnet/wiki/Rate-Limits-and-Bulk-Data) of a
+  [documented, warned-about behaviour](https://jerbersoft.github.io/fmpdotnet/guides/rate-limits-and-bulk-data.html) of a
   development aid that is off by default and logs a warning the first time it serves anything.
 * Anything requiring the attacker to already control the configuration or the process.
 
@@ -83,4 +83,4 @@ Not a vulnerability class, but the most likely way an incident actually happens:
   it is missing, rather than skipping quietly.
 * FMP restricts keys it considers abusive — particularly on the `*-bulk` endpoints. A sudden `403` may mean your
   key was restricted rather than that your plan changed; see
-  [Error Handling](https://github.com/jerbersoft/fmpdotnet/wiki/Error-Handling).
+  [Error Handling](https://jerbersoft.github.io/fmpdotnet/guides/error-handling.html).

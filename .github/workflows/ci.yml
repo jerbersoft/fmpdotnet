@@ -43,9 +43,9 @@ on:
     branches: [master]
   workflow_dispatch:      # so a run can be forced without pushing a commit
 
-# This repository is PRIVATE, so runner minutes are billed rather than free. Superseded runs on a branch are
-# cancelled; master is exempt because its runs are the record for a merged commit and should complete even if
-# another merge lands behind them.
+# Superseded runs on a branch are cancelled: a run of a commit that has already been replaced answers a question
+# nobody is still asking, whatever the minutes cost (nothing — the repository is public). master is exempt because
+# its runs are the record for a merged commit and should complete even if another merge lands behind them.
 #
 # Branch pushes are built, not just PRs, because work here happens on feature branches that may sit for a while
 # before one is opened — CI that only runs at PR time would leave the branch unverified for exactly the period
@@ -62,8 +62,8 @@ jobs:
   dotnet:
     name: .NET — build + test
     runs-on: ubuntu-latest
-    # Explicit, because the GitHub default is 360 minutes. On a billed private repo a single hung step would
-    # otherwise burn six hours of minutes before anyone noticed.
+    # Explicit, because the GitHub default is 360 minutes. A single hung step would otherwise sit for six hours
+    # before anyone noticed.
     timeout-minutes: 15
 
     steps:
