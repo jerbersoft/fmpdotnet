@@ -3,69 +3,79 @@
 ## Where the packages live
 
 Two packages — `FmpDotNet`, the client, and `FmpDotNet.Extensions.DependencyInjection`, the registration surface,
-which depends on it — are published together to **this repository's GitHub Packages NuGet feed**, not nuget.org.
-Everything on this page applies to both.
+which depends on it — are published together to **nuget.org**. Everything on this page applies to both.
 
-```
-https://nuget.pkg.github.com/jerbersoft/index.json
-```
+* [nuget.org/packages/FmpDotNet](https://www.nuget.org/packages/FmpDotNet)
+* [nuget.org/packages/FmpDotNet.Extensions.DependencyInjection](https://www.nuget.org/packages/FmpDotNet.Extensions.DependencyInjection)
 
-GitHub Packages requires authentication for every restore, including for public packages — there is no anonymous read.
-Setup is in **[Getting Started](getting-started.md)**; the reasoning for not being on nuget.org is in the
-**[FAQ](faq.md)**.
+Restore is anonymous: no source to add, no token, no `nuget.config`. Setup is in
+**[Getting Started](getting-started.md)**.
 
-## Every push to `master` publishes a prerelease
+### The feed that used to be here
 
-```
-0.1.0-ci.7
-0.1.0-ci.8
-0.1.0-ci.9
-…
-```
+Before 0.9.0 the packages went to this repository's GitHub Packages feed, which required authentication for every
+restore — public packages included. That feed is **frozen, not deleted**: `0.1.0-ci.89` is the newest version on
+it, everything already there stays restorable for anyone pinned to it, and nothing new will be published there.
+The versions are on the repository's [Packages page](https://github.com/jerbersoft/fmpdotnet/packages). Move a pin
+across at your convenience; a `0.1.0-ci.N` pin does not stop working.
 
-The suffix is the **CI run number**.
+## Two streams
 
-**That shape is forced by the feed, not chosen.** GitHub Packages *refuses to overwrite* an existing NuGet
-version, so a fixed `0.1.0` would publish once and then fail the publish job on every subsequent push — a red CI
-that means nothing.
+| Stream | Looks like | Cut by |
+|---|---|---|
+| **Release** | `0.9.0` | publishing a GitHub Release on the matching `v0.9.0` tag |
+| **Prerelease** | `0.9.0-ci.91` | every CI run that passes on `master` |
 
-Two consequences worth knowing:
+**Publishing a GitHub Release is the only way a stable version can be produced.** The workflow refuses to pack
+without a suffix on any other trigger, so a stable version cannot arrive by accident.
+
+## Every passing push to `master` publishes a prerelease
+
+The suffix is the **CI run number** of the run whose tests passed, so a version maps back to the run page that
+produced it, and to the commit on that page.
 
 * **Run numbers never reset**, so versions are monotonic.
 * **A re-run keeps its number**, which is why the push uses `--skip-duplicate` — re-running a green build should
   be a no-op, not a failure.
+* **NuGet orders a prerelease below the release of the same version.** `0.9.0` outranks `0.9.0-ci.999`, so a
+  prerelease never overtakes a release, and `dotnet add package` ignores prereleases unless you pass
+  `--prerelease` or name one exactly.
+* **nuget.org refuses to overwrite an existing version**, so the suffix is not decoration: a fixed version would
+  publish once and fail every push after it.
 
-## Pin the exact prerelease
+## Pin, and pin both to the same version
 
 ```xml
-<PackageReference Include="FmpDotNet.Extensions.DependencyInjection" Version="0.1.0-ci.79" />
+<PackageReference Include="FmpDotNet.Extensions.DependencyInjection" Version="0.9.0" />
 <!-- only if the core is referenced directly as well — and then at the same version -->
-<PackageReference Include="FmpDotNet" Version="0.1.0-ci.79" />
+<PackageReference Include="FmpDotNet" Version="0.9.0" />
 ```
 
-**Do not float.** A floating reference to a feed that gains a version on every push is a build that changes
-underneath you with no commit of yours.
+**Pin both** if you reference both. The extensions package depends on the core as a floor — `FmpDotNet >= 0.9.0` —
+not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and that pairing breaks the first
+time the core reshapes something the older wiring constructs. The `FmpClient` constructor change in #65 is the
+live example.
 
-Pinning also makes *"which SDK did this commit build against"* answerable from your own git history.
-
-**Pin both to the same version** if you reference both. The extensions package depends on the core as a floor —
-`FmpDotNet >= 0.1.0-ci.N` — not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and that
-pairing breaks the first time the core reshapes something the older wiring constructs. The `FmpClient`
-constructor change in #65 is the live example.
+Nothing published is ever removed. nuget.org has **no delete** — unlisting hides a version from search and from
+`dotnet add package`, and an existing pin still restores it.
 
 ## Cutting a release
 
-A release is cut by packing **without a suffix**:
+1. **Land everything the release contains**, this page's sibling [Changelog](../changelog.md) included.
+2. **Tag it and publish a Release.**
 
-```bash
-dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts
-```
+   ```bash
+   git tag v0.9.0 && git push origin v0.9.0
+   ```
 
-giving a plain `0.1.0`. **NuGet orders a release above every prerelease of the same version**, so a hand-cut build
-always supersedes the CI ones it follows — `0.1.0` outranks `0.1.0-ci.999`.
+   Then publish a GitHub Release on that tag — that event is what triggers the publish. The run asserts the tag
+   matches what the tree packs, so `v0.9.0` against a tree still reading `0.8.0` fails before anything is pushed.
+3. **Bump `VersionPrefix`** in `src/Directory.Build.props` to the next version, on `master`, straight afterwards.
 
-**No release has been cut yet.** Everything published so far is a `ci.N` prerelease. See the
-**[Changelog](../changelog.md)**.
+**Step 3 is not optional.** `VersionPrefix` is what CI packs, so leaving it at `0.9.0` after 0.9.0 has shipped
+publishes `0.9.0-ci.N` builds that NuGet orders *below* the release already out — permanently invisible, and
+occupying permanent public version slots, because nothing can be deleted. Bumping to `0.10.0` puts the next
+prerelease above `0.9.0` and below `0.10.0`, which is where the work belongs.
 
 ## Stability policy
 
@@ -90,14 +100,11 @@ measurement that would justify freezing a shape has not been done for all of it.
 * A matching **`.snupkg`** carrying the PDBs, with **Source Link**. A debugger steps from your code into this
   SDK's source **at the exact commit the binary was built from**.
 
-The `.snupkg` is **not** pushed to the feed. That is not a preference — GitHub Packages runs no symbol server, and
-its service index advertises `PackagePublish/2.0.0` with no `SymbolPackagePublish` resource of any version. Left
-implicit, `dotnet nuget push` looks for that resource, fails to find it, and warns on every publish about
-something that cannot be fixed. So the push passes `--no-symbols` and the `.snupkg` is uploaded as a **workflow
-artifact** instead, retained 90 days.
-
-Loading the PDBs from that artifact gives a debugger the exact source for the binary it is stepping through. If
-the package ever goes to nuget.org, which does run a symbol server, that flag comes off.
+The `.snupkg` is pushed to **nuget.org's symbol server** with the package, so debugging into the SDK needs nothing
+from this repository. That is a change of feed rather than of intent: GitHub Packages runs no symbol server — its
+service index advertises `PackagePublish/2.0.0` and no `SymbolPackagePublish` resource of any version — so the old
+push passed `--no-symbols` and uploaded the `.snupkg` as a 90-day workflow artifact instead. Both of those are
+gone.
 
 ## Deterministic builds
 
@@ -107,29 +114,42 @@ the CI-produced package is.
 
 ## How publishing is authorised
 
-**No PAT.** The publish job's `GITHUB_TOKEN` can write to its own repository's package registry given
-`packages: write`, which is granted **only on that job** — the workflow default is `contents: read`.
+**No API key, and no secret in this repository.** The publish job asks GitHub for a short-lived OIDC token,
+`NuGet/login` exchanges it with nuget.org for an API key valid for **one hour**, and that key exists nowhere else.
+nuget.org matches the token against a **Trusted Publishing** policy naming the repository owner, the repository
+and the workflow file, scoped by a package-id glob.
 
-Consumers in GitHub Actions read the feed with **their own** `GITHUB_TOKEN`. That works because the package grants
-read access to the consuming repository under its *Manage Actions access* setting — a one-off grant in the package
-settings, not a secret in either repository. It is the only manual step in the chain, and it is **per package**:
-the grant on `FmpDotNet` does not carry over to `FmpDotNet.Extensions.DependencyInjection`, which needs its own.
+Two consequences worth knowing:
+
+* **The policy names `publish.yml` specifically.** Renaming that file breaks publishing until the policy is
+  updated, and the failure is a 403 at push time rather than anything at build time. It is also why publishing is
+  its own workflow and never a reusable one called from CI: NuGet documents the field without saying whether a
+  caller or a callee is matched, so the workflow that pushes is always the one the policy names.
+* **A package id the policy does not cover is refused**, even for the account that owns every other id. That is
+  why the policy carries the *new packages* scope and a `FmpDotNet*` glob rather than a list of the ids that
+  happened to exist when it was written.
 
 ## The publish job's guards
 
-* **`master` only**, and never on a `pull_request` event.
-* **After `.NET — build + test` is green.** A package that exists is a package someone can restore, so publishing
-  an unverified one is worse than publishing nothing.
-* **`--skip-duplicate`**, so a re-run is a no-op.
-* `dotnet pack` builds Release from scratch rather than reusing the test job's output — jobs run on separate
-  runners, and shipping an artifact between them to save one compile would cost more in moving parts than it
-  saves.
+* **The version comes from what was packed**, read off the `.nupkg` filename, never a literal in the workflow.
+* **A release's tag must match it**, or the run fails before pushing anything.
+* **`PACKAGES` governs the output in both directions.** A packed `.nupkg` the list does not name fails the run, and
+  so does a listed id with no file — so a third package is a decision somebody records rather than one that
+  silently ships or silently does not. `PublishWorkflowTests` pins that list against the projects under `src/`.
+* **Pushed by name, in dependency order** — the core first, then the package that depends on it — so a refused
+  push never leaves a package on the feed declaring a dependency on one that is not there.
+* **`--skip-duplicate`**, so re-running a partially failed release completes rather than aborting on what already
+  went out.
+* **Verified against the public feed** afterwards: the run polls for fifteen minutes until both ids list the
+  version. A green push exit code is not evidence that a version is live — nuget.org validates after the push
+  returns.
+* **Prereleases run the same steps as releases**, so the release path is exercised on every push to `master`
+  rather than for the first time at a release.
 
 ## Finding a version
 
-The repository's [Packages page](https://github.com/jerbersoft/fmpdotnet/packages) lists every published version.
-The run number in a version maps directly to a CI run, so `0.1.0-ci.42` is run 42 — and its commit is on that
-run's page.
+Every version is listed on the two package pages at the top of this page. A prerelease's suffix is the CI run
+number, so `0.9.0-ci.91` is CI run 91 and its commit is on that run's page.
 
 ## Reference
 

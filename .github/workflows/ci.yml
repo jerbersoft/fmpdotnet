@@ -11,6 +11,11 @@ name: CI
 # not months later in a consumer's trimmed publish. That is not a theoretical guard — those two errors are what
 # forced the source-generated JsonSerializerContext and the by-name options binding in the first place.
 #
+# Deliberately NOT here either, since #73: publishing. That is publish.yml, which packs and pushes to nuget.org
+# after this workflow passes on master, and on a published GitHub Release for a stable version. It is a separate
+# file because nuget.org's Trusted Publishing policy binds to a workflow file by name, so the workflow that pushes
+# has to be the one the policy names.
+#
 # Deliberately NOT here: the live API. That is smoke.yml, which runs weekly against a real key (#26). It is
 # separate because its answer changes with the market rather than with the commit, so running it on push would
 # report yesterday's earnings calendar as a regression in today's diff — and because its bulk tier spends the
@@ -35,6 +40,11 @@ name: CI
 # push to master is still possible deliberately; it is an escape hatch rather than the route. Verified on
 # 2026-08-27 by removing the bypass and pushing: the push was rejected with GH013, naming both the pull-request
 # rule and this check.
+#
+# THIS WORKFLOW'S OWN NAME IS LOAD-BEARING TOO, since #73. publish.yml triggers on `workflow_run` with
+# `workflows: [CI]`, which matches the `name:` on line 1 of this file. Rename it and prereleases stop publishing
+# silently: this workflow still goes green, publish.yml simply never fires, and nothing reports an error anywhere.
+# Rename the two together.
 
 on:
   push:
@@ -110,82 +120,3 @@ jobs:
           name: dotnet-test-results
           path: '**/TestResults/*.trx'
           retention-days: 14
-
-  # Publishes the SDK to this repository's GitHub Packages NuGet feed (#10).
-  #
-  # Only on master, and only after the build+test job is green — a package that exists is a package someone can
-  # restore, so publishing an unverified one is worse than publishing nothing.
-  #
-  # VERSIONING. Every push publishes 0.1.0-ci.<run number>. Two facts force this shape:
-  #   * GitHub Packages REFUSES to overwrite an existing NuGet version. A fixed 0.1.0 would publish once and
-  #     then fail this job on every subsequent push — a red CI that means nothing.
-  #   * A consumer pinning an exact prerelease gets a build that cannot drift, and "which SDK did this commit
-  #     build against" is answerable from the consumer's own git history.
-  # `github.run_number` increments per workflow run and never resets, so versions are monotonic. A RE-RUN keeps
-  # the same number, which is why --skip-duplicate is here: re-running a green build should be a no-op, not a
-  # failure. A hand-cut release later packs without the suffix, and plain 0.1.0 outranks every 0.1.0-ci.N.
-  #
-  # No PAT. GITHUB_TOKEN can write to its OWN repository's package registry given `packages: write`. A consumer's
-  # CI reads this feed with ITS own GITHUB_TOKEN, which works once each package grants that repository read
-  # access under the package's "Manage Actions access" setting — a one-off grant in the package settings, not a
-  # secret in either repo. The grant is per package, not per repository: a package that does not exist yet
-  # cannot carry it, so the first publish of a new package (FmpDotNet.Extensions.DependencyInjection, #61) is
-  # followed by repeating the grant on it. That is the only manual step in the whole chain.
-  publish:
-    name: Publish to GitHub Packages
-    needs: dotnet
-    if: github.ref == 'refs/heads/master' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-
-    permissions:
-      contents: read
-      packages: write       # the one privilege above the workflow-level default, and only for this job
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up .NET
-        uses: actions/setup-dotnet@v6
-        with:
-          global-json-file: global.json
-
-      # `dotnet pack` builds Release from scratch here rather than reusing the test job's output: jobs run on
-      # separate runners, and shipping an artifact between them to save one compile of a five-file library would
-      # cost more in moving parts than it saves.
-      #
-      # This produces a .snupkg beside the .nupkg, and the build is deterministic here and only here: the project
-      # sets ContinuousIntegrationBuild when GITHUB_ACTIONS is true, which normalises source paths so the same
-      # commit packs to the same bytes on any runner.
-      # Two explicit lines rather than `dotnet pack FmpDotNet.slnx`, so the workflow names what ships and a third
-      # project does not start publishing by being added to the solution. Packing the extensions project builds
-      # the core again as its ProjectReference but does not produce a second FmpDotNet.nupkg — it emits a
-      # dependency on it, at this same version. The Push step's glob and --skip-duplicate cover both packages,
-      # and the symbol upload's glob covers both .snupkg files.
-      - name: Pack
-        run: |
-          dotnet pack src/FmpDotNet/FmpDotNet.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
-          dotnet pack src/FmpDotNet.Extensions.DependencyInjection/FmpDotNet.Extensions.DependencyInjection.csproj -c Release -o ./artifacts -p:VersionSuffix=ci.${{ github.run_number }}
-
-      # --no-symbols is not a preference, it is what this feed supports. Checked against the registry's own
-      # service index, which advertises PackagePublish/2.0.0 and no SymbolPackagePublish resource of any version:
-      # GitHub Packages runs no symbol server. Left implicit, `dotnet nuget push` looks for that resource, fails
-      # to find it, and warns on every publish about something that cannot be fixed here.
-      #
-      # The symbols are not lost — the .snupkg is uploaded below. Source Link stamps the commit into those PDBs,
-      # so loading them from the artifact gives a debugger the exact source for the binary it is stepping through.
-      # If this package ever goes to nuget.org, which does run a symbol server, drop this flag.
-      - name: Push
-        run: >
-          dotnet nuget push "./artifacts/*.nupkg"
-          --source https://nuget.pkg.github.com/${{ github.repository_owner }}/index.json
-          --api-key ${{ secrets.GITHUB_TOKEN }}
-          --skip-duplicate
-          --no-symbols
-
-      - name: Upload symbol package
-        uses: actions/upload-artifact@v7
-        with:
-          name: symbols-${{ github.run_number }}
-          path: ./artifacts/*.snupkg
-          retention-days: 90

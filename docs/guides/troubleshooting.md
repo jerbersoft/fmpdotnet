@@ -7,40 +7,31 @@ success.
 
 ## Restore and packaging
 
-### `Unable to load the service index for source https://nuget.pkg.github.com/...` (401)
+### `Unable to find package FmpDotNet`
 
-GitHub Packages requires authentication for **every** NuGet restore. There is no anonymous read, even for public
-packages.
+Either the version does not exist, or you are asking for a prerelease without saying so.
 
-Check, in order:
-
-1. `packageSourceCredentials` exists in `nuget.config` and the element name **matches the source key exactly** —
-   `<jerbersoft>` for `<add key="jerbersoft" …>`. A mismatch fails as "no credentials", not as "wrong name".
-2. Your token has the **`read:packages`** scope. Others do not substitute for it.
-3. The environment variables the config references are actually set **in the shell running restore** — an IDE
-   started before you edited your profile will not have them.
-4. If your organisation enforces SSO, the token must be **authorised** for it.
-
-See **[Getting Started](getting-started.md)**.
-
-### `Unable to find package FmpDotNet` — with credentials working
-
-You are almost certainly asking for a version that does not exist, or asking without a prerelease.
-
-**Every published version so far is a prerelease** (`0.1.0-ci.N`). `dotnet add package FmpDotNet` with no
-`--version` resolves stable versions only, and there are none.
+`dotnet add package` resolves **stable versions only**. Everything published between releases is a prerelease —
+the version being prepared, with `-ci.<CI run number>` on the end — so a build that wants one has to ask:
 
 ```bash
-dotnet add package FmpDotNet --version 0.1.0-ci.42
+dotnet add package FmpDotNet --prerelease
+dotnet add package FmpDotNet --version 0.9.0-ci.91
 ```
 
-Available versions are on the repository's [Packages page](https://github.com/jerbersoft/fmpdotnet/packages).
+If even a stable version cannot be found, check the source list rather than the version: `dotnet nuget list source`
+should include `https://api.nuget.org/v3/index.json`, and a `nuget.config` containing `<clear />` removes the
+default source without saying so.
+
+Every published version is listed at
+[nuget.org/packages/FmpDotNet](https://www.nuget.org/packages/FmpDotNet).
 
 ### The build worked yesterday and fails today with a different SDK version
 
-You are floating rather than pinned. Every push to `master` publishes a new prerelease, so a floating reference is
-a build that changes underneath you with no commit of yours. **Pin the exact version** — see
-**[Releases and Versioning](releases-and-versioning.md)**.
+You are floating rather than pinned. A floating reference picks up each release as it lands, and one that opts
+into prereleases — a `*-*` range, or a reference added with `--prerelease` — picks up a new build on every push to
+`master` that passes CI. Either way the build changes underneath you with no commit of yours. **Pin the exact
+version** — see **[Releases and Versioning](releases-and-versioning.md)**.
 
 ### `IL2026` / `IL3050` when publishing trimmed or AOT
 

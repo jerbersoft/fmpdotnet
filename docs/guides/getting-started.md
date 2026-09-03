@@ -1,85 +1,34 @@
 # Getting Started
 
-From nothing to a working call, in order. Budget ten minutes, most of it on step 1.
+From nothing to a working call, in order. Budget five minutes.
 
 ## Prerequisites
 
 * **.NET 10 SDK.** The repository pins a feature band in `global.json`; a consumer only needs a 10.x SDK.
 * **An FMP API key.** The SDK targets **Premium** as the lowest paid tier — see
-  [the throttle note](#4-set-the-throttle-to-your-tier) below for why that matters even on a bigger plan.
-* **A GitHub personal access token** with the `read:packages` scope, to restore the package.
+  [the throttle note](#3-set-the-throttle-to-your-tier) below for why that matters even on a bigger plan.
 
-## 1. Add the package source
-
-The packages are published to **this repository's GitHub Packages NuGet feed**, not to nuget.org.
-
-> **GitHub Packages requires authentication for every NuGet restore**, including public packages. There is no
-> anonymous read. This is a GitHub Packages property, not a choice this project made — see the
-> [FAQ](faq.md) for why the package is not on nuget.org.
-
-Create a `nuget.config` beside your solution file:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <clear />
-    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
-    <add key="jerbersoft" value="https://nuget.pkg.github.com/jerbersoft/index.json" />
-  </packageSources>
-  <packageSourceCredentials>
-    <jerbersoft>
-      <add key="Username" value="%GITHUB_USERNAME%" />
-      <add key="ClearTextPassword" value="%GITHUB_PACKAGES_TOKEN%" />
-    </jerbersoft>
-  </packageSourceCredentials>
-</configuration>
-```
-
-The `%VAR%` form reads from environment variables, so **the token never lands in a file you might commit**. Set
-them in your shell profile or your CI's secret store:
+## 1. Install
 
 ```bash
-export GITHUB_USERNAME=your-github-login
-export GITHUB_PACKAGES_TOKEN=ghp_...        # read:packages is the only scope needed
-```
-
-**In GitHub Actions, you do not need a PAT at all.** A workflow's own `GITHUB_TOKEN` can read this feed, because
-the package grants read access to consuming repositories through its *Manage Actions access* setting. That grant
-is made once per package — both `FmpDotNet` and `FmpDotNet.Extensions.DependencyInjection` need it — and is not
-a secret in either repository.
-
-```yaml
-- name: Restore
-  run: dotnet restore
-  env:
-    GITHUB_USERNAME: ${{ github.actor }}
-    GITHUB_PACKAGES_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-```
-
-If restore fails here, **[Troubleshooting](troubleshooting.md)** has the four failure modes and what each one looks
-like.
-
-## 2. Install, pinned
-
-```bash
-dotnet add package FmpDotNet.Extensions.DependencyInjection --version 0.1.0-ci.79
+dotnet add package FmpDotNet.Extensions.DependencyInjection
 ```
 
 That brings `FmpDotNet` — the client, the models and the transports — with it. The extensions package is the
-registration surface: `AddFmp` in every form, the `IHostApplicationBuilder` sugar and `FmpClientFactory`. A project
-that references both directly pins them to the **same** version: the extensions package depends on the core as a
-floor, not an exact version, so NuGet will otherwise pair an older `AddFmp` with a newer core, and that pairing
-breaks the first time the core reshapes something the older wiring constructs.
+registration surface: `AddFmp` in every form, the `IHostApplicationBuilder` sugar and `FmpClientFactory`. Both are
+on nuget.org, so there is no source to add, no token and no `nuget.config`; restoring is anonymous, like any other
+public package.
 
-**Pin the exact prerelease. Do not float.** Every push to `master` publishes a new version, so a floating
-reference is a build that changes underneath you without a commit. Pinning also makes *"which SDK did this commit
-build against"* answerable from your own git history — see **[Releases and Versioning](releases-and-versioning.md)**.
+A project that references both directly pins them to the **same** version: the extensions package depends on the
+core as a floor, not an exact version, so NuGet will otherwise pair an older `AddFmp` with a newer core, and that
+pairing breaks the first time the core reshapes something the older wiring constructs.
 
-Browse the available versions on the repository's
-[Packages page](https://github.com/jerbersoft/fmpdotnet/packages).
+Between releases, every push to `master` that passes CI publishes a prerelease of the version being prepared.
+Those are not resolved by default — `--prerelease`, or an exact `--version`, asks for one. Every version is listed
+at [nuget.org/packages/FmpDotNet](https://www.nuget.org/packages/FmpDotNet), and
+**[Releases and Versioning](releases-and-versioning.md)** is the full account.
 
-## 3. Register the client
+## 2. Register the client
 
 ```csharp
 using FmpDotNet;
@@ -118,7 +67,7 @@ Options are validated at **startup**, not at first call, so a bad `BaseUrl` or a
 you are still looking at the console. The API key is **deliberately not validated** — an SDK cannot know whether
 its caller intends to make a request. Assert it in your host if you need to.
 
-## 4. Set the throttle to your tier
+## 3. Set the throttle to your tier
 
 The default `PerMinuteCap` is **660**, calibrated to Premium's 750/min because that is the lowest paid tier the
 SDK targets. A default tuned to a higher tier would trip 429s for everyone below it.
@@ -132,7 +81,7 @@ for. Use about 88% of your tier's published limit to keep the same headroom:
 
 Full option list in **[Configuration](configuration.md)**.
 
-## 5. Make a call
+## 4. Make a call
 
 ```csharp
 var fmp = provider.GetRequiredService<FmpClient>();
@@ -163,7 +112,7 @@ Twenty-five groups hang off `FmpClient`. The ten most people start with:
 Which specific paths are modelled is in **[Endpoint Coverage](endpoint-coverage.md)**; the table itself is generated
 from the code.
 
-## 6. Handle the failures that will actually happen
+## 5. Handle the failures that will actually happen
 
 Three you should write code for on day one:
 

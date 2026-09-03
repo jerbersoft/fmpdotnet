@@ -17,7 +17,7 @@
   topicHref: api/index.md
 - name: Changelog
   href: changelog.md
-- name: Packages
-  href: https://github.com/jerbersoft/fmpdotnet/packages
+- name: NuGet
+  href: https://www.nuget.org/packages/FmpDotNet
 - name: GitHub
   href: https://github.com/jerbersoft/fmpdotnet

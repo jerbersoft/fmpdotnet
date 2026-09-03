@@ -1,5 +1,7 @@
 # FmpDotNet
 
+[![FmpDotNet][core-badge]][core-pkg] [![DependencyInjection][di-badge]][di-pkg]
+
 A .NET 10 SDK for the [Financial Modeling Prep](https://site.financialmodelingprep.com/developer/docs) `stable` API.
 
 The root namespace and assembly are `FmpDotNet`. That is deliberately not the vendor's own name: a package
@@ -913,33 +915,40 @@ and every note to the fixed wording, so `grep -rn "Plan tier —" src/FmpDotNet/
 
 ## Installing and versioning
 
-Two packages are published to this repository's **GitHub Packages** NuGet feed, not to nuget.org. Add the
-source, then `dotnet add package FmpDotNet.Extensions.DependencyInjection`, which brings `FmpDotNet` with it.
-`FmpDotNet` is the client, the models and the transports; `FmpDotNet.Extensions.DependencyInjection` is the
-registration surface — `AddFmp` in every form, the `IHostApplicationBuilder` sugar and `FmpClientFactory` — and
-nothing else. A consumer with a container of its own can reference `FmpDotNet` alone. The two are versioned and
-published together, and everything below applies to both.
+Two packages are published to **nuget.org**:
 
-**Every push to `master` publishes a prerelease** — `0.1.0-ci.7`, `0.1.0-ci.8`, and so on, where the suffix is
-the CI run number. That shape is forced by the feed: GitHub Packages refuses to overwrite an existing version, so
-a fixed version would publish once and fail every push after it. Run numbers never reset, so the versions are
-monotonic; a re-run keeps its number and is pushed with `--skip-duplicate`, which makes re-running a green build a
-no-op rather than a failure.
+```bash
+dotnet add package FmpDotNet.Extensions.DependencyInjection
+```
 
-**Pin an exact prerelease.** A floating reference to a feed that gains a version on every push is a build that
-changes under you. Pinning also makes "which SDK did this commit build against" answerable from your own git
-history. A project that references both packages directly pins them to the same version: the extensions package
-depends on the core as a floor, not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and
-that pairing breaks the first time the core reshapes something the older wiring constructs — the constructor
-change in #65 is the live example.
+which brings `FmpDotNet` with it. There is no source to add and no token: restoring is anonymous, like any other
+public package. `FmpDotNet` is the client, the models and the transports;
+`FmpDotNet.Extensions.DependencyInjection` is the registration surface — `AddFmp` in every form, the
+`IHostApplicationBuilder` sugar and `FmpClientFactory` — and nothing else. A consumer with a container of its own
+can reference `FmpDotNet` alone. The two are versioned and published together, and everything below applies to
+both.
 
-A release is cut by packing without a suffix, giving a plain `0.1.0`. NuGet orders a release above every
-prerelease of the same version, so a hand-cut build always supersedes the CI ones it follows. Until 1.0, treat a
-minor bump as potentially breaking: the surface is still being shaped by what the live API turns out to do, and
-two releases so far have removed public members after measurement showed they were the wrong shape.
+**A release is cut from a tag.** Publishing a GitHub Release on `vX.Y.Z` is the only thing that produces a stable
+version; no other trigger in the pipeline can pack without a prerelease suffix.
 
-Each package ships the XML documentation, and a matching `.snupkg` carries the PDBs. With Source Link, a debugger
-steps from your code into this SDK's source at the exact commit the binary was built from.
+**Every push to `master` that passes CI publishes a prerelease** — the version being prepared, with
+`-ci.<CI run number>` on the end. Run numbers never reset, so the versions are monotonic; a re-run keeps its
+number and is pushed with `--skip-duplicate`, which makes re-running a green build a no-op. NuGet orders every
+prerelease below the release of the same version, so `dotnet add package` ignores them unless you pass
+`--prerelease` or name one exactly.
+
+**Pin both packages to the same version** if you reference both. The extensions package depends on the core as a
+floor, not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and that pairing breaks the
+first time the core reshapes something the older wiring constructs — the constructor change in #65 is the live
+example.
+
+Until 1.0, treat a minor bump as potentially breaking: the surface is still being shaped by what the live API
+turns out to do, and two releases so far have removed public members after measurement showed they were the wrong
+shape. Nothing published is ever removed, though — nuget.org unlists at most — so a pin keeps restoring.
+
+Each package ships the XML documentation, and a matching `.snupkg` on nuget.org's symbol server carries the PDBs.
+With Source Link, a debugger steps from your code into this SDK's source at the exact commit the binary was built
+from.
 
 ## Configuration
 
@@ -1096,3 +1105,7 @@ warning the first time it serves anything, so it cannot be on without saying so.
 payload are delivered but never kept, so a failure cannot be replayed forever as if it were data.
 
 [inventory]: https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md
+[core-badge]: https://img.shields.io/nuget/v/FmpDotNet?label=FmpDotNet
+[core-pkg]: https://www.nuget.org/packages/FmpDotNet
+[di-badge]: https://img.shields.io/nuget/v/FmpDotNet.Extensions.DependencyInjection?label=DependencyInjection
+[di-pkg]: https://www.nuget.org/packages/FmpDotNet.Extensions.DependencyInjection

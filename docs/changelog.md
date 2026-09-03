@@ -3,18 +3,55 @@
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning is described in
 **[Releases and Versioning](guides/releases-and-versioning.md)**.
 
-> **No release has been cut.** Everything published so far is a CI prerelease — `0.1.0-ci.<run number>` — and there
-> are no git tags. The history below is **reconstructed from the commit log**, grouped into the slices the work
-> was actually built as, so that it is useful now rather than starting empty at 1.0. Entries carry their issue
-> numbers; dates are commit dates.
->
-> Going forward, changes should be added under **Unreleased** as they land.
+> **History before 0.9.0 is reconstructed from the commit log**, grouped into the slices the work was actually
+> built as, because the project ran for three months without a tag. Entries carry their issue numbers; dates are
+> commit dates. From 0.9.0 on, changes are added under **Unreleased** as they land, and move into a version
+> section when one is cut.
 
 ---
 
 ## [Unreleased]
 
-Everything below is in `master` and available in the latest `0.1.0-ci.N` prerelease.
+Nothing yet. Work that lands on `master` appears here, and in the latest prerelease — the version being prepared,
+with `-ci.<CI run number>` on the end.
+
+---
+
+## [0.9.0] — 2026-09-03
+
+The first release, and the first version on nuget.org. Everything below it shipped in it.
+
+### The first release — #73 · 2026-09-03
+
+Both packages on **nuget.org**, installable with one command and no credential. The design is at
+`docs/superpowers/specs/2026-09-03-nuget-release-design.md`.
+
+**Added**
+- `.github/workflows/publish.yml` — the only path to nuget.org, and the entry workflow on each of its triggers: a
+  published GitHub Release packs a stable version, a passing CI run on `master` packs a prerelease, and a manual
+  dispatch must supply a suffix. The credential is a one-hour OIDC key from nuget.org's Trusted Publishing, so no
+  API key is stored in this repository.
+- Six guards between `dotnet pack` and a published version: the version is read off what was packed, a release's
+  tag must match it, the `PACKAGES` list must account for every packed file and every listed id, packages are
+  pushed by name in dependency order, `--skip-duplicate` makes a re-run finish rather than abort, and the run
+  polls the public feed until both versions are live.
+- `PublishWorkflowTests` — every packable project under `src/` is named in `PACKAGES`, and nothing a reader
+  follows still hands them the retired feed's source URL.
+- The `.snupkg` symbol packages now reach nuget.org's symbol server, so stepping into the SDK needs nothing from
+  this repository.
+- NuGet version badges on the README.
+
+**Changed**
+- `VersionPrefix` is `0.9.0`, and it now means *the version being prepared* rather than the last one released:
+  cutting a release is two steps, tag it then bump it, because NuGet orders every prerelease below the release of
+  the same version.
+- Installing is `dotnet add package FmpDotNet.Extensions.DependencyInjection` — no source, no token, no
+  `nuget.config`. Getting Started, the FAQ, Troubleshooting, the README, the landing page, Development and
+  `SECURITY.md` all say so.
+
+**Removed**
+- The `Publish to GitHub Packages` job, its `packages: write` permission and its 90-day symbol artifact. That feed
+  is frozen at `0.1.0-ci.89`, not deleted: anything already pinned to it keeps restoring.
 
 ### The documentation site — #71 · 2026-09-03
 
