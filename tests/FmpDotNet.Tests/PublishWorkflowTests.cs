@@ -40,14 +40,22 @@ public class PublishWorkflowTests
     }
 
     /// <summary>The GitHub Packages feed stopped receiving publishes at 0.1.0-ci.89 (#73). Prose may name it —
-    /// the versioning guide says where it stops and why — but nothing a reader follows may hand them the source
-    /// URL, because adding it produces a 401 rather than a package. <c>docs/superpowers/</c> is exempt: it is a
-    /// record of decisions as they were made, and rewriting history there would be a lie.</summary>
+    /// the versioning guide says where it stops and why, and links to its Packages page so a pinned consumer can
+    /// find the frozen versions — but nothing a reader follows may hand them the <em>source</em> URL, because
+    /// adding that produces a 401 rather than a package. <c>docs/superpowers/</c> is exempt: it is a record of
+    /// decisions as they were made, and rewriting history there would be a lie.
+    ///
+    /// <para>The site's <c>.yml</c> files are in scope as well as its pages. The top navigation bar lives in
+    /// <c>docs/toc.yml</c> and appears above every page, so a stale entry there is the most-followed link on the
+    /// site and the one least likely to be re-read — which is exactly how it survived the rewrite that cleared
+    /// the pages.</para></summary>
     [Fact]
     public void NothingPointsAtTheRetiredFeed()
     {
         var root = RepositoryLayout.Root();
-        var files = Directory.GetFiles(Path.Combine(root, "docs"), "*.md", SearchOption.AllDirectories)
+        var docs = Path.Combine(root, "docs");
+        var files = Directory.GetFiles(docs, "*.md", SearchOption.AllDirectories)
+            .Concat(Directory.GetFiles(docs, "*.yml", SearchOption.AllDirectories))
             .Where(p => !p.Replace('\\', '/').Contains("/docs/superpowers/"))
             .Where(p => !p.Replace('\\', '/').Contains("/docs/_site/"))
             .Concat([

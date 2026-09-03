@@ -28,9 +28,10 @@ Every published version is listed at
 
 ### The build worked yesterday and fails today with a different SDK version
 
-You are floating rather than pinned. Every push to `master` publishes a new prerelease, so a floating reference is
-a build that changes underneath you with no commit of yours. **Pin the exact version** — see
-**[Releases and Versioning](releases-and-versioning.md)**.
+You are floating rather than pinned. A floating reference picks up each release as it lands, and one that opts
+into prereleases — a `*-*` range, or a reference added with `--prerelease` — picks up a new build on every push to
+`master` that passes CI. Either way the build changes underneath you with no commit of yours. **Pin the exact
+version** — see **[Releases and Versioning](releases-and-versioning.md)**.
 
 ### `IL2026` / `IL3050` when publishing trimmed or AOT
 

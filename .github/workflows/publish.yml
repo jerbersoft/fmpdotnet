@@ -156,7 +156,7 @@ jobs:
             id="${file#artifacts/}"
             id="${id%.$VERSION.nupkg}"
             if [[ " $PACKAGES " != *" $id "* ]]; then
-              echo "::error::$file is not named by PACKAGES. Add $id to PACKAGES in this workflow to publish it, or set IsPackable false on the project. A file that does not end in .$VERSION.nupkg lands here too, which means it packed at a version this run did not produce."
+              echo "::error::$file is not named by PACKAGES. Add $id to PACKAGES in this workflow to publish it, or move the project out of src/ if it should not ship — PublishWorkflowTests requires every project under src/ to be named here, so IsPackable alone will not settle it. A file that does not end in .$VERSION.nupkg lands here too, which means it packed at a version this run did not produce."
               exit 1
             fi
           done

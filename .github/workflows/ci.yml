@@ -40,6 +40,11 @@ name: CI
 # push to master is still possible deliberately; it is an escape hatch rather than the route. Verified on
 # 2026-08-27 by removing the bypass and pushing: the push was rejected with GH013, naming both the pull-request
 # rule and this check.
+#
+# THIS WORKFLOW'S OWN NAME IS LOAD-BEARING TOO, since #73. publish.yml triggers on `workflow_run` with
+# `workflows: [CI]`, which matches the `name:` on line 1 of this file. Rename it and prereleases stop publishing
+# silently: this workflow still goes green, publish.yml simply never fires, and nothing reports an error anywhere.
+# Rename the two together.
 
 on:
   push:

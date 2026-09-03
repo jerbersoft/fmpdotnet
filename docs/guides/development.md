@@ -191,10 +191,14 @@ workflow.
 Branch pushes are built, not just PRs, because work here happens on feature branches that may sit a while before
 one is opened.
 
-### Two names you must not change casually
+### Three names you must not change casually
 
 The CI job is called **`.NET — build + test`** and the docs build job **`Docs — build`**, and `master`'s ruleset
 requires both checks **by name**.
+
+The third is the CI workflow's own `name: CI`, which `publish.yml` matches on with `workflow_run`. Renaming it
+does not fail anything — CI stays green and Publish simply never fires again, so prereleases stop appearing with
+no error to notice.
 
 Rename either job and the rule stops matching. GitHub does not report an error — it reports a check that is
 "expected" and never arrives, so every PR waits forever on something that already passed under a different name.
