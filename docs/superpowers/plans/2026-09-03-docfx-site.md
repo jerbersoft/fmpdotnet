@@ -53,7 +53,7 @@ docs/api/index.md                         Task 2   new — hand-written front of
 docs/changelog.md                         Task 1   moved from the wiki; Task 5 adds this issue's entry
 docs/guides/toc.yml                       Task 1   new — the sidebar, the wiki's five groups
 docs/guides/*.md                          Task 1   thirteen pages moved from the wiki; Task 5 extends two
-README.md                                 Task 2   ## Documentation; two spec links made absolute
+README.md                                 Task 2   ## Documentation; two spec links made absolute (one reference)
 CONTRIBUTING.md                           Task 4   seven links to the site
 SECURITY.md                               Task 4   three links to the site
 src/Directory.Build.props                 Task 4   PackageProjectUrl → the site
@@ -542,17 +542,20 @@ the [README](../../README.md#upstream-behaviour-the-sdk-handles-for-you), render
 guides link there rather than restating it.
 ```
 
-- [ ] **Step 7: The README's two spec links become absolute**
+- [ ] **Step 7: The README's two spec links become absolute, as one reference-style link**
 
-Both occurrences of `(docs/superpowers/specs/2026-08-27-endpoint-inventory.md)` — lines 13 and 569 — become
-`(https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md)`:
+Both occurrences of `(docs/superpowers/specs/2026-08-27-endpoint-inventory.md)` — lines 13 and 569 — become the
+reference `[inventory]`, defined once as the README's last line. Inlining the 107-character absolute URL would push
+both prose lines past 120 columns; a reference keeps them at their original width and renders the same on GitHub,
+on the package page and on the site.
 
 ```bash
-sed -i '' 's|](docs/superpowers/specs/2026-08-27-endpoint-inventory.md)|](https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md)|g' README.md
-grep -c 'blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md' README.md
+sed -i '' 's|](docs/superpowers/specs/2026-08-27-endpoint-inventory.md)|][inventory]|g' README.md
+printf '\n[inventory]: https://github.com/jerbersoft/fmpdotnet/blob/master/docs/superpowers/specs/2026-08-27-endpoint-inventory.md\n' >> README.md
+grep -c '\]\[inventory\]' README.md; tail -1 README.md | awk '{print length}'
 ```
 
-Expected: `2`. Line 890 mentions a spec path in backticks, not a link; leave it.
+Expected: `2`, then `120`. Line 890 mentions a spec path in backticks, not a link; leave it.
 
 - [ ] **Step 8: The README gains `## Documentation`**
 
