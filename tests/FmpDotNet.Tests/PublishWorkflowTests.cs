@@ -38,4 +38,30 @@ public class PublishWorkflowTests
 
         Assert.Equal(onDisk, listed);
     }
+
+    /// <summary>The GitHub Packages feed stopped receiving publishes at 0.1.0-ci.89 (#73). Prose may name it —
+    /// the versioning guide says where it stops and why — but nothing a reader follows may hand them the source
+    /// URL, because adding it produces a 401 rather than a package. <c>docs/superpowers/</c> is exempt: it is a
+    /// record of decisions as they were made, and rewriting history there would be a lie.</summary>
+    [Fact]
+    public void NothingPointsAtTheRetiredFeed()
+    {
+        var root = RepositoryLayout.Root();
+        var files = Directory.GetFiles(Path.Combine(root, "docs"), "*.md", SearchOption.AllDirectories)
+            .Where(p => !p.Replace('\\', '/').Contains("/docs/superpowers/"))
+            .Where(p => !p.Replace('\\', '/').Contains("/docs/_site/"))
+            .Concat([
+                Path.Combine(root, "README.md"),
+                Path.Combine(root, "CONTRIBUTING.md"),
+                Path.Combine(root, "SECURITY.md"),
+            ]);
+
+        var offenders = files
+            .Where(p => File.ReadAllText(p).Contains("nuget.pkg.github.com"))
+            .Select(p => Path.GetRelativePath(root, p).Replace('\\', '/'))
+            .Order(StringComparer.Ordinal)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
 }

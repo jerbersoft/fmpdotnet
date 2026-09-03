@@ -172,18 +172,21 @@ For the smoke suite, pass the key on the command line rather than storing it:
 FMP_API_KEY=… dotnet test tests/FmpDotNet.SmokeTests
 ```
 
-## The three workflows
+## The four workflows
 
 | Workflow | Trigger | What it guards |
 |---|---|---|
-| **CI** (`ci.yml`) | every push to any branch, PRs to `master` | build + test, then publish to GitHub Packages on `master` |
+| **CI** (`ci.yml`) | every push to any branch, PRs to `master` | build + test |
 | **Docs** (`docs.yml`) | every push to any branch, PRs to `master` | that the site builds with zero warnings; deploys it from `master` |
+| **Publish** (`publish.yml`) | a published GitHub Release; a CI run that passed on `master` | that what reaches nuget.org was packed from a tested commit, matches its tag, and is exactly the set `PACKAGES` names |
 | **Live smoke** (`smoke.yml`) | Mondays 06:17 UTC, or manual dispatch | that FMP still sends the shapes the SDK reads |
 
 They are separate because the smoke suite's answer **changes with the market rather than with the commit** — a
 push-triggered run would report yesterday's earnings calendar as a regression in today's diff — and because its bulk
 tier spends the key's standing. Docs is separate so that a broken cross-reference fails under its own name rather than
-as "CI failed".
+as "CI failed". Publish is separate because nuget.org's Trusted Publishing policy binds to a workflow file by name, so
+the workflow that pushes has to be the one the policy names — which is also why it is never called as a reusable
+workflow.
 
 Branch pushes are built, not just PRs, because work here happens on feature branches that may sit a while before
 one is opened.

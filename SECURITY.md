@@ -16,7 +16,7 @@ channel — and you will be contacted.
 
 ### What to include
 
-* The affected version — a package version (`0.1.0-ci.N`) or a commit SHA.
+* The affected version — a package version (`0.9.0`, or a `-ci.N` prerelease) or a commit SHA.
 * What an attacker can do, and what they need in order to do it.
 * A minimal reproduction if you have one.
 
@@ -35,12 +35,14 @@ Please give a reasonable window for a fix before disclosing publicly.
 
 | Version | Supported |
 |---|---|
-| Latest `0.1.0-ci.N` prerelease on `master` | ✅ |
-| Older `ci.N` prereleases | ❌ — fixes land on `master` and publish as a new prerelease |
+| The latest release on nuget.org | ✅ |
+| The latest `-ci.N` prerelease on `master` | ✅ |
+| Anything older | ❌ — fixes land on `master` and publish as a new version |
 
-**No stable release has been cut yet.** Everything published so far is a CI prerelease; see
-[Releases and Versioning](https://jerbersoft.github.io/fmpdotnet/guides/releases-and-versioning.html). Until 1.0, the
-supported version is simply the newest one.
+**0.9.0 is the first release**; before it, everything published was a CI prerelease on a GitHub Packages feed that
+is now frozen. See
+[Releases and Versioning](https://jerbersoft.github.io/fmpdotnet/guides/releases-and-versioning.html). Until 1.0,
+the supported version is simply the newest one.
 
 ## Scope
 
