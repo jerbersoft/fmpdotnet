@@ -16,7 +16,7 @@ the version being prepared, with `-ci.<CI run number>` on the end — so a build
 
 ```bash
 dotnet add package FmpDotNet --prerelease
-dotnet add package FmpDotNet --version 0.9.0-ci.91
+dotnet add package FmpDotNet --version 0.11.0-ci.110
 ```
 
 If even a stable version cannot be found, check the source list rather than the version: `dotnet nuget list source`

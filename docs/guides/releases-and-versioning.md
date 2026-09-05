@@ -23,8 +23,8 @@ across at your convenience; a `0.1.0-ci.N` pin does not stop working.
 
 | Stream | Looks like | Cut by |
 |---|---|---|
-| **Release** | `0.9.0` | publishing a GitHub Release on the matching `v0.9.0` tag |
-| **Prerelease** | `0.9.0-ci.91` | every CI run that passes on `master` |
+| **Release** | `0.10.0` | publishing a GitHub Release on the matching `v0.10.0` tag |
+| **Prerelease** | `0.11.0-ci.110` | every CI run that passes on `master` |
 
 **Publishing a GitHub Release is the only way a stable version can be produced.** The workflow refuses to pack
 without a suffix on any other trigger, so a stable version cannot arrive by accident.
@@ -37,7 +37,7 @@ produced it, and to the commit on that page.
 * **Run numbers never reset**, so versions are monotonic.
 * **A re-run keeps its number**, which is why the push uses `--skip-duplicate` — re-running a green build should
   be a no-op, not a failure.
-* **NuGet orders a prerelease below the release of the same version.** `0.9.0` outranks `0.9.0-ci.999`, so a
+* **NuGet orders a prerelease below the release of the same version.** `0.10.0` outranks `0.10.0-ci.999`, so a
   prerelease never overtakes a release, and `dotnet add package` ignores prereleases unless you pass
   `--prerelease` or name one exactly.
 * **nuget.org refuses to overwrite an existing version**, so the suffix is not decoration: a fixed version would
@@ -46,12 +46,12 @@ produced it, and to the commit on that page.
 ## Pin, and pin both to the same version
 
 ```xml
-<PackageReference Include="FmpDotNet.Extensions.DependencyInjection" Version="0.9.0" />
+<PackageReference Include="FmpDotNet.Extensions.DependencyInjection" Version="0.10.0" />
 <!-- only if the core is referenced directly as well — and then at the same version -->
-<PackageReference Include="FmpDotNet" Version="0.9.0" />
+<PackageReference Include="FmpDotNet" Version="0.10.0" />
 ```
 
-**Pin both** if you reference both. The extensions package depends on the core as a floor — `FmpDotNet >= 0.9.0` —
+**Pin both** if you reference both. The extensions package depends on the core as a floor — `FmpDotNet >= 0.10.0` —
 not an exact version, so NuGet will pair an older `AddFmp` with a newer core, and that pairing breaks the first
 time the core reshapes something the older wiring constructs. The `FmpClient` constructor change in #65 is the
 live example.
@@ -65,17 +65,24 @@ Nothing published is ever removed. nuget.org has **no delete** — unlisting hid
 2. **Tag it and publish a Release.**
 
    ```bash
-   git tag v0.9.0 && git push origin v0.9.0
+   git tag v0.10.0 && git push origin v0.10.0
    ```
 
    Then publish a GitHub Release on that tag — that event is what triggers the publish. The run asserts the tag
-   matches what the tree packs, so `v0.9.0` against a tree still reading `0.8.0` fails before anything is pushed.
+   matches what the tree packs, so `v0.10.0` against a tree still reading `0.9.0` fails before anything is pushed.
 3. **Bump `VersionPrefix`** in `src/Directory.Build.props` to the next version, on `master`, straight afterwards.
+4. **Refresh the version examples** on this page, in [FAQ](faq.md), in [Troubleshooting](troubleshooting.md),
+   and in the comment above `VersionPrefix` itself.
 
-**Step 3 is not optional.** `VersionPrefix` is what CI packs, so leaving it at `0.9.0` after 0.9.0 has shipped
-publishes `0.9.0-ci.N` builds that NuGet orders *below* the release already out — permanently invisible, and
-occupying permanent public version slots, because nothing can be deleted. Bumping to `0.10.0` puts the next
-prerelease above `0.9.0` and below `0.10.0`, which is where the work belongs.
+**Step 3 is not optional.** `VersionPrefix` is what CI packs, so leaving it at `0.10.0` after 0.10.0 has
+shipped publishes `0.10.0-ci.N` builds that NuGet orders *below* the release already out — permanently
+invisible, and occupying permanent public version slots, because nothing can be deleted. Bumping to `0.11.0`
+puts the next prerelease above `0.10.0` and below `0.11.0`, which is where the work belongs.
+
+**Step 4 is the one that gets forgotten**, because nothing fails when it is. The examples are deliberately real
+versions rather than placeholders — that is what makes them worth reading, and also what makes them rot. The
+pin example under *Pin, and pin both to the same version* is the one that costs a reader something: it is
+there to be copied, so a stale one hands out a pin to the release before last.
 
 ## Stability policy
 
@@ -149,7 +156,7 @@ Two consequences worth knowing:
 ## Finding a version
 
 Every version is listed on the two package pages at the top of this page. A prerelease's suffix is the CI run
-number, so `0.9.0-ci.91` is CI run 91 and its commit is on that run's page.
+number, so `0.11.0-ci.110` is CI run 110 and its commit is on that run's page.
 
 ## Reference
 
