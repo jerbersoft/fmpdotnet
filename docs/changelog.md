@@ -28,12 +28,12 @@ streams, like every other one.
   byte-identical 836,819-byte body, with nothing in the response to say the request was trimmed.
 
 **Changed**
-- `GetAllSharesFloatAsync` rejects a `limit` above `MaxSharesFloatPageSize` instead of passing it on to be
-  clamped — the treatment `GetDelistedAsync` and `GetCikListAsync` already give their own caps. Against the
-  85,821-row universe, a caller who asked for 10,000, received 5,000 and advanced the page index by 10,000
-  collected 45,000 rows and terminated cleanly on an empty page, having skipped every second block of 5,000
-  symbols with HTTP 200 throughout. **This can break a caller** that passed a larger `limit` and appeared to
-  work; what it was doing was reading half the universe.
+- ⚠️ **breaking** `GetAllSharesFloatAsync` rejects a `limit` above `MaxSharesFloatPageSize` instead of passing
+  it on to be clamped — the treatment `GetDelistedAsync` and `GetCikListAsync` already give their own caps.
+  Against the 85,821-row universe, a caller who asked for 10,000, received 5,000 and advanced the page index by
+  10,000 collected 45,000 rows and terminated cleanly on an empty page, having skipped every second block of
+  5,000 symbols with HTTP 200 throughout. **This can break a caller** that passed a larger `limit` and appeared
+  to work; what it was doing was reading half the universe.
 - `GetAllSharesFloatAsync` now documents FMP's **page ceiling**: the offset resolves as `min(page, 1000) × limit`,
   so `page=1001`, `1500` and `5000` re-serve page 1000's rows rather than answering empty — measured at `limit`
   1, 2, 10 and 50 on 2026-09-05. It is an FMP-wide ceiling rather than a fact about this endpoint
@@ -47,6 +47,19 @@ streams, like every other one.
   `Task<IReadOnlyList<SharesFloat>>` signature itself (#77). A caller who trusted it wrote an unreachable
   `if (page is null)` fallback, and the 402 or 403 that fallback existed for then escaped unhandled. The refusal
   behaviour was already documented correctly further down, so the straggling clause is simply gone.
+
+### `tradeSize` stopped arriving, and the model still claimed a measurement — #79
+
+**Fixed**
+- `AftermarketTrade.TradeSize` asserted "Measured at `16` for AAPL", which no longer reproduces. On 2026-09-05
+  FMP sent the field explicitly null on both `stable/aftermarket-trade` and `stable/batch-aftermarket-trade`,
+  while the row carried Friday's genuine close-of-session print at a plausible price and
+  `stable/aftermarket-quote` populated its own size fields at the same moment — so "sizes go null while the
+  market is closed" does not explain it. XML documentation ships inside the package, so the unsupported claim
+  was reaching consumers in IntelliSense. The property now dates both measurements and says the cause is
+  unsettled rather than picking one, and tells a reader to treat the field as absent rather than zero.
+  **Nothing about the type changed** — it was already `long?`, so nothing ever threw; a consumer reading size
+  was losing data silently. #79 stays open for a probe during a trading session.
 
 Work that lands on `master` appears here, and in the latest prerelease — the version being prepared,
 with `-ci.<CI run number>` on the end.

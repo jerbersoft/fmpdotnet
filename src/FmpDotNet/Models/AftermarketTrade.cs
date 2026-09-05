@@ -25,8 +25,18 @@ public sealed record AftermarketTrade
     /// <summary>The price the trade printed at.</summary>
     [JsonPropertyName("price")] public decimal? Price { get; init; }
 
-    /// <summary>How many shares the trade was for. Measured at <c>16</c> for AAPL — extended-hours prints are
-    /// typically small, and a single one is weak evidence of where the security is actually bid.</summary>
+    /// <summary>How many shares the trade was for, when FMP sends one.
+    ///
+    /// <para><b>Frequently null, and the cause is not yet settled (#79).</b> Measured at <c>16</c> for AAPL on
+    /// 2026-08-27 during the pre-market session; measured null on 2026-09-05 with the market closed, on this
+    /// endpoint and the batch one alike. The row was not an empty placeholder — it carried Friday's genuine
+    /// close-of-session print at a plausible price, with only the size missing — and
+    /// <c>stable/aftermarket-quote</c> still populated its own size fields at the same moment. So this is not
+    /// "every size goes null while the market is closed", and whether it is an availability window or an
+    /// upstream regression needs a probe during a trading session. <b>Read it as absent, never as zero.</b></para>
+    ///
+    /// <para>Extended-hours prints are typically small, and a single one is weak evidence of where the security
+    /// is actually bid.</para></summary>
     [JsonPropertyName("tradeSize")] public long? TradeSize { get; init; }
 
     /// <summary>When the trade printed, read from a Unix epoch in <b>milliseconds</b>.
