@@ -2095,14 +2095,14 @@ outcome rows
 set Price
 set Symbol
 set Timestamp
-set TradeSize
+null TradeSize
 
 [Quote.GetAftermarketTradesAsync]
 outcome rows
 set Price
 set Symbol
 set Timestamp
-set TradeSize
+null TradeSize
 
 [Quote.GetCommodityQuotesAsync]
 outcome rows
