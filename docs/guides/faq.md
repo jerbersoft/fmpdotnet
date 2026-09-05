@@ -15,13 +15,17 @@ it, and a type name is a claim about what it talks to.
 
 ---
 
-### Why is 0.9.0 not 1.0?
+### Why is 0.10.0 not 1.0?
 
 Because the surface is still being shaped by what the live API turns out to do. Two releases so far have **removed
 public members** after measurement showed they were the wrong shape, and the endpoint surface is still growing.
 
 1.0 is a promise that a minor bump cannot break you; until then a minor bump can, and the version number says so.
-What 0.9.0 does promise is that the packages are on nuget.org, restore anonymously, and will not vanish —
+0.10.0 is the standing example: it made `GetAllSharesFloatAsync` throw on a `limit` above 5,000 where the call
+used to succeed and quietly return a fraction of the universe. Better behaviour, and still a throw where a
+caller had none.
+
+What 0.10.0 does promise is that the packages are on nuget.org, restore anonymously, and will not vanish —
 nuget.org has no delete, only unlisting, so a pin keeps restoring whatever happens next.
 
 ---
