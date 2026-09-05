@@ -12,7 +12,43 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
-Nothing yet. Work that lands on `master` appears here, and in the latest prerelease — the version being prepared,
+### `shares-float-all` streams the universe — #76
+
+`stable/shares-float-all` was the last whole-universe surface that made the caller page for itself. It now
+streams, like every other one.
+
+**Added**
+- `CompanyEndpoints.StreamAllSharesFloatAsync` — walks from page 0 and yields the whole universe as one
+  sequence: 85,821 rows over 18 requests, measured 2026-09-05. It asks for `MaxSharesFloatPageSize` on every page
+  and stops at the first short page, the same terminator as `DirectoryEndpoints.StreamCikListAsync`. A 402 or 403
+  throws out of the sequence rather than ending it, so a caller degrading to the per-symbol path can tell
+  "refused" from "the universe is empty".
+- `CompanyEndpoints.MaxSharesFloatPageSize` — 5,000, measured rather than documented. `limit=2000` and
+  `limit=4999` are honoured exactly; `limit=5001`, `6000`, `10001` and `100000` all answer exactly 5,000 rows in a
+  byte-identical 836,819-byte body, with nothing in the response to say the request was trimmed.
+
+**Changed**
+- `GetAllSharesFloatAsync` rejects a `limit` above `MaxSharesFloatPageSize` instead of passing it on to be
+  clamped — the treatment `GetDelistedAsync` and `GetCikListAsync` already give their own caps. Against the
+  85,821-row universe, a caller who asked for 10,000, received 5,000 and advanced the page index by 10,000
+  collected 45,000 rows and terminated cleanly on an empty page, having skipped every second block of 5,000
+  symbols with HTTP 200 throughout. **This can break a caller** that passed a larger `limit` and appeared to
+  work; what it was doing was reading half the universe.
+- `GetAllSharesFloatAsync` now documents FMP's **page ceiling**: the offset resolves as `min(page, 1000) × limit`,
+  so `page=1001`, `1500` and `5000` re-serve page 1000's rows rather than answering empty — measured at `limit`
+  1, 2, 10 and 50 on 2026-09-05. It is an FMP-wide ceiling rather than a fact about this endpoint
+  (`stable/cik-list` saturates identically), which is why it is documented rather than rejected. At `limit=50` it
+  would leave 35,821 rows unreachable and a walk-until-empty loop that never terminates; at the 5,000 cap it sits
+  at row 5,000,000 and cannot be reached, which is why the stream sends the cap.
+
+**Fixed**
+- `GetAllSharesFloatAsync`'s summary promised the nullable plan-refusal return that #73 removed — the first
+  sentence an IDE surfaces, contradicted three times further down the same comment and by the
+  `Task<IReadOnlyList<SharesFloat>>` signature itself (#77). A caller who trusted it wrote an unreachable
+  `if (page is null)` fallback, and the 402 or 403 that fallback existed for then escaped unhandled. The refusal
+  behaviour was already documented correctly further down, so the straggling clause is simply gone.
+
+Work that lands on `master` appears here, and in the latest prerelease — the version being prepared,
 with `-ci.<CI run number>` on the end.
 
 ---

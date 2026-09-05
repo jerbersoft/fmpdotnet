@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using FmpDotNet.Models;
 using FmpDotNet.Serialization;
 using NodaTime;
@@ -76,9 +77,26 @@ public sealed class CompanyEndpoints(FmpTransport transport)
             FmpJsonContext.Default.ListSharesFloat, ct).ConfigureAwait(false);
     }
 
+    /// <summary>The largest page <c>stable/shares-float-all</c> will serve, measured rather than documented.
+    ///
+    /// <para>A <b>cap, not a page size</b>, in the same sense as <see cref="MaxDelistedPageSize"/>: measured
+    /// 2026-09-05, <c>limit=2000</c> and <c>limit=4999</c> were honoured exactly, while <c>limit=5001</c>,
+    /// <c>limit=6000</c>, <c>limit=10001</c> and <c>limit=100000</c> all answered exactly 5,000 rows in a
+    /// byte-identical 836,819-byte body. Nothing in the response says the request was trimmed.</para>
+    ///
+    /// <para><b>Why the clamp is worth rejecting rather than passing on.</b> The universe held 85,821 rows on
+    /// that date. A caller who asks for 10,000, receives 5,000 and advances the page index by 10,000 reads rows
+    /// 0-4,999, then 10,000-14,999, then 20,000-24,999 — collecting 45,000 of 85,821 and terminating cleanly on
+    /// an empty page, having silently skipped every second block of 5,000 symbols. That is the same shape as the
+    /// incident recorded on <see cref="GetAllSharesFloatAsync(int, int, CancellationToken)"/>: a well-formed
+    /// HTTP 200 that is quietly partial. So that method rejects a larger <c>limit</c>, exactly as
+    /// <see cref="GetDelistedAsync(int, int, CancellationToken)"/> and
+    /// <see cref="DirectoryEndpoints.GetCikListAsync(int, int, CancellationToken)"/> do.</para></summary>
+    public const int MaxSharesFloatPageSize = 5000;
+
     /// <summary>One page of <c>stable/shares-float-all</c> — the same float and share-count rows as
-    /// <see cref="GetSharesFloatAsync"/>, for the whole universe, paged. Returns <see langword="null"/> when the
-    /// endpoint is outside this API key's plan.
+    /// <see cref="GetSharesFloatAsync"/>, for the whole universe, paged. Use
+    /// <see cref="StreamAllSharesFloatAsync(CancellationToken)"/> when what you want is all of it.
     ///
     /// <para><b>Page 0 is not a sample of the universe, and reading it as one has already cost real data.</b> The
     /// universe is ordered by symbol and it is global, so measured 2026-08-26 <c>page=0&amp;limit=5</c> answers
@@ -107,18 +125,31 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     /// meant "refused" rather than "nothing there". Catch <see cref="FmpPlanRestrictedException"/> to degrade to
     /// the per-symbol loop; it says which of 402 or 403 arrived, which the null never could.</para>
     ///
+    /// <para><b>The page index saturates at 1000, so a small <paramref name="limit"/> cannot reach the end of the
+    /// universe.</b> FMP resolves the offset as <c>min(page, 1000) × limit</c>: measured 2026-09-05,
+    /// <c>page=1001</c>, <c>page=1500</c> and <c>page=5000</c> all re-serve page 1000's rows rather than answering
+    /// empty, confirmed at <c>limit</c> 1, 2, 10 and 50. <b>This is an FMP-wide ceiling rather than a fact about
+    /// this endpoint</b> — <c>stable/cik-list</c> saturates identically — which is why there is no constant for it
+    /// here and why it is not rejected as <paramref name="limit"/> is. What it costs is real: against the
+    /// 85,821-row universe of 2026-09-05, a walk at <c>limit=50</c> reaches row 50,000 and stops advancing, so
+    /// 35,821 rows are unreachable and a loop that pages until it sees an empty list never terminates — pages
+    /// 1000 upward hand back the same fifty rows forever. Ask for
+    /// <see cref="MaxSharesFloatPageSize"/> and the ceiling sits at row 5,000,000, out of reach; or let
+    /// <see cref="StreamAllSharesFloatAsync(CancellationToken)"/> do the walk, which is what it is for.</para>
+    ///
     /// <para>Gating here is not settled and must not be assumed either way: this endpoint was recorded as 402 on
     /// Premium by the predecessor and answered 200 when re-probed on 2026-08-26. It is JSON rather than CSV and is
     /// not in FMP's Bulk category, so it runs on the ordinary per-minute throttle and not the far tighter bulk one —
     /// paging it is a normal cost, not a bulk download.</para></summary>
     /// <param name="page">Zero-based page index.</param>
-    /// <param name="limit">Page size. Required rather than optional on purpose — see the first paragraph. Sending
-    /// neither parameter is what produced the incident above.</param>
+    /// <param name="limit">Page size, 1 to <see cref="MaxSharesFloatPageSize"/>. Required rather than optional on
+    /// purpose — see the first paragraph. Sending neither parameter is what produced the incident above.</param>
     /// <param name="ct">Cancels the request.</param>
     /// <returns>The page's rows, or an empty list when the page is past the end of the universe. Never
     /// <see langword="null"/>.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative or
-    /// <paramref name="limit"/> is not positive.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="page"/> is negative, or
+    /// <paramref name="limit"/> is outside 1 to <see cref="MaxSharesFloatPageSize"/> — see that constant for why
+    /// the upper bound is enforced here instead of being silently clamped upstream.</exception>
     /// <exception cref="FmpRateLimitedException">FMP answered 429. Likely if the pages are walked flat out.</exception>
     /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
     /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
@@ -128,9 +159,61 @@ public sealed class CompanyEndpoints(FmpTransport transport)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(page);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(limit);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(limit, MaxSharesFloatPageSize);
         return transport.GetListAsync(
             new FmpRequest("stable/shares-float-all").With("page", page).With("limit", limit),
             FmpJsonContext.Default.ListSharesFloat, ct);
+    }
+
+    /// <summary>Walks <c>stable/shares-float-all</c> from page 0 and streams the whole universe as one sequence —
+    /// 85,821 rows over 18 requests, measured 2026-09-05.
+    ///
+    /// <para><b>This exists because page 0 is a trap and the walk has rules that are not guessable.</b>
+    /// <see cref="GetAllSharesFloatAsync(int, int, CancellationToken)"/> records what reading page zero as the
+    /// whole answer already cost: an application that wrote zero shares across its entire US universe because the
+    /// list is symbol-ordered and global, so its first page is Shenzhen. A caller that never has to think about
+    /// pages cannot make that mistake.</para>
+    ///
+    /// <para><b>It asks for <see cref="MaxSharesFloatPageSize"/> on every page, and that is behaviour rather than
+    /// tuning.</b> FMP saturates the page index at 1000 — see
+    /// <see cref="GetAllSharesFloatAsync(int, int, CancellationToken)"/> for the measurement — so at the 5,000 cap
+    /// the ceiling sits at row 5,000,000 and cannot be reached, while a smaller page size would put it inside the
+    /// universe and turn this into a loop that never ends.</para>
+    ///
+    /// <para><b>The termination rule is sound here, as it is for
+    /// <see cref="DirectoryEndpoints.StreamCikListAsync(CancellationToken)"/>.</b> Measured 2026-09-05 at the cap:
+    /// pages 0 to 16 full, page 17 carrying 821, page 18 and everything past it answering <c>[]</c> with HTTP 200
+    /// rather than an error. Either terminator works; stopping at the first short page saves a request. Compare
+    /// <see cref="BulkEndpoints.StreamAllProfilesAsync"/>, which has to read an HTTP 400 as "past the end" because
+    /// that family offers nothing better.</para>
+    ///
+    /// <para><b>A refusal throws out of the sequence; it does not end it.</b> A caller degrading to
+    /// <see cref="GetSharesFloatAsync(string, CancellationToken)"/> per symbol has to be able to tell "refused"
+    /// from "the universe is empty", and a stream that simply stopped would make those indistinguishable.</para>
+    ///
+    /// <para><b>18 requests on the ordinary throttle.</b> This endpoint is JSON and is not in FMP's Bulk category,
+    /// so it does not touch the far tighter bulk limit; it is still not free, and
+    /// <see cref="GetAllSharesFloatAsync(int, int, CancellationToken)"/> remains there for taking one
+    /// page.</para></summary>
+    /// <param name="ct">Cancels the walk between pages as well as mid-page.</param>
+    /// <returns>Every row FMP holds, in its own symbol order, which this SDK does not re-sort.</returns>
+    /// <exception cref="FmpRateLimitedException">FMP answered 429. Possible if 18 pages are walked flat
+    /// out.</exception>
+    /// <exception cref="FmpPlanRestrictedException">FMP answered 402 or 403. Read
+    /// <see cref="FmpPlanRestrictedException.StatusCode"/> before reporting it as a plan limit — 403 points at
+    /// the key at least as often as at the plan.</exception>
+    public async IAsyncEnumerable<SharesFloat> StreamAllSharesFloatAsync(
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        for (var page = 0; ; page++)
+        {
+            var rows = await GetAllSharesFloatAsync(page, MaxSharesFloatPageSize, ct).ConfigureAwait(false);
+            foreach (var row in rows) yield return row;
+
+            // A short page is the last page. An empty one ends it too, and is the same condition — nothing
+            // measured returned a short page followed by a full one.
+            if (rows.Count < MaxSharesFloatPageSize) yield break;
+        }
     }
 
     /// <summary>The largest page <c>stable/delisted-companies</c> will serve, measured rather than documented.

@@ -258,6 +258,17 @@ Neither whole-universe feed's first page samples the universe, for **opposite** 
 
 Do not draw conclusions about coverage from either.
 
+If you want the whole float universe, do not page it yourself — `fmp.Company.StreamAllSharesFloatAsync(ct)` walks
+it for you, 85,821 rows over 18 requests as measured on 2026-09-05:
+
+```csharp
+await foreach (var f in fmp.Company.StreamAllSharesFloatAsync(ct))
+    await store.UpsertAsync(f, ct);
+```
+
+This runs on the **ordinary** throttle, not the bulk one — `shares-float-all` is JSON and is not in FMP's Bulk
+category. `GetAllSharesFloatAsync(page, limit)` is still there for taking a single page.
+
 ### Bulk shapes are not always the per-symbol shapes
 
 The bulk float rows carry **five** fields where the per-symbol endpoint carries six — there is no `source`. A null
