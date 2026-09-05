@@ -12,6 +12,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
+Nothing yet. Work that lands on `master` appears here, and in the latest prerelease — the version being
+prepared, with `-ci.<CI run number>` on the end.
+
+---
+
+## [0.10.0] — 2026-09-05
+
+The whole shares-float universe streams, and two documentation claims that had stopped being true are gone.
+
+⚠️ **One change can break a caller**: `GetAllSharesFloatAsync` now rejects a `limit` above 5,000 rather than
+letting FMP silently clamp it. A caller who passed a larger one was reading a fraction of the universe with
+HTTP 200 throughout, so the throw is the first honest signal that code has ever had — but it is a throw where
+there was none. Details under **Changed**.
+
 ### `shares-float-all` streams the universe — #76
 
 `stable/shares-float-all` was the last whole-universe surface that made the caller page for itself. It now
@@ -60,9 +74,6 @@ streams, like every other one.
   unsettled rather than picking one, and tells a reader to treat the field as absent rather than zero.
   **Nothing about the type changed** — it was already `long?`, so nothing ever threw; a consumer reading size
   was losing data silently. #79 stays open for a probe during a trading session.
-
-Work that lands on `master` appears here, and in the latest prerelease — the version being prepared,
-with `-ci.<CI run number>` on the end.
 
 ---
 
