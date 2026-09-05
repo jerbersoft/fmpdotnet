@@ -290,7 +290,7 @@ without a table entry fails the build rather than leaving a page that reads as c
 | `stable/profile` | `GetProfileAsync` |
 | `stable/profile-cik` | `GetProfileByCikAsync` |
 | `stable/shares-float` | `GetSharesFloatAsync` |
-| `stable/shares-float-all` | `GetAllSharesFloatAsync` |
+| `stable/shares-float-all` | `GetAllSharesFloatAsync`, `StreamAllSharesFloatAsync` |
 | `stable/stock-peers` | `GetPeersAsync` |
 
 `fmp.Congress`
@@ -773,7 +773,8 @@ Measured against the live API on 2026-08-26 unless noted.
 - **Neither whole-universe feed's first page is a sample of the universe**, for opposite reasons.
   `shares-float-all` pages *are* symbol-ordered, so page 0 is entirely Shenzhen listings — which is exactly how a
   consumer once read "a partial, mostly foreign page" as a plan restriction when it was simply page zero of a
-  global list requested without `page` or `limit`. `profile-bulk` part 0 is *not* symbol-ordered at all. The bulk
+  global list requested without `page` or `limit`. `StreamAllSharesFloatAsync` walks it so a caller does not have
+  to — 85,821 rows over 18 requests, measured 2026-09-05. `profile-bulk` part 0 is *not* symbol-ordered at all. The bulk
   float rows also carry five fields where the per-symbol endpoint carries six: there is no `source`, so a null
   there means "this shape omits it", not "FMP names no source".
 - **`available-industries` is not alphabetical.** Its 159 rows are grouped by sector, and since no row carries a

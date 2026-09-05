@@ -234,6 +234,24 @@ if you only want what has happened.
 Not a plan restriction, and not a sample. `shares-float-all` pages **are** symbol-ordered, so page 0 is entirely
 Shenzhen listings. `profile-bulk` part 0 is **not** symbol-ordered at all. Neither first page samples the universe.
 
+For the float universe, call `fmp.Company.StreamAllSharesFloatAsync(ct)` rather than paging it yourself.
+
+### A `shares-float-all` walk never finishes, or stops half a universe short
+
+Two different causes, both FMP silently ignoring what you asked for.
+
+* **You asked for a `limit` above 5,000.** It is capped there and says nothing — `limit=10000` answers 5,000 rows
+  with HTTP 200. Advance the page index by 10,000 after that and you read every *second* block of 5,000 symbols,
+  then terminate cleanly on an empty page. `GetAllSharesFloatAsync` now rejects the oversized `limit` rather than
+  letting FMP clamp it, so this surfaces as an `ArgumentOutOfRangeException` before a request is spent.
+* **Your `limit` is small enough that the walk hits FMP's page ceiling.** The offset resolves as
+  `min(page, 1000) × limit`, so pages 1000 and up all hand back page 1000's rows. At `limit=50` that stops the
+  walk advancing at row 50,000 of 85,821 — the rest is unreachable and a loop that pages until it sees an empty
+  list never ends. The ceiling is FMP-wide, not specific to this endpoint; `cik-list` behaves the same way.
+
+`StreamAllSharesFloatAsync` avoids both: it asks for the 5,000 cap, which puts the ceiling at row 5,000,000, and
+stops at the first short page.
+
 ---
 
 ## Throttling and timeouts
