@@ -36,10 +36,23 @@ whole solution green and offline.
 2. Branch from `master` — `feat/`, `fix/` or `docs/` plus a slice name.
 3. **Measure the live API before modelling it.**
 4. Commit in conventional-commit form, referencing the issue.
-5. Open a pull request and wait for **`.NET — build + test`** to go green.
-6. Merge.
+5. Open a pull request and wait for **`.NET — build + test`** and **`Docs — build`** to go green.
+6. Merge — but see below: a solo pull request needs `--admin`.
 
-`master` requires a pull request and that named check. Force-push and deletion are blocked.
+`master` carries a repository ruleset **and** classic branch protection, and GitHub enforces the union of the
+two. A pull request is required, both named checks must pass, **one approving review is required**, and
+force-push and deletion are blocked.
+
+**A solo maintainer cannot merge their own pull request the ordinary way.** GitHub does not allow approving your
+own PR, and the review requirement comes from the classic-protection layer — the ruleset's own "0 approvals"
+does not relax it. The repository admin role bypasses both layers, so the route is:
+
+```bash
+gh pr merge <number> --admin --merge --delete-branch
+```
+
+That bypass is deliberate, not an oversight. It is for satisfying a review requirement that cannot be satisfied
+alone — never for merging past a red check.
 
 ## Three steps people skip
 

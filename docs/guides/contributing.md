@@ -9,8 +9,8 @@ testing the code itself.
 2. Branch from `master`.
 3. **Measure the live API before modelling it.**
 4. Commit in conventional-commit form, referencing the issue.
-5. Open a PR. Wait for `.NET — build + test` to go green.
-6. Merge.
+5. Open a PR. Wait for `.NET — build + test` and `Docs — build` to go green.
+6. Merge — a solo PR needs `--admin`, see [Branch, PR, merge](#branch-pr-merge).
 
 ## The one principle
 
@@ -29,14 +29,43 @@ review found overstated — that is the standard, not an exception.
 
 ## Branch, PR, merge
 
-`master` carries a repository ruleset. In practice:
+`master` is protected by **two overlapping layers**, and GitHub enforces whichever is stricter on each point.
+Reading only one of them is misleading, which is how this page previously came to claim that no approval was
+needed:
+
+| | Repository ruleset `master` | Classic branch protection |
+|---|---|---|
+| Pull request | required | required |
+| Approving reviews | **0** | **1** ← the binding one |
+| Required checks | `.NET — build + test`, `Docs — build` | none of its own |
+| Force-push | blocked | blocked |
+| Deletion | blocked | blocked |
+| Admin bypass | admin role, `always` | `enforce_admins` off |
+
+In practice:
 
 * **A pull request is required.** Direct pushes are rejected with `GH013`.
-* **Zero approvals required**, so a solo change is not blocked — but the PR itself is.
-* **`.NET — build + test` must pass**, by name.
+* **One approving review is required.** The ruleset asks for zero, the classic layer asks for one, and one wins.
+* **Both `.NET — build + test` and `Docs — build` must pass**, by name.
 * **Force-push and deletion are blocked.**
-* The repository admin role is on the bypass list, so a direct push is *possible* deliberately. It is an escape
-  hatch, not the route.
+* Stale reviews are dismissed on a new push (`dismiss_stale_reviews`), so an approval does not survive a
+  follow-up commit.
+* A commit whose author is not attributed to a GitHub account needs an extra approval
+  (`require_extra_approval_for_unattributed_changes`) — worth knowing if you commit under an unlinked email.
+* `merge`, `squash` and `rebase` are all permitted. The history uses merge commits.
+
+### Merging your own pull request
+
+GitHub does not let you approve a PR you opened, so **on a solo change the one-approval requirement cannot be
+satisfied at all**. The repository admin role is on the bypass list of both layers, which makes the admin merge
+the intended route rather than a workaround:
+
+```bash
+gh pr merge <number> --admin --merge --delete-branch
+```
+
+Use it to get past the review requirement that nobody can satisfy — **not** to merge past a failing check. The
+checks are the part of the rule that is doing real work, and `--admin` skips those too.
 
 Branches are built on **every push**, not only when a PR is open — work here happens on feature branches that may
 sit a while, and CI that only ran at PR time would leave the branch unverified for exactly the period when the
