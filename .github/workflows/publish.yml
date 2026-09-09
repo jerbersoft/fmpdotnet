@@ -46,9 +46,27 @@ env:
 jobs:
   publish:
     name: Publish to NuGet
-    # workflow_run fires on completion, success or not. A package that exists is a package someone can restore,
-    # so an unverified one is worse than none.
-    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    # THREE CONDITIONS ON A workflow_run, AND EACH ONE IS LOAD-BEARING.
+    #
+    # conclusion == 'success' — workflow_run fires on completion, success or not. A package that exists is a
+    # package someone can restore, so an unverified one is worse than none.
+    #
+    # head_repository == this repository — workflow_run ALSO fires for a CI run started by a pull request from a
+    # fork, and GitHub's documentation is explicit that a workflow started by it "is able to access secrets and
+    # write tokens, even if the previous workflow was not". This job holds id-token: write and exchanges it for a
+    # live nuget.org credential, and the checkout below takes its ref from the triggering run rather than from
+    # master. Without this line the only barrier is the `branches: [master]` filter above — and that filter
+    # matches head_branch, which for a fork's pull request is the branch name the contributor chose in their own
+    # fork. A fork's default branch is called master. A value the attacker picks is not a gate.
+    #
+    # event == 'push' — defence in depth, and it also narrows the trigger to what is actually meant to publish: a
+    # merge landing on master. The cost is that re-running CI on master by hand no longer emits a prerelease;
+    # dispatch THIS workflow for that, which asks for a suffix and is the deliberate path.
+    if: >-
+      github.event_name != 'workflow_run' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_repository.full_name == github.repository)
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

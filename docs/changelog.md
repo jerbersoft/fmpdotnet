@@ -12,8 +12,27 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 
 ## [Unreleased]
 
-Nothing yet. Work that lands on `master` appears here, and in the latest prerelease — the version being
-prepared, with `-ci.<CI run number>` on the end.
+Work that lands on `master` appears here, and in the latest prerelease — the version being prepared, with
+`-ci.<CI run number>` on the end.
+
+### `publish.yml` refuses a `workflow_run` it did not start itself
+
+Nothing published from this repository is affected and it has never had a fork. This closes a path rather than
+repairing damage.
+
+**Fixed**
+- The publish job runs on `workflow_run` only when the triggering CI run was a **push to this repository**. It
+  previously checked that run's conclusion and nothing else, which left the `branches: [master]` trigger filter
+  as the only barrier — and that filter matches `head_branch`, which for a pull request from a fork is the
+  branch name the contributor chose in their own fork. A fork's default branch is called `master`. The job holds
+  `id-token: write`, exchanges it for a live nuget.org credential, and checks out the ref of the triggering run,
+  so `dotnet pack` would have executed that fork's MSBuild files. GitHub's documentation states plainly that a
+  workflow started by `workflow_run` "is able to access secrets and write tokens, even if the previous workflow
+  was not".
+
+**Changed**
+- Re-running **CI** on `master` by hand no longer produces a prerelease, because the trigger is now a push.
+  Dispatch **Publish** itself for that — it asks for a suffix.
 
 ---
 
