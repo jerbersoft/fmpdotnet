@@ -10,17 +10,19 @@ name: Live smoke
 #
 # WHY IT IS NOT ON PUSH. It costs calls from a real key on every run, and the answer changes with the market
 # rather than with the commit — so a push-triggered run would report yesterday's earnings calendar as a
-# regression in today's diff. Weekly is the cadence the drift actually happens at.
+# regression in today's diff.
 #
-# A FAILING SCHEDULED RUN IS EMAILED, NOT ISSUED. GitHub notifies the user whose commit last touched the cron on
-# a scheduled-workflow failure; there is deliberately no issue-opening step here, because a bot that files an
-# issue for a market holiday is a bot people learn to ignore.
+# WHY IT IS NO LONGER ON A SCHEDULE. It ran Mondays at 06:17 UTC until 2026-09-09. The cadence was retired
+# because it paid a real price for a signal nobody received. Every run spent a live key's standing with FMP, and
+# a scheduled failure is only ever emailed to whoever last touched the cron — so when the key itself started
+# being rejected on 2026-08-31, the suite reported eighty endpoints "changing shape" and it went unnoticed for a
+# fortnight. A check whose failures nobody reads is not a check; it is a bill.
+#
+# Drift in FMP's responses does not arrive on a weekly clock either. It is worth looking for when a release is
+# being cut, or when something already looks wrong — both moments when somebody is actually reading the result.
+# That is what dispatch is for: Actions → Live smoke → Run workflow.
 
 on:
-  schedule:
-    # Mondays, 06:17 UTC. Not on the hour: GitHub queues scheduled runs and the top of the hour is the most
-    # contended slot, where a run can be delayed by tens of minutes or dropped outright.
-    - cron: '17 6 * * 1'
   workflow_dispatch:
     inputs:
       bulk:
@@ -67,7 +69,7 @@ jobs:
       FMP_API_KEY: ${{ secrets.FMP_API_KEY }}
       # The bulk endpoints are excluded unless someone dispatching the workflow ticks the box. FMP's own throttle
       # message warns that "frequent abuse on this API Endpoint may result in restrictions placed on this API
-      # Key", so the cost of running them weekly is the key itself, not the runner minutes. Empty string, not
+      # Key", so the cost of running them often is the key itself, not the runner minutes. Empty string, not
       # 'false': the suite tests for presence.
       FMPDOTNET_SMOKE_BULK: ${{ inputs.bulk && '1' || '' }}
 
@@ -75,8 +77,12 @@ jobs:
       - uses: actions/checkout@v7
 
       # Without this the whole job passes by doing nothing. Every live test skips itself when FMP_API_KEY is
-      # unset — which is what makes a keyless checkout run green offline — so a missing or expired secret would
-      # turn this workflow into a weekly green tick that never called anything.
+      # unset — which is what makes a keyless checkout run green offline — so a missing secret would turn this
+      # workflow into a green tick that never called anything.
+      #
+      # It checks presence, NOT validity: a key FMP rejects passes this guard and then fails downstream as
+      # eighty endpoints all "changing shape" at once, which is what happened from 2026-08-31. If this workflow
+      # ever goes back on a schedule, make this a one-request pre-flight first.
       - name: Require the API key
         run: |
           if [ -z "$FMP_API_KEY" ]; then

@@ -66,7 +66,7 @@ FMP's own throttle text warns that
 
 > frequent abuse on this API Endpoint may result in restrictions placed on this API Key
 
-**The cost of sweeping bulk weekly is the key, not the runner minutes.** So it is excluded by default and needs a
+**The cost of sweeping bulk is the key, not the runner minutes.** So it is excluded by default and needs a
 second, deliberate switch.
 
 When it does run, it is paced by **the SDK's own bulk reservoir** — `BulkPerMinuteCap`, defaulting to 2 a minute.
@@ -109,7 +109,7 @@ Reading the diff, line by line:
 | A **bulk** `set` → `null` | Weaker evidence — see below. | Check the fixture and the mapper before assuming a break. |
 
 A failed sweep **cannot record itself as the baseline**. An offline test enforces that, because the alternative
-leaves the weekly run green precisely because an endpoint had broken.
+leaves the run green precisely because an endpoint had broken.
 
 ## A bulk `null` is weaker evidence than an ordinary one
 
@@ -137,26 +137,37 @@ Not optional, and the build enforces it. **An endpoint the sweep skips is an end
 unnoticed until a consumer hits it.**
 
 An offline test — one that runs in ordinary CI with no key — asserts that the sweep can still reach every
-endpoint. So forgetting this step fails the build on the commit that caused it, rather than on the next Monday.
+endpoint. So forgetting this step fails the build on the commit that caused it, rather than on the next live run.
 
 After adding it, re-record the baseline so the new endpoint's properties are on record.
 
-## The weekly workflow
+## The workflow
 
-`smoke.yml` runs **Mondays at 06:17 UTC**, plus manual dispatch with an optional *"also probe bulk"* checkbox.
+`smoke.yml` runs **on manual dispatch only**, with an optional *"also probe bulk"* checkbox.
 
-A few deliberate choices worth knowing before you change it:
+**Run it before cutting a release**, and whenever FMP looks like it has changed something. Those are the moments
+the answer matters and somebody is reading it.
 
-* **Not on the hour.** GitHub queues scheduled runs, and the top of the hour is the most contended slot, where a
-  run can be delayed by tens of minutes or dropped outright.
+### Why it is no longer weekly
+
+It ran Mondays at 06:17 UTC until 2026-09-09. The schedule was retired because it paid a real price for a signal
+nobody received. Every run spent a live key's standing with FMP, and a scheduled failure is only ever emailed to
+whoever last touched the cron — so when the key itself started being rejected on 2026-08-31, the suite reported
+eighty endpoints "changing shape" and it went unnoticed for a fortnight. A check whose failures nobody reads is
+not a check; it is a bill.
+
+Drift in FMP's responses does not arrive on a weekly clock either, which is the other half of it.
+
+### Deliberate choices worth knowing before you change it
+
 * **`concurrency: smoke`, no cancellation.** Two concurrent runs would share the key but not the SDK's token
   bucket, which paces itself *per process* — so they would emit at twice the rate measured to be safe.
 * **A missing key fails the job loudly.** Every live test skips itself without `FMP_API_KEY` — which is what makes
-  a keyless checkout green — so an expired secret would otherwise turn this workflow into a weekly green tick that
-  never called anything. An explicit guard step fails first.
-* **Failures are emailed, not filed as issues.** GitHub notifies whoever last touched the cron. There is
-  deliberately no issue-opening step: a bot that files an issue for a market holiday is a bot people learn to
-  ignore.
+  a keyless checkout green — so a missing secret would otherwise turn this workflow into a green tick that never
+  called anything. An explicit guard step fails first.
+* **That guard checks presence, not validity.** A key FMP rejects passes it and then fails downstream as eighty
+  endpoints apparently changing shape at once, which reads like FMP restructured its API. If this ever goes back
+  on a schedule, make the guard a one-request pre-flight first.
 * **A generous timeout that is not padding.** If a run ever approaches the ceiling, the sample size or FMP's bulk
   throughput has changed, and killing the job is the right answer — a bulk sweep that runs for hours is spending
   the key's standing the whole time.
