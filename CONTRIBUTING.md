@@ -37,22 +37,22 @@ whole solution green and offline.
 3. **Measure the live API before modelling it.**
 4. Commit in conventional-commit form, referencing the issue.
 5. Open a pull request and wait for **`.NET — build + test`** and **`Docs — build`** to go green.
-6. Merge — but see below: a solo pull request needs `--admin`.
+6. Merge once both checks are green. No bypass is needed.
 
 `master` carries a repository ruleset **and** classic branch protection, and GitHub enforces the union of the
-two. A pull request is required, both named checks must pass, **one approving review is required**, and
-force-push and deletion are blocked.
-
-**A solo maintainer cannot merge their own pull request the ordinary way.** GitHub does not allow approving your
-own PR, and the review requirement comes from the classic-protection layer — the ruleset's own "0 approvals"
-does not relax it. The repository admin role bypasses both layers, so the route is:
+two. A pull request is required, both named checks must pass, the branch must be up to date with `master`,
+review conversations must be resolved, and force-push and deletion are blocked.
 
 ```bash
-gh pr merge <number> --admin --merge --delete-branch
+gh pr merge <number> --merge --delete-branch
 ```
 
-That bypass is deliberate, not an oversight. It is for satisfying a review requirement that cannot be satisfied
-alone — never for merging past a red check.
+**No approving review is required, and that is deliberate.** It used to be one, which a solo maintainer cannot
+supply — GitHub does not allow approving your own pull request — so every merge went through `gh pr merge
+--admin`. That bypass does not skip the review alone: it skips the whole protection layer, required checks
+included. A rule that can only ever be satisfied by overriding it trains the override, and the override is
+indiscriminate. At zero approvals the checks are the gate and nothing routine needs `--admin`. Restore the
+review requirement on the day a second maintainer can satisfy it.
 
 ## Three steps people skip
 
