@@ -1030,7 +1030,7 @@ regenerated. Folded together, a newly-populated field and a newly-missing one wo
 
 **The `*-bulk` endpoints are excluded by default** and need a second, deliberate switch. FMP's own throttle text
 warns that "frequent abuse on this API Endpoint may result in restrictions placed on this API Key", so the cost
-of sweeping them weekly is the key rather than the runner minutes. When they do run, they are paced by the SDK's
+of sweeping them is the key rather than the runner minutes. When they do run, they are paced by the SDK's
 own bulk reservoir — `BulkPerMinuteCap`, defaulting to 2 a minute — and each probe reads the first 25 rows and
 then abandons the download rather than transferring a file that can reach 69 MB. The throttle is the SDK's, not
 the test suite's: there is no pacing code here, the probes simply queue behind the reservoir every caller shares.

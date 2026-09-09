@@ -34,6 +34,23 @@ repairing damage.
 - Re-running **CI** on `master` by hand no longer produces a prerelease, because the trigger is now a push.
   Dispatch **Publish** itself for that — it asks for a suffix.
 
+### The live smoke suite runs on dispatch, not on a schedule
+
+**Removed**
+- The Monday 06:17 UTC cron from `smoke.yml`. The workflow is dispatch-only now — **Actions → Live smoke → Run
+  workflow**, with the same optional *"also probe bulk"* checkbox. Run it before cutting a release, and whenever
+  FMP looks like it has changed something.
+
+  The cadence was retired because it paid a real price for a signal nobody received. Every run spent a live key's
+  standing with FMP, and a scheduled failure is only ever emailed to whoever last touched the cron — so when
+  `FMP_API_KEY` began being rejected on 2026-08-31, the suite reported eighty endpoints "changing shape" and it
+  went unnoticed for a fortnight. Drift in FMP's responses does not arrive on a weekly clock either.
+
+  One thing this does not fix, recorded in `smoke.yml` and in the guide: the key guard checks that `FMP_API_KEY`
+  is *present*, not that FMP *accepts* it, so a rejected key still surfaces as eighty endpoints apparently
+  changing shape at once. If the workflow ever goes back on a schedule, that guard has to become a one-request
+  pre-flight first.
+
 ---
 
 ## [0.10.0] — 2026-09-05
