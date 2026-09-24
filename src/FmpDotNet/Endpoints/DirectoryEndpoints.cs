@@ -292,13 +292,23 @@ public sealed class DirectoryEndpoints(FmpTransport transport)
             new FmpRequest("stable/available-exchanges").With("extended", extended ? true : (bool?)null),
             FmpJsonContext.Default.ListExchangeInfo, ct);
 
-    /// <summary>Every symbol FMP holds financial statements for — 68,200 measured 2026-08-27, 5.6 MB of JSON.
+    /// <summary>The symbols FMP lists as having financial statements — 68,264 measured 2026-09-24 (68,200 on
+    /// 2026-08-27, 5.6 MB of JSON).
     ///
-    /// <para><b>A strict subset of <see cref="GetStockListAsync(CancellationToken)"/>.</b> None of the 68,200 fell
-    /// outside that endpoint's 91,845, so the 23,645-symbol difference is exactly the set FMP lists but has no
-    /// fundamentals for — the question to ask before calling
-    /// <see cref="StatementEndpoints.GetIncomeStatementAsync"/> across a universe and reading empty results as
-    /// "no data this period".</para>
+    /// <para><b>A strict subset of <see cref="GetStockListAsync(CancellationToken)"/>.</b> Measured twice without
+    /// an exception: none of 68,200 fell outside that endpoint's 91,845 on 2026-08-27, and none of 68,264 outside
+    /// its 93,776 on 2026-09-24.</para>
+    ///
+    /// <para><b>A strong prior for who files, not a gate.</b> The difference, 25,512 symbols on 2026-09-24, is the
+    /// set FMP does not <i>list</i> as having statements. It is not the set
+    /// <see cref="StatementEndpoints.GetIncomeStatementAsync"/> refuses: 3 of a random 600 drawn from it returned
+    /// populated statements that day, and a 5,700-symbol US roster turned up seven more. Nine of those ten are
+    /// secondary lines — notes, preferreds, SPAC rights and units — served their issuer's statements row for row
+    /// (<c>HBANZ</c> answers what <c>HBAN</c> does, <c>ADAMH</c> what <c>ADAM</c> does). The tenth,
+    /// <c>WSIND.BO</c>, is an ordinary listing served its own. Intersecting a universe with this list before
+    /// fetching statements therefore drops real fundamentals silently, with no error and no empty response to
+    /// notice. What the list does answer is the reverse question: an empty statement for a symbol outside it is
+    /// far more likely "FMP has nothing" than "no data this period".</para>
     ///
     /// <para>Carries the reporting currency as well as the trading one, and they differ — see
     /// <see cref="FinancialStatementSymbol.ReportingCurrency"/>. Ignores <c>limit</c>.</para></summary>
