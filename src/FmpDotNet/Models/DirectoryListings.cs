@@ -4,12 +4,14 @@ using NodaTime;
 
 namespace FmpDotNet.Models;
 
-/// <summary>One row of <c>stable/financial-statement-symbol-list</c> — the symbols FMP holds statements for,
-/// 68,200 measured 2026-08-27.
+/// <summary>One row of <c>stable/financial-statement-symbol-list</c> — the symbols FMP lists as having statements,
+/// 68,264 measured 2026-09-24 (68,200 on 2026-08-27).
 ///
-/// <para><b>A strict subset of <c>stable/stock-list</c>'s 91,845</b> — none of the 68,200 fell outside it. So the
-/// difference, 23,645 symbols, is exactly the set FMP carries but has no statements for, which is the question
-/// this endpoint answers that the stock list cannot.</para></summary>
+/// <para><b>A strict subset of <c>stable/stock-list</c></b> — none fell outside its 93,776 on 2026-09-24, nor its
+/// 91,845 on 2026-08-27. The difference is the set FMP does not <i>list</i> as having statements, not the set it
+/// has none for: symbols outside this list, mostly notes, preferreds and other secondary lines carrying their
+/// issuer's financials, are still served populated statements. See
+/// <see cref="Endpoints.DirectoryEndpoints.GetFinancialStatementSymbolsAsync"/>.</para></summary>
 public sealed record FinancialStatementSymbol
 {
     /// <summary>The ticker as FMP spells it.</summary>

@@ -15,6 +15,19 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 Work that lands on `master` appears here, and in the latest prerelease — the version being prepared, with
 `-ci.<CI run number>` on the end.
 
+### The statement-symbol list stops calling itself exhaustive — #89
+
+**Fixed**
+- `GetFinancialStatementSymbolsAsync` and `FinancialStatementSymbol` said the `stock-list` difference was
+  "exactly the set FMP lists but has no fundamentals for". The subset half still holds — 0 of 68,264 outside
+  93,776 on 2026-09-24 — but the exhaustive half does not: that day `stable/income-statement` served populated
+  statements for 3 of a random 600 drawn from the 25,512-symbol difference, and for seven more found in a US
+  roster. Nine of the ten are secondary lines — notes, preferreds, SPAC rights and units — answered with their
+  issuer's statements row for row, and one, `WSIND.BO`, is an ordinary listing. The sentence invited the one
+  thing it should not: intersecting a universe with the list, which drops real fundamentals with no error and
+  no empty response to notice. The docs now call the list a strong prior for who files rather than a gate, and
+  date both measurements. **Nothing about the code changed.**
+
 ### `publish.yml` refuses a `workflow_run` it did not start itself
 
 Nothing published from this repository is affected and it has never had a fork. This closes a path rather than
