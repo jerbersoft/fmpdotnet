@@ -18,6 +18,25 @@ public sealed class FmpOptions
     /// exception messages and cache filenames quote. No caller ever builds a URL by hand.</summary>
     public string ApiKey { get; set; } = "";
 
+    /// <summary>Supplies the API key on every request, or <see langword="null"/> — the default — to send
+    /// <see cref="ApiKey"/>. For a long-lived host whose key can change while it runs: the registered clients are
+    /// built once, so a key read at construction cannot follow a rotation.
+    ///
+    /// <para><b>When set, it wins over <see cref="ApiKey"/></b> on every request. It is called once per request, on
+    /// the sending thread, before the retry handler — so every attempt of one request carries the same key. Keep it
+    /// cheap and thread-safe: return a key already held, never fetch one. An exception it throws reaches the caller
+    /// unchanged.</para>
+    ///
+    /// <para><b>Pacing does not follow it.</b> <see cref="Http.FmpBucketRegistry"/> picks a registration's token
+    /// buckets once, by <see cref="ApiKey"/>, and the caps come from these options rather than from the key. Set
+    /// <see cref="ApiKey"/> to the key the provider starts with, so registrations that share a key keep sharing a
+    /// reservoir.</para>
+    ///
+    /// <para>Like <see cref="ApiKey"/>, its answer is not validated: <see langword="null"/> or empty is sent as an
+    /// empty header and FMP's 401 reports it — there is no fallback to <see cref="ApiKey"/>. Code-only: no
+    /// configuration section can bind a delegate.</para></summary>
+    public Func<string>? ApiKeyProvider { get; set; }
+
     /// <summary>Bare host. The <c>/stable/</c> segment belongs to each request path, not to the base address, so a
     /// future <c>/v4/</c> endpoint can sit on the same client.</summary>
     public string BaseUrl { get; set; } = "https://financialmodelingprep.com";

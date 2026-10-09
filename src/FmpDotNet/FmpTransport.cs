@@ -274,7 +274,10 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         // exception text and the developer cache's filenames — is the same string ToString() renders.
         // Measured 2026-09-01: FMP answers `apikey:` as a header identically to `?apikey=`.
         using var message = new HttpRequestMessage(HttpMethod.Get, request.ToString());
-        message.Headers.Add("apikey", _options.ApiKey);
+        // ApiKeyProvider, when set, is read here: once per request and above the handlers, so a retried attempt
+        // re-sends the same key. Its answer is not validated, exactly like ApiKey — null or "" reaches FMP as an
+        // empty header and FMP's 401 says so. There is deliberately no fallback to ApiKey.
+        message.Headers.Add("apikey", _options.ApiKeyProvider is { } provider ? provider() ?? "" : _options.ApiKey);
         var response = await http.SendAsync(message, completion, ct).ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.TooManyRequests) return response;
 

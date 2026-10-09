@@ -15,6 +15,20 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 Work that lands on `master` appears here, and in the latest prerelease — the version being prepared, with
 `-ci.<CI run number>` on the end.
 
+### A key provider for a key that changes while the host runs
+
+**Added**
+- `FmpOptions.ApiKeyProvider`, an optional `Func<string>` the transport asks for the key on every request, in
+  place of `ApiKey`. A long-lived host can now follow a rotated key without rebuilding its clients. It is read
+  once per request, above the retry, so every attempt of one request carries the same key; the bulk transport
+  inherits it. Its answer is held to `ApiKey`'s rule — not validated, null or empty sent as an empty header for
+  FMP's 401 to report, and no fallback to `ApiKey`. Pacing does not follow it: `FmpBucketRegistry` still picks a
+  registration's buckets by `ApiKey`. Without a provider nothing changes.
+
+**Fixed**
+- The configuration guide said the key travels as a query parameter. It is a header, and has been since the
+  transport moved it there.
+
 ### The statement-symbol list stops calling itself exhaustive — #89
 
 **Fixed**
