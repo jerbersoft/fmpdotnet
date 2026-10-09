@@ -15,7 +15,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Version
 Work that lands on `master` appears here, and in the latest prerelease — the version being prepared, with
 `-ci.<CI run number>` on the end.
 
-### A key provider for a key that changes while the host runs
+### A key provider for a key that changes while the host runs — #91
 
 **Added**
 - `FmpOptions.ApiKeyProvider`, an optional `Func<string>` the transport asks for the key on every request, in
