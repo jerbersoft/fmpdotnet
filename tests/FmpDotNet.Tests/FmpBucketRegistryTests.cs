@@ -80,4 +80,16 @@ public class FmpBucketRegistryTests
             Func<TState, Exception?, string> formatter) =>
             Entries.Add((logLevel, formatter(state, exception)));
     }
+
+    [Fact]
+    public void A_key_provider_does_not_move_a_registration_to_another_pair()
+    {
+        // Pacing is chosen once, by ApiKey; the caps come from the options, not the key. A provider that answers
+        // a different key must not split a shared reservoir — which is why ApiKeyProvider's documentation asks
+        // for ApiKey to be set to the key the provider starts with.
+        var registry = new FmpBucketRegistry();
+        var withProvider = new FmpOptions { ApiKey = "K1", ApiKeyProvider = () => "K2" };
+
+        Assert.Same(registry.For("a", With("K1")), registry.For("b", withProvider));
+    }
 }

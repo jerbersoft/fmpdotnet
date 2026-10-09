@@ -430,4 +430,82 @@ public class FmpTransportTests
 
         Assert.Contains("Invalid API KEY", thrown.Message, StringComparison.Ordinal);
     }
+
+    private static (FmpTransport Transport, StubHandler Handler) BuildWith(FmpOptions options, params HttpResponseMessage[] responses)
+    {
+        var handler = new StubHandler(responses);
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        return (new FmpTransport(http, Options.Create(options)), handler);
+    }
+
+    [Fact]
+    public async Task A_key_provider_is_read_on_every_request_and_wins_over_the_configured_key()
+    {
+        // A long-lived host swaps keys without rebuilding its clients: the transport asks on every send.
+        var current = "key-one";
+        var (transport, handler) = BuildWith(
+            new FmpOptions { ApiKey = "configured", ApiKeyProvider = () => current },
+            StubHandler.Json("[]"), StubHandler.Json("[]"));
+
+        await transport.GetListAsync(new FmpRequest("stable/available-sectors"), FmpJsonContext.Default.ListCompanyProfile);
+        current = "key-two";
+        await transport.GetListAsync(new FmpRequest("stable/available-sectors"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Equal(["key-one"], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
+        Assert.Equal(["key-two"], handler.Headers[1].GetValueOrDefault("apikey") ?? []);
+        Assert.Equal("", handler.Requests[0].Query);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public async Task A_provider_answering_nothing_sends_an_empty_header_and_never_falls_back(string? answer)
+    {
+        // ApiKey is deliberately not validated, and the provider is held to the same rule: FMP refuses a missing
+        // key with its own message. Falling back to ApiKey would send a key the caller meant to replace.
+        var (transport, handler) = BuildWith(
+            new FmpOptions { ApiKey = "configured", ApiKeyProvider = () => answer! },
+            StubHandler.Json("[]"));
+
+        await transport.GetListAsync(new FmpRequest("stable/available-sectors"), FmpJsonContext.Default.ListCompanyProfile);
+
+        Assert.Equal([""], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
+    }
+
+    [Fact]
+    public async Task A_provider_that_throws_fails_the_request_unchanged_and_sends_nothing()
+    {
+        var thrown = new InvalidOperationException("the key store has not loaded");
+        var (transport, handler) = BuildWith(
+            new FmpOptions { ApiKey = "configured", ApiKeyProvider = () => throw thrown },
+            StubHandler.Json("[]"));
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            transport.GetListAsync(new FmpRequest("stable/available-sectors"), FmpJsonContext.Default.ListCompanyProfile));
+
+        Assert.Same(thrown, error);
+        Assert.Empty(handler.Requests);
+    }
+
+    [Fact]
+    public async Task The_bulk_transport_reads_the_provider_too_because_it_inherits_the_send_path()
+    {
+        var handler = new StubHandler(StubHandler.Csv("\"symbol\",\"date\",\"open\",\"low\",\"high\",\"close\",\"adjClose\",\"volume\"\n"));
+        var http = new HttpClient(handler)
+        {
+            BaseAddress = new Uri("https://financialmodelingprep.com/"),
+            Timeout = Timeout.InfiniteTimeSpan,
+        };
+        var transport = new FmpBulkTransport(http,
+            Options.Create(new FmpOptions { ApiKey = "configured", ApiKeyProvider = () => "provided" }));
+
+        await foreach (var _ in transport.StreamCsvAsync(
+            new FmpRequest("stable/eod-bulk").With("date", "2025-10-22"), BulkEndOfDayPrice.FromCsv)) { }
+
+        Assert.Equal(["provided"], handler.Headers[0].GetValueOrDefault("apikey") ?? []);
+    }
 }

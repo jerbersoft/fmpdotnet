@@ -23,7 +23,8 @@ names another section, and validates under its own name, so a bad `research` fai
 
 | Option | Type | Default | What it does |
 |---|---|---|---|
-| `ApiKey` | `string` | `""` | Sent as an `apikey` **query parameter** on every request — FMP takes no header. Never validated; see below. |
+| `ApiKey` | `string` | `""` | Sent as an `apikey` **request header** on every request, never on the URI. Never validated; see below. |
+| `ApiKeyProvider` | `Func<string>?` | `null` | Asked for the key on every request, and wins over `ApiKey` — for a host whose key changes while it runs. Pacing still keys on `ApiKey`, so set that to the starting key. Code-only; no configuration binds it. |
 | `BaseUrl` | `string` | `https://financialmodelingprep.com` | Bare host. The `/stable/` segment belongs to the request path, not here, so a future `/v4/` path can sit on the same client. |
 | `PerMinuteCap` | `int` | `660` | Ordinary-endpoint throttle, requests per minute, shared by every registration on the same API key. |
 | `BulkPerMinuteCap` | `int` | `2` | `*-bulk` throttle. Independent of `PerMinuteCap` and far tighter. |
@@ -63,7 +64,8 @@ rather than on a request hours later.
 | `MaxRetryAfter >= 0` | Zero is meaningful — it means "honour no hold at all". |
 
 **`ApiKey` is deliberately not validated.** An SDK cannot know whether its caller intends to make a request; a
-host that resolves `FmpClient` and never calls it is not misconfigured. Assert the key in the host that does know.
+host that resolves `FmpClient` and never calls it is not misconfigured. Assert the key in the host that does know. The same holds
+for `ApiKeyProvider`'s answer: null or empty is sent as an empty header, with no fallback to `ApiKey`.
 
 ## Sizing the throttle to your tier
 
