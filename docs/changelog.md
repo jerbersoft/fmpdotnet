@@ -22,8 +22,8 @@ Work that lands on `master` appears here, and in the latest prerelease — the v
   place of `ApiKey`. A long-lived host can now follow a rotated key without rebuilding its clients. It is read
   once per request, above the retry, so every attempt of one request carries the same key; the bulk transport
   inherits it. Its answer is held to `ApiKey`'s rule — not validated, null or empty sent as an empty header for
-  FMP's 401 to report, and no fallback to `ApiKey`. Pacing does not follow it: `FmpBucketRegistry` still picks a
-  registration's buckets by `ApiKey`. Without a provider nothing changes.
+  FMP to refuse as it refuses an unset `ApiKey`, and no fallback to `ApiKey`. Pacing does not follow it:
+  `FmpBucketRegistry` still picks a registration's buckets by `ApiKey`. Without a provider nothing changes.
 
 **Fixed**
 - The configuration guide said the key travels as a query parameter. It is a header, and has been since the

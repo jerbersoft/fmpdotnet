@@ -33,8 +33,8 @@ public sealed class FmpOptions
     /// reservoir.</para>
     ///
     /// <para>Like <see cref="ApiKey"/>, its answer is not validated: <see langword="null"/> or empty is sent as an
-    /// empty header and FMP's 401 reports it — there is no fallback to <see cref="ApiKey"/>. Code-only: no
-    /// configuration section can bind a delegate.</para></summary>
+    /// empty header, and FMP refuses it exactly as it refuses an unset <see cref="ApiKey"/> — there is no fallback
+    /// to <see cref="ApiKey"/>. Code-only: no configuration section can bind a delegate.</para></summary>
     public Func<string>? ApiKeyProvider { get; set; }
 
     /// <summary>Bare host. The <c>/stable/</c> segment belongs to each request path, not to the base address, so a

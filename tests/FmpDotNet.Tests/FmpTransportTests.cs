@@ -465,8 +465,8 @@ public class FmpTransportTests
     [InlineData("")]
     public async Task A_provider_answering_nothing_sends_an_empty_header_and_never_falls_back(string? answer)
     {
-        // ApiKey is deliberately not validated, and the provider is held to the same rule: FMP's 401 reports a
-        // missing key with its own message. Falling back to ApiKey would send a key the caller meant to replace.
+        // ApiKey is deliberately not validated, and the provider is held to the same rule: FMP refuses a missing
+        // key with its own message. Falling back to ApiKey would send a key the caller meant to replace.
         var (transport, handler) = BuildWith(
             new FmpOptions { ApiKey = "configured", ApiKeyProvider = () => answer! },
             StubHandler.Json("[]"));

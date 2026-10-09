@@ -276,7 +276,7 @@ public class FmpTransport(HttpClient http, IOptions<FmpOptions> options)
         using var message = new HttpRequestMessage(HttpMethod.Get, request.ToString());
         // ApiKeyProvider, when set, is read here: once per request and above the handlers, so a retried attempt
         // re-sends the same key. Its answer is not validated, exactly like ApiKey — null or "" reaches FMP as an
-        // empty header and FMP's 401 says so. There is deliberately no fallback to ApiKey.
+        // empty header and FMP refuses it as it refuses an unset ApiKey. There is deliberately no fallback to ApiKey.
         message.Headers.Add("apikey", _options.ApiKeyProvider is { } provider ? provider() ?? "" : _options.ApiKey);
         var response = await http.SendAsync(message, completion, ct).ConfigureAwait(false);
         if (response.StatusCode != HttpStatusCode.TooManyRequests) return response;
